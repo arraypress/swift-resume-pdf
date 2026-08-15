@@ -62,7 +62,7 @@ This writes the PDF directly, in designs that are honest about which side of tha
 | `marker` | Headings struck through with a highlighter. Informal. | ✅ |
 | `sidebar` | Tinted rail carrying contact and skills. | ❌ |
 
-`sidebar` is the best-looking of the four and the only one a tracking system cannot read. That is not a bug to be fixed later — two columns and machine-readability are the same trade-off seen from either end. Send it where a person will open it, and use one of the others for anything that goes through a form. `check` says so rather than leaving it to be discovered.
+`sidebar` is the best-looking of the ten and the only one a tracking system cannot read. That is not a bug to be fixed later — two columns and machine-readability are the same trade-off seen from either end. Send it where a person will open it, and use one of the others for anything that goes through a form. `check` says so rather than leaving it to be discovered.
 
 ## Themes, not templates
 
