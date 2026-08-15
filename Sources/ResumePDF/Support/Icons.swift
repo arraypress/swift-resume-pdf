@@ -166,7 +166,7 @@ extension Sheet {
     /// The stroke thickens with the icon rather than staying constant: a
     /// hairline that reads correctly at seven points disappears at fourteen,
     /// and the mark stops matching the weight of the text beside it.
-    func icon(_ mark: Icon, x: Double, y iconY: Double, size: Double, color: Color? = nil) {
+    public func icon(_ mark: Icon, x: Double, y iconY: Double, size: Double, color: Color? = nil) {
         pdf.svgPath(
             mark.path,
             x: x, y: iconY,

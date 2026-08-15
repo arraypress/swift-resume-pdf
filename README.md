@@ -104,6 +104,49 @@ A CV has sections a résumé does not, and those are real:
 
 A cover letter *is* a different document, so it is a different type. See below.
 
+## Building your own
+
+Three things are open, and they are the three that matter:
+
+**Sections.** `Section` is a struct, not an enum, so the set is not fixed.
+
+**Typefaces.** Bring your own — static TrueType, any weights you have:
+
+```swift
+let mine = Typeface.custom(
+    name: "Söhne",
+    regular: regularURL,
+    semibold: semiboldURL,
+    italic: italicURL
+)
+try resume.save(to: url, theme: Theme(typeface: mine))
+```
+
+Only the weights you supply exist; a design asking for one you left out gets the nearest you did, so a family of two files renders everything.
+
+**Designs.** `Design`, `Sheet` and `Blocks` are public, so a layout of your own is a masthead and a loop:
+
+```swift
+struct Broadside: Design {
+    func render(_ resume: Resume, on sheet: Sheet) {
+        sheet.line(resume.profile.name, size: 30, face: sheet.semibold)
+        sheet.rule(color: sheet.accent, thickness: 2)
+
+        let style = Blocks.Style(x: sheet.left, width: sheet.width)
+        for section in resume.populated() {
+            sheet.sectionHeading(resume.heading(for: section))
+            Blocks.render(section, of: resume, on: sheet, style: style)
+        }
+    }
+}
+
+try resume.save(to: url, design: Broadside())
+```
+
+`Blocks` renders any section exactly as the built-in designs do, so you inherit page breaking, the date placement rules and every entry shape. `Sheet` carries the rest — the palette, the vertical rhythm, and the components: `chips`, `dots`, `dial`, `gauge`, `icon`, `portrait`, `runOn`, `contactFlow`. `sheet.pdf` is the raw `Document` underneath if you want to draw something none of them cover.
+
+A design of your own gets light, dark and tinted for free: the page is painted by `Sheet`, not by the design.
+
 ### Sections of your own
 
 The built-in set will always be missing something — patents, exhibitions, press, licences by state. `Section` is open, so add one and put it where it belongs:

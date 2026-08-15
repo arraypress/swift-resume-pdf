@@ -165,7 +165,7 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
 }
 
 /// An arrangement of a résumé on a page.
-protocol Design: Sendable {
+public protocol Design: Sendable {
 
     /// Lays the document out on a prepared sheet.
     func render(_ resume: Resume, on sheet: Sheet)
@@ -182,11 +182,50 @@ extension Resume {
     /// itself — so one shared between two documents carries the first one's
     /// characters into the second one's file.
     public func document(design: DesignKind = .ledger, theme: Theme = .plain) throws -> Document {
+        try document(design: design.design, theme: theme)
+    }
+
+    /// The same, laid out by a design of your own.
+    ///
+    /// ```swift
+    /// struct Broadside: Design {
+    ///     func render(_ resume: Resume, on sheet: Sheet) {
+    ///         sheet.line(resume.profile.name, size: 30, face: sheet.semibold)
+    ///         for section in resume.populated() {
+    ///             sheet.sectionHeading(resume.heading(for: section))
+    ///             Blocks.render(section, of: resume, on: sheet,
+    ///                           style: .init(x: sheet.left, width: sheet.width))
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// try resume.save(to: url, design: Broadside())
+    /// ```
+    ///
+    /// ``Blocks`` renders any section the same way the built-in designs do, so
+    /// a design of your own is a masthead and a loop unless you want it to be
+    /// more. Everything below that — ``Sheet``'s type, palette, rhythm and
+    /// components — is the same furniture the fourteen are built from.
+    public func document(design: any Design, theme: Theme = .plain) throws -> Document {
         let family = try Typography.family(theme.typeface)
         let sheet = Sheet(theme: theme, family: family, labels: labels)
         sheet.pdf.language = labels.language
-        design.design.render(self, on: sheet)
+        design.render(self, on: sheet)
         return sheet.pdf
+    }
+
+    /// The finished bytes, from a design of your own.
+    public func render(design: any Design, theme: Theme = .plain) throws -> Data {
+        try document(design: design, theme: theme)
+            .render(metadata: metadata(design: .ledger))
+    }
+
+    /// Renders a design of your own and writes it, returning the byte count.
+    @discardableResult
+    public func save(to url: URL, design: any Design, theme: Theme = .plain) throws -> Int {
+        let data = try render(design: design, theme: theme)
+        try data.write(to: url, options: .atomic)
+        return data.count
     }
 
     /// The loosest setting that fits the résumé into `pages`.

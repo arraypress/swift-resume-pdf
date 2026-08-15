@@ -15,7 +15,7 @@ import Foundation
 import TextPDF
 
 /// Where an entry's dates are set.
-enum DatePlacement {
+public enum DatePlacement {
 
     /// Against the right edge, on the title's line. Wants roughly 300 points
     /// of column to look right.
@@ -33,33 +33,62 @@ enum DatePlacement {
 }
 
 /// Section bodies, drawn into a column.
-enum Blocks {
+public enum Blocks {
 
     /// Column geometry and the few knobs a design varies.
-    struct Style {
-        var x: Double
-        var width: Double
+    public struct Style {
+
+        /// The left edge of the column, and how wide it is.
+        public var x: Double
+        public var width: Double
 
         /// Where an entry's dates go.
-        var dates: DatePlacement = .besideTitle
+        public var dates: DatePlacement = .besideTitle
 
-        var roleSize: Double = 10.4
-        var bodySize: Double = 9.4
-        var detailSize: Double = 9.2
-        var dateSize: Double = 8.5
+        public var roleSize: Double = 10.4
+        public var bodySize: Double = 9.4
+        public var detailSize: Double = 9.2
+        public var dateSize: Double = 8.5
 
         /// Space between one entry and the next.
-        var entryGap: Double = 13
+        public var entryGap: Double = 13
 
         /// Whether an entry's role is set in the accent colour.
-        var accentRoles: Bool = false
+        public var accentRoles: Bool = false
 
         /// How a skills section is drawn.
-        var skills: SkillStyle = .list
+        public var skills: SkillStyle = .list
+
+        /// A struct's memberwise initialiser is internal even when the struct
+        /// is public, so a design written outside the package could not make
+        /// one of these without an explicit one.
+        public init(
+            x: Double,
+            width: Double,
+            dates: DatePlacement = .besideTitle,
+            roleSize: Double = 10.4,
+            bodySize: Double = 9.4,
+            detailSize: Double = 9.2,
+            dateSize: Double = 8.5,
+            entryGap: Double = 13,
+            accentRoles: Bool = false,
+            skills: SkillStyle = .list
+        ) {
+            self.x = x
+            self.width = width
+            self.dates = dates
+            self.roleSize = roleSize
+            self.bodySize = bodySize
+            self.detailSize = detailSize
+            self.dateSize = dateSize
+            self.entryGap = entryGap
+            self.accentRoles = accentRoles
+            self.skills = skills
+        }
     }
 
     /// How a skills section is set.
-    enum SkillStyle {
+    public enum SkillStyle {
 
         /// Label, then the terms. Every word is a keyword a parser can read.
         case list
@@ -77,7 +106,7 @@ enum Blocks {
 
     // MARK: Dispatch
 
-    static func render(_ section: Section, of resume: Resume, on sheet: Sheet, style: Style) {
+    public static func render(_ section: Section, of resume: Resume, on sheet: Sheet, style: Style) {
         switch section {
         case .summary:
             sheet.paragraph(resume.summary, x: style.x, width: style.width, size: style.bodySize)
@@ -137,38 +166,66 @@ enum Blocks {
 
     // MARK: Sections of your own
 
-    /// Whatever the block turned out to be holding.
+    /// Whatever the block turned out to be holding, in the order it holds it.
     ///
-    /// All three shapes render, in the order somebody would expect to read
-    /// them: the prose that introduces the section, then the list, then the
-    /// dated entries. A block with only one of them — which is the usual
-    /// case — reads as though the other two were never a possibility.
-    static func custom(_ section: Section, of resume: Resume, on sheet: Sheet, style: Style) {
+    /// Each content block goes through the same renderer a built-in section
+    /// would use, so a custom "Selected Works" made of publications is set
+    /// exactly as the built-in publications section is — which is the
+    /// difference between an extension point and a consolation prize.
+    public static func custom(_ section: Section, of resume: Resume, on sheet: Sheet, style: Style) {
         guard let block = resume.customSection(section) else { return }
+        let labels = resume.labels
 
-        if !block.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            sheet.paragraph(block.body, x: style.x, width: style.width, size: style.bodySize)
-        }
-        if !block.items.isEmpty {
-            sheet.rigidGap(3)
-            sheet.bullets(block.items, x: style.x, width: style.width, size: style.bodySize)
-        }
-        if !block.entries.isEmpty {
-            sheet.rigidGap(4)
-            positions(block.entries, on: sheet, style: style, labels: resume.labels)
+        for (index, content) in block.content.enumerated() where !content.isEmpty {
+            if index > 0 { sheet.rigidGap(4) }
+
+            switch content {
+            case .prose(let text):
+                sheet.paragraph(text, x: style.x, width: style.width, size: style.bodySize)
+
+            case .list(let items):
+                sheet.bullets(items, x: style.x, width: style.width, size: style.bodySize)
+
+            case .positions(let items):
+                positions(items, on: sheet, style: style, labels: labels)
+
+            case .education(let items):
+                education(items, on: sheet, style: style, labels: labels)
+
+            case .projects(let items):
+                projects(items, on: sheet, style: style, labels: labels)
+
+            case .publications(let items):
+                publications(items, on: sheet, style: style)
+
+            case .credentials(let items):
+                credentials(items, on: sheet, style: style)
+
+            case .awards(let items):
+                awards(items, on: sheet, style: style)
+
+            case .grants(let items):
+                grants(items, on: sheet, style: style, labels: labels)
+
+            case .skills(let items):
+                skills(items, on: sheet, style: style)
+
+            case .languages(let items):
+                languages(items, on: sheet, style: style)
+            }
         }
     }
 
     // MARK: Positions
 
-    static func positions(_ items: [Position], on sheet: Sheet, style: Style, labels: Labels) {
+    public static func positions(_ items: [Position], on sheet: Sheet, style: Style, labels: Labels) {
         for (index, item) in items.enumerated() {
             if index > 0 { sheet.gap(style.entryGap) }
             position(item, on: sheet, style: style, labels: labels)
         }
     }
 
-    static func position(_ item: Position, on sheet: Sheet, style: Style, labels: Labels) {
+    public static func position(_ item: Position, on sheet: Sheet, style: Style, labels: Labels) {
         let dates = item.dates.rendered(present: labels.present, dash: labels.dateSeparator)
 
         // The whole header, plus a line of what follows, kept together. A role
@@ -212,7 +269,7 @@ enum Blocks {
 
     // MARK: Education
 
-    static func education(_ items: [Education], on sheet: Sheet, style: Style, labels: Labels) {
+    public static func education(_ items: [Education], on sheet: Sheet, style: Style, labels: Labels) {
         for (index, item) in items.enumerated() {
             if index > 0 { sheet.gap(style.entryGap * 0.72) }
             sheet.pdf.breakIfNeeded(sheet.leading(style.roleSize) * 2.6)
@@ -244,7 +301,7 @@ enum Blocks {
 
     // MARK: Skills
 
-    static func skills(_ groups: [SkillGroup], on sheet: Sheet, style: Style) {
+    public static func skills(_ groups: [SkillGroup], on sheet: Sheet, style: Style) {
         switch style.skills {
         case .list:
             listedSkills(groups, on: sheet, style: style)
@@ -334,7 +391,7 @@ enum Blocks {
 
     // MARK: Projects
 
-    static func projects(_ items: [Project], on sheet: Sheet, style: Style, labels: Labels) {
+    public static func projects(_ items: [Project], on sheet: Sheet, style: Style, labels: Labels) {
         for (index, item) in items.enumerated() {
             if index > 0 { sheet.gap(style.entryGap * 0.8) }
             sheet.pdf.breakIfNeeded(sheet.leading(style.roleSize) * 2.6)
@@ -365,7 +422,7 @@ enum Blocks {
 
     // MARK: Grants
 
-    static func grants(_ items: [Grant], on sheet: Sheet, style: Style, labels: Labels) {
+    public static func grants(_ items: [Grant], on sheet: Sheet, style: Style, labels: Labels) {
         for item in items {
             let dates = item.dates.rendered(present: labels.present, dash: labels.dateSeparator)
             heading(item.title, dates: dates, on: sheet, style: style,
@@ -388,7 +445,7 @@ enum Blocks {
 
     // MARK: Short entries
 
-    static func credentials(_ items: [Credential], on sheet: Sheet, style: Style) {
+    public static func credentials(_ items: [Credential], on sheet: Sheet, style: Style) {
         for item in items {
             heading(item.name, dates: item.date, on: sheet, style: style,
                     size: style.detailSize, face: sheet.medium,
@@ -403,7 +460,7 @@ enum Blocks {
         }
     }
 
-    static func publications(_ items: [Publication], on sheet: Sheet, style: Style) {
+    public static func publications(_ items: [Publication], on sheet: Sheet, style: Style) {
         for item in items {
             sheet.pdf.breakIfNeeded(sheet.leading(style.bodySize) * 2.4)
 
@@ -426,7 +483,7 @@ enum Blocks {
         }
     }
 
-    static func awards(_ items: [Award], on sheet: Sheet, style: Style) {
+    public static func awards(_ items: [Award], on sheet: Sheet, style: Style) {
         for item in items {
             heading(item.name, dates: item.date, on: sheet, style: style,
                     size: style.detailSize, face: sheet.medium,
@@ -444,7 +501,7 @@ enum Blocks {
         }
     }
 
-    static func languages(_ items: [Language], on sheet: Sheet, style: Style) {
+    public static func languages(_ items: [Language], on sheet: Sheet, style: Style) {
         guard !items.isEmpty else { return }
 
         // The level sits just past the longest name rather than against the

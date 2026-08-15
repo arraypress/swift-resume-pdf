@@ -18,17 +18,17 @@ import Foundation
 import TextPDF
 
 /// A page being laid out, with the theme and typeface already on it.
-final class Sheet {
+public final class Sheet {
 
-    let pdf: Document
-    let theme: Theme
-    let family: FontFamily
-    let labels: Labels
+    public let pdf: Document
+    public let theme: Theme
+    public let family: FontFamily
+    public let labels: Labels
 
     /// Layers drawn behind the content, in the order they were added.
     private var backgrounds: [(Document, Int, Int) -> Void] = []
 
-    init(theme: Theme, family: FontFamily, labels: Labels) {
+    public init(theme: Theme, family: FontFamily, labels: Labels) {
         self.theme = theme
         self.family = family
         self.labels = labels
@@ -59,7 +59,7 @@ final class Sheet {
     /// silently replace the page colour underneath it — and the fault would
     /// look like the theme being ignored rather than like two things fighting
     /// over one slot.
-    func background(_ draw: @escaping (Document, Int, Int) -> Void) {
+    public func background(_ draw: @escaping (Document, Int, Int) -> Void) {
         backgrounds.append(draw)
         let layers = backgrounds
         pdf.behindEachPage { doc, page, total in
@@ -69,7 +69,7 @@ final class Sheet {
 
     // MARK: Type
 
-    func face(_ weight: FontFamily.Weight, italic: Bool = false) -> EmbeddedFont? {
+    public func face(_ weight: FontFamily.Weight, italic: Bool = false) -> EmbeddedFont? {
         family.face(weight, italic: italic)
     }
 
@@ -79,34 +79,46 @@ final class Sheet {
     /// faces is not a cost to impose on the twelve that do not.
     private lazy var monoFamily: FontFamily? = try? Typography.mono()
 
-    var mono: EmbeddedFont? { monoFamily?.face(.regular) }
-    var monoMedium: EmbeddedFont? { monoFamily?.face(.medium) }
-    var monoBold: EmbeddedFont? { monoFamily?.face(.bold) }
+    public var mono: EmbeddedFont? { monoFamily?.face(.regular) }
+    public var monoMedium: EmbeddedFont? { monoFamily?.face(.medium) }
+    public var monoBold: EmbeddedFont? { monoFamily?.face(.bold) }
 
-    var regular: EmbeddedFont? { face(.regular) }
-    var medium: EmbeddedFont? { face(.medium) }
-    var semibold: EmbeddedFont? { face(.semibold) }
-    var bold: EmbeddedFont? { face(.bold) }
-    var italic: EmbeddedFont? { face(.regular, italic: true) }
+    public var regular: EmbeddedFont? { face(.regular) }
+    public var medium: EmbeddedFont? { face(.medium) }
+    public var semibold: EmbeddedFont? { face(.semibold) }
+    public var bold: EmbeddedFont? { face(.bold) }
+    public var italic: EmbeddedFont? { face(.regular, italic: true) }
 
     /// Set while drawing over something that is not the page colour.
     private var override: Palette?
 
-    var ink: Color { override?.ink ?? theme.ink }
-    var muted: Color { override?.muted ?? theme.muted }
-    var accent: Color { override?.accent ?? theme.accentColor }
-    var hairline: Color { override?.hairline ?? theme.hairline }
-    var wash: Color { override?.wash ?? theme.wash }
-    var page: Color { override?.page ?? theme.page }
+    public var ink: Color { override?.ink ?? theme.ink }
+    public var muted: Color { override?.muted ?? theme.muted }
+    public var accent: Color { override?.accent ?? theme.accentColor }
+    public var hairline: Color { override?.hairline ?? theme.hairline }
+    public var wash: Color { override?.wash ?? theme.wash }
+    public var page: Color { override?.page ?? theme.page }
 
     /// A palette, for a region of the page that is not the page's colour.
-    struct Palette {
-        var page: Color
-        var ink: Color
-        var muted: Color
-        var hairline: Color
-        var wash: Color
-        var accent: Color
+    public struct Palette {
+        public var page: Color
+        public var ink: Color
+        public var muted: Color
+        public var hairline: Color
+        public var wash: Color
+        public var accent: Color
+
+        public init(
+            page: Color, ink: Color, muted: Color,
+            hairline: Color, wash: Color, accent: Color
+        ) {
+            self.page = page
+            self.ink = ink
+            self.muted = muted
+            self.hairline = hairline
+            self.wash = wash
+            self.accent = accent
+        }
 
         /// Derived from a background, so a design says what it is drawing on
         /// and gets a palette that reads against it.
@@ -137,7 +149,7 @@ final class Sheet {
     }
 
     /// Runs `body` with a different palette in force.
-    func drawing(on palette: Palette?, _ body: () -> Void) {
+    public func drawing(on palette: Palette?, _ body: () -> Void) {
         let previous = override
         override = palette
         body()
@@ -146,26 +158,26 @@ final class Sheet {
 
     // MARK: Geometry
 
-    var left: Double { pdf.left() }
-    var right: Double { pdf.right() }
-    var width: Double { pdf.contentWidth() }
-    var cursor: Double { pdf.cursor() }
+    public var left: Double { pdf.left() }
+    public var right: Double { pdf.right() }
+    public var width: Double { pdf.contentWidth() }
+    public var cursor: Double { pdf.cursor() }
 
     /// Vertical space scaled by the theme's density.
     ///
     /// Everything between blocks goes through here, so tightening a page is
     /// one number rather than forty.
-    func gap(_ points: Double) {
+    public func gap(_ points: Double) {
         pdf.gap(points * theme.density.sectionGap)
     }
 
     /// A fixed gap, for space inside a block where the rhythm must not move.
-    func rigidGap(_ points: Double) {
+    public func rigidGap(_ points: Double) {
         pdf.gap(points)
     }
 
     /// Line height for body text at a size.
-    func leading(_ size: Double) -> Double {
+    public func leading(_ size: Double) -> Double {
         size * 1.42 * theme.density.leading
     }
 
@@ -176,7 +188,7 @@ final class Sheet {
     /// Tracked, because uppercase set at seven points with no letter-spacing
     /// closes up into a grey bar. The spacing is what makes it read as a
     /// label rather than a squashed word.
-    func sectionHeading(
+    public func sectionHeading(
         _ title: String,
         x: Double? = nil,
         width columnWidth: Double? = nil,
@@ -238,7 +250,7 @@ final class Sheet {
 
     /// A line of text, advancing the cursor by its own height.
     @discardableResult
-    func line(
+    public func line(
         _ text: String,
         x: Double? = nil,
         width columnWidth: Double? = nil,
@@ -265,7 +277,7 @@ final class Sheet {
 
     /// Wrapped body text.
     @discardableResult
-    func paragraph(
+    public func paragraph(
         _ text: String,
         x: Double? = nil,
         width columnWidth: Double? = nil,
@@ -293,7 +305,7 @@ final class Sheet {
 
     /// A list with a hanging indent, so wrapped lines line up under the text
     /// rather than under the bullet.
-    func bullets(
+    public func bullets(
         _ items: [String],
         x: Double? = nil,
         width columnWidth: Double? = nil,
@@ -328,7 +340,7 @@ final class Sheet {
     }
 
     /// Comma-separated terms under a label — "Languages   Swift, Go, Rust".
-    func skillRow(
+    public func skillRow(
         _ group: SkillGroup,
         x: Double? = nil,
         width columnWidth: Double? = nil,
@@ -360,7 +372,7 @@ final class Sheet {
     /// falls inside an email address or between a separator and the thing it
     /// separates. A phone number split across two lines is not a phone number.
     @discardableResult
-    func contactFlow(
+    public func contactFlow(
         _ items: [String],
         x: Double? = nil,
         width columnWidth: Double? = nil,
@@ -379,7 +391,7 @@ final class Sheet {
     /// area has to be measured against the run it covers — and because that is
     /// the only way to know where a separator goes when the row is centred.
     @discardableResult
-    func contactFlow(
+    public func contactFlow(
         _ items: [(text: String, url: String)],
         x: Double? = nil,
         width columnWidth: Double? = nil,
@@ -453,7 +465,7 @@ final class Sheet {
 
     /// Two runs on one baseline, the second in a quieter style — "Stripe ·
     /// London", where only the employer is emphasised.
-    func qualified(
+    public func qualified(
         _ lead: String,
         _ trailing: String,
         x: Double? = nil,
@@ -489,7 +501,7 @@ final class Sheet {
     /// a real word a parser reads as a keyword, unlike a bar or a dial, which
     /// are pictures of a number nobody can check.
     @discardableResult
-    func chips(
+    public func chips(
         _ items: [String],
         x: Double? = nil,
         width columnWidth: Double? = nil,
@@ -560,7 +572,7 @@ final class Sheet {
     ///
     /// Five of them, because a scale with more points than a reader can
     /// distinguish is a scale pretending to a precision it does not have.
-    func dots(_ fraction: Double, x: Double, y dotY: Double, size: Double = 4, count: Int = 5) {
+    public func dots(_ fraction: Double, x: Double, y dotY: Double, size: Double = 4, count: Int = 5) {
         let filled = Int((min(max(fraction, 0), 1) * Double(count)).rounded())
         let spacing = size * 2.6
 
@@ -575,7 +587,7 @@ final class Sheet {
     }
 
     /// A dial — a ring with an arc over it and the figure inside.
-    func dial(
+    public func dial(
         _ fraction: Double,
         x: Double, y dialY: Double,
         radius: Double,
@@ -601,7 +613,7 @@ final class Sheet {
     }
 
     /// A labelled bar.
-    func gauge(
+    public func gauge(
         _ label: String,
         _ fraction: Double,
         x: Double,
@@ -629,14 +641,14 @@ final class Sheet {
     /// résumé that refuses to render because a JPEG moved is worse than one
     /// with a gap where a face was, and ``ATS`` reports the reason.
     @discardableResult
-    func portrait(_ path: String, x: Double, y photoY: Double, diameter: Double) -> Bool {
+    public func portrait(_ path: String, x: Double, y photoY: Double, diameter: Double) -> Bool {
         guard let picture = Sheet.photo(at: path) else { return false }
         pdf.circularImage(picture, x: x, y: photoY, diameter: diameter)
         return true
     }
 
     /// Loads a portrait, or nothing.
-    static func photo(at path: String) -> EmbeddedImage? {
+    public static func photo(at path: String) -> EmbeddedImage? {
         let trimmed = path.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return nil }
         let expanded = (trimmed as NSString).expandingTildeInPath
@@ -653,7 +665,7 @@ final class Sheet {
     ///
     /// So the lead is measured, the first line of the detail is filled with
     /// whatever fits beside it, and the remainder wraps at full width.
-    func runOn(
+    public func runOn(
         _ lead: String,
         _ detail: String,
         x: Double? = nil,
@@ -702,7 +714,7 @@ final class Sheet {
     }
 
     /// A rule across a column.
-    func rule(x: Double? = nil, width columnWidth: Double? = nil, color: Color? = nil, thickness: Double = 0.6) {
+    public func rule(x: Double? = nil, width columnWidth: Double? = nil, color: Color? = nil, thickness: Double = 0.6) {
         let originX = x ?? left
         let boxWidth = columnWidth ?? width
         pdf.line(from: originX, pdf.cursor(), to: originX + boxWidth, pdf.cursor(),
@@ -715,7 +727,7 @@ final class Sheet {
     /// document was produced by something that could not tell. The name goes
     /// with it because printed pages get separated, and page two of a résumé
     /// with no name on it belongs to nobody.
-    func footer(name: String) {
+    public func footer(name: String) {
         let tint = muted
         let rule = hairline
 
@@ -733,7 +745,7 @@ final class Sheet {
 // MARK: - Heading style
 
 /// How a section heading is set.
-enum HeadingStyle {
+public enum HeadingStyle {
 
     /// Label, then a hairline across the column.
     case ruled

@@ -26,5 +26,12 @@ let package = Package(
             ]
         ),
         .testTarget(name: "ResumePDFTests", dependencies: ["ResumePDF"]),
+
+        // Plain `import`, no @testable. Everything a caller outside the
+        // package is meant to be able to reach has to be reachable here, and
+        // nothing in the other target can prove that — @testable makes
+        // internal declarations visible, so a visibility regression passes
+        // every test in it.
+        .testTarget(name: "ResumePDFAPITests", dependencies: ["ResumePDF"]),
     ]
 )

@@ -311,41 +311,78 @@ public struct Section: Hashable, Sendable, Codable, RawRepresentable {
 
 /// A section the built-in set does not name.
 ///
-/// Carries all three shapes a section can take, and renders whichever are
-/// filled: prose, a list, or dated entries. That is more permissive than the
-/// built-in sections, which each have one shape — but the whole point of this
-/// type is that the library does not know what it is holding.
+/// Holds a list of content blocks rather than a fixed set of fields, so a
+/// section of your own can be made of the same things a built-in one is —
+/// prose, a list, jobs, degrees, papers, grants — in whatever order and
+/// combination it needs. "Selected Works" is a list of publications;
+/// "Clearances" is two lines of prose; "Fellowships" is grants with a
+/// paragraph over them. None of those is a special case.
 public struct CustomSection: Sendable, Equatable, Codable {
 
     /// Matches ``Section/custom(_:)`` in the order, and is printed as the
     /// heading.
     public let title: String
 
-    /// Free prose.
-    public let body: String
+    /// Drawn in the order given.
+    public let content: [Content]
 
-    /// A plain list, set as bullets.
-    public let items: [String]
-
-    /// Dated entries, set the way a job is.
-    public let entries: [Position]
-
-    public init(
-        _ title: String,
-        body: String = "",
-        items: [String] = [],
-        entries: [Position] = []
-    ) {
+    public init(_ title: String, _ content: [Content]) {
         self.title = title
-        self.body = body
-        self.items = items
-        self.entries = entries
+        self.content = content
     }
 
-    public var isEmpty: Bool {
-        body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && items.isEmpty && entries.isEmpty
+    /// Prose, for the common case.
+    public init(_ title: String, _ prose: String) {
+        self.init(title, [.prose(prose)])
     }
+
+    /// Empty, for a section kept around to fill in later.
+    public init(_ title: String) {
+        self.init(title, [])
+    }
+
+    /// Anything a section can be made of.
+    ///
+    /// The same shapes the built-in sections use, which is the point: a
+    /// section of your own is not a lesser thing that only gets bullet points.
+    public enum Content: Sendable, Equatable, Codable {
+
+        /// A paragraph.
+        case prose(String)
+
+        /// Bullets.
+        case list([String])
+
+        /// Jobs, or anything shaped like one — a role, a place and dates.
+        case positions([Position])
+
+        case education([Education])
+        case projects([Project])
+        case publications([Publication])
+        case credentials([Credential])
+        case awards([Award])
+        case grants([Grant])
+        case skills([SkillGroup])
+        case languages([Language])
+
+        var isEmpty: Bool {
+            switch self {
+            case .prose(let text): return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            case .list(let items): return items.isEmpty
+            case .positions(let items): return items.isEmpty
+            case .education(let items): return items.isEmpty
+            case .projects(let items): return items.isEmpty
+            case .publications(let items): return items.isEmpty
+            case .credentials(let items): return items.isEmpty
+            case .awards(let items): return items.isEmpty
+            case .grants(let items): return items.isEmpty
+            case .skills(let items): return items.isEmpty
+            case .languages(let items): return items.isEmpty
+            }
+        }
+    }
+
+    public var isEmpty: Bool { content.allSatisfy(\.isEmpty) }
 }
 
 // MARK: - Labels

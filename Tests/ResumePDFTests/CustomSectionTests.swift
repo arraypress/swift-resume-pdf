@@ -19,15 +19,14 @@ final class CustomSectionTests: XCTestCase {
             summary: "Infrastructure engineer.",
             experience: [Position(role: "Engineer", organisation: "Stripe", dates: .since("2022"))],
             custom: [
-                CustomSection(
-                    "Patents",
-                    body: "Two granted, one pending.",
-                    items: ["GB2601234 — Ledger write ordering", "US11987654 — Idempotent settlement"]
-                ),
-                CustomSection(
-                    "Speaking",
-                    entries: [Position(role: "Keynote", organisation: "SREcon", dates: DateRange("2024"))]
-                ),
+                CustomSection("Patents", [
+                    .prose("Two granted, one pending."),
+                    .list(["GB2601234 — Ledger write ordering", "US11987654 — Idempotent settlement"]),
+                ]),
+                CustomSection("Speaking", [
+                    .positions([Position(role: "Keynote", organisation: "SREcon",
+                                         dates: DateRange("2024"))]),
+                ]),
             ],
             order: order ?? [.summary, .experience, .custom("Patents"), .custom("Speaking")]
         )
@@ -69,11 +68,47 @@ final class CustomSectionTests: XCTestCase {
         XCTAssertTrue(text.contains("US11987654"))
     }
 
-    func testAllThreeShapesRender() throws {
+    func testEveryContentShapeRenders() throws {
         let text = try read(patentsResume())
         XCTAssertTrue(text.contains("Two granted"), "prose missing")
         XCTAssertTrue(text.contains("Ledger write ordering"), "list missing")
-        XCTAssertTrue(text.contains("SREcon"), "entries missing")
+        XCTAssertTrue(text.contains("SREcon"), "positions missing")
+    }
+
+    func testACustomSectionCanHoldTheSameShapesABuiltInOneDoes() throws {
+        // The point of the content model: a section of your own is not a
+        // lesser thing that only gets bullet points.
+        let resume = Resume(
+            profile: Profile(name: "Dr Sørensen", email: "i@ed.ac.uk"),
+            custom: [
+                CustomSection("Selected Works", [
+                    .prose("Chosen for relevance rather than recency."),
+                    .publications([Publication(title: "Unsupervised segmentation",
+                                               venue: "Computational Linguistics", date: "2023")]),
+                ]),
+                CustomSection("Fellowships", [
+                    .grants([Grant(title: "Turing Fellowship", funder: "ATI",
+                                   amount: "£240k", role: "Fellow")]),
+                ]),
+                CustomSection("Qualifications", [
+                    .education([Education(qualification: "PhD Linguistics",
+                                          institution: "Copenhagen")]),
+                    .credentials([Credential(name: "PGCert HE", issuer: "Edinburgh")]),
+                ]),
+                CustomSection("Toolchain", [
+                    .skills([SkillGroup("Methods", ["Bayesian inference"])]),
+                    .languages([Language("Danish", "Native")]),
+                ]),
+            ],
+            order: [.custom("Selected Works"), .custom("Fellowships"),
+                    .custom("Qualifications"), .custom("Toolchain")]
+        )
+
+        let text = try read(resume)
+        for expected in ["Chosen for relevance", "Unsupervised segmentation", "Turing Fellowship",
+                         "£240k", "PhD Linguistics", "PGCert HE", "Bayesian inference", "Danish"] {
+            XCTAssertTrue(text.contains(expected), "\"\(expected)\" missing")
+        }
     }
 
     func testItAppearsWhereTheOrderPutsIt() throws {
@@ -141,6 +176,54 @@ final class CustomSectionTests: XCTestCase {
         XCTAssertTrue(json.contains("custom:Patents"), json)
     }
 
+    // MARK: Bringing your own typeface
+
+    func testACustomTypefaceIsUsed() throws {
+        let arial = "/System/Library/Fonts/Supplemental/Arial.ttf"
+        let bold = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+        try XCTSkipUnless(
+            [arial, bold].allSatisfy(FileManager.default.fileExists(atPath:)),
+            "Arial is not installed in separate files"
+        )
+
+        let face = Typeface.custom(
+            name: "Arial",
+            regular: URL(fileURLWithPath: arial),
+            bold: URL(fileURLWithPath: bold)
+        )
+        let data = try Resume.sample.render(theme: Theme(typeface: face))
+        let raw = try XCTUnwrap(String(data: data, encoding: .isoLatin1))
+
+        XCTAssertTrue(raw.contains("Arial"), "the supplied face was not embedded")
+        XCTAssertFalse(raw.contains("Inter"), "a bundled face was used instead")
+
+        // And the document still reads correctly.
+        let text = try XCTUnwrap(try XCTUnwrap(PDFDocument(data: data)).string)
+        XCTAssertTrue(text.contains("Alex Moreau"))
+    }
+
+    func testAThemeWithACustomTypefaceSurvivesJSON() throws {
+        let face = Typeface.custom(name: "Arial", regular: URL(fileURLWithPath: "/tmp/a.ttf"))
+        let theme = Theme(typeface: face, accent: "#123456")
+
+        let decoded = try JSONDecoder().decode(Theme.self, from: JSONEncoder().encode(theme))
+        XCTAssertEqual(decoded, theme)
+        XCTAssertEqual(decoded.typeface.displayName, "Arial")
+    }
+
+    func testAMissingWeightFallsBackRatherThanFailing() throws {
+        let arial = "/System/Library/Fonts/Supplemental/Arial.ttf"
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: arial), "Arial is not installed")
+
+        // One file only. Every weight a design asks for resolves to it.
+        let face = Typeface.custom(name: "Arial", regular: URL(fileURLWithPath: arial))
+        let family = try Typography.family(face)
+
+        XCTAssertNotNil(family.face(.regular))
+        XCTAssertNotNil(family.face(.bold))
+        XCTAssertNotNil(family.face(.semibold, italic: true))
+    }
+
     // MARK: Monospace
 
     func testTheTerminalDesignUsesTheMonoFamily() throws {
@@ -166,5 +249,95 @@ final class CustomSectionTests: XCTestCase {
         let data = try Resume.sample.render(design: .ledger)
         let raw = try XCTUnwrap(String(data: data, encoding: .isoLatin1))
         XCTAssertFalse(raw.contains("JetBrainsMono"), "mono was embedded by a design that never used it")
+    }
+}
+
+// MARK: - Designs of your own
+
+/// The smallest design that does something: a name and every section.
+private struct Broadside: Design {
+
+    func render(_ resume: Resume, on sheet: Sheet) {
+        sheet.line(resume.profile.name, size: 30, face: sheet.semibold)
+        sheet.gap(10)
+        sheet.rule(color: sheet.accent, thickness: 2)
+        sheet.gap(16)
+
+        let style = Blocks.Style(x: sheet.left, width: sheet.width)
+        for section in resume.populated() {
+            sheet.sectionHeading(resume.heading(for: section), style: .ruled)
+            Blocks.render(section, of: resume, on: sheet, style: style)
+            sheet.gap(16)
+        }
+        sheet.footer(name: resume.profile.name)
+    }
+}
+
+/// One that uses the components rather than the section renderer.
+private struct Dashboard: Design {
+
+    func render(_ resume: Resume, on sheet: Sheet) {
+        sheet.pdf.roundedRect(x: sheet.left, y: sheet.cursor - 60, width: sheet.width,
+                              height: 60, radius: 8, color: sheet.wash)
+        sheet.gap(18)
+        sheet.line(resume.profile.name, x: sheet.left + 14, size: 20, face: sheet.semibold)
+        sheet.gap(28)
+
+        sheet.icon(.skills, x: sheet.left, y: sheet.cursor - 14, size: 14)
+        sheet.line("CAPABILITY", x: sheet.left + 20, size: 8, face: sheet.medium, tracking: 1)
+        sheet.gap(6)
+
+        for group in resume.skills {
+            sheet.chips(group.names, size: 8.4)
+        }
+        sheet.dots(0.8, x: sheet.left, y: sheet.cursor - 6)
+        sheet.dial(0.62, x: sheet.left + 120, y: sheet.cursor - 30, radius: 22, caption: "Coverage")
+        sheet.pdf.move(to: sheet.cursor - 70)
+    }
+}
+
+extension CustomSectionTests {
+
+    func testADesignOfYourOwnRenders() throws {
+        let data = try Resume.sample.render(design: Broadside())
+        let text = try XCTUnwrap(try XCTUnwrap(PDFDocument(data: data)).string)
+
+        XCTAssertTrue(text.contains("Alex Moreau"))
+        XCTAssertTrue(text.contains("Stripe"))
+        XCTAssertTrue(text.contains("University of Bristol"))
+    }
+
+    func testADesignOfYourOwnGetsTheTheme() throws {
+        let data = try Resume.sample.render(design: Broadside(), theme: .midnight)
+        let raw = try XCTUnwrap(String(data: data, encoding: .isoLatin1))
+
+        // The dark page is painted by Sheet, not by the design, so a design of
+        // your own gets light and dark for free.
+        XCTAssertTrue(raw.contains(" re\n") || raw.contains(" rg\n"))
+        XCTAssertNotNil(PDFDocument(data: data))
+    }
+
+    func testTheComponentsAreReachableFromOutside() throws {
+        // chips, dots, dials, icons and the raw Document — the point of making
+        // Sheet public is that a design of your own is not limited to the
+        // section renderer.
+        let data = try Resume.sample.render(design: Dashboard())
+        let document = try XCTUnwrap(PDFDocument(data: data))
+
+        XCTAssertEqual(document.pageCount, 1)
+        let text = try XCTUnwrap(document.string)
+        XCTAssertTrue(text.contains("Alex Moreau"))
+        XCTAssertTrue(text.contains("Kubernetes"))
+        XCTAssertTrue(text.contains("62"), "the dial's figure is missing")
+    }
+
+    func testSavingADesignOfYourOwn() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("broadside-\(UUID().uuidString).pdf")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let bytes = try Resume.sample.save(to: url, design: Broadside())
+        XCTAssertGreaterThan(bytes, 1000)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
     }
 }
