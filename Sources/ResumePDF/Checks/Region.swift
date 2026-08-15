@@ -86,12 +86,12 @@ public enum Region: String, Sendable, CaseIterable, Codable {
 
     // MARK: Checking
 
-    func check(_ resume: Resume, pages: Int) -> [Finding] {
+    func check(_ resume: Resume, design: DesignKind, pages: Int) -> [Finding] {
         var findings: [Finding] = []
         findings += particulars(resume)
         findings += length(resume, pages: pages)
         findings += language(resume)
-        findings += photograph()
+        findings += photograph(resume, design: design)
         return findings
     }
 
@@ -150,18 +150,33 @@ public enum Region: String, Sendable, CaseIterable, Codable {
         )]
     }
 
-    private func photograph() -> [Finding] {
-        guard self == .germany || self == .france else { return [] }
+    private func photograph(_ resume: Resume, design: DesignKind) -> [Finding] {
+        let named = !resume.profile.photo.isEmpty
+
+        // A photograph set on a design with nowhere to put it is the one case
+        // worth saying anywhere: the file was named, so it was meant, and it
+        // will not be in the document.
+        if named, !design.showsPhoto {
+            return [Finding(
+                .note,
+                "A photograph is set, and the \(design.displayName) design has nowhere to put it.",
+                "Designs that place one: "
+                    + DesignKind.allCases.filter(\.showsPhoto).map(\.displayName).joined(separator: ", ")
+                    + "."
+            )]
+        }
+
+        guard self == .germany || self == .france, !named else { return [] }
+
         return [Finding(
             .note,
-            "A photograph is conventional here, and this cannot place one.",
+            "A photograph is conventional here, and none is set.",
             """
-            The writer draws text and vector shapes; it has no image support, so \
-            there is no way to attach a photograph to the document. Where an \
-            employer expects one, add it afterwards in a PDF editor, or send the \
-            document without and accept that it will read as an international \
-            application — which is increasingly how German employers treat it \
-            anyway.
+            Set Profile.photo to a JPEG or PNG and render a design that places \
+            one — \(DesignKind.allCases.filter(\.showsPhoto).map(\.displayName).joined(separator: ", ")). \
+            The practice has been receding since the AGG and plenty of employers \
+            now prefer none, so sending without is a defensible choice rather \
+            than an omission.
             """
         )]
     }

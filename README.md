@@ -287,6 +287,34 @@ Resume(profile: profile, experience: roles, labels: .german)
 
 Headings become *Berufserfahrung* and *Ausbildung*, and an open-ended role reads *heute*. The ATS heading check knows to stay quiet — a Lebenslauf saying *Berufserfahrung* is correct, not a mistake.
 
+## Written as JSON
+
+Every type is `Codable`, and the JSON asks only for what identifies a thing:
+
+```json
+{
+  "profile": { "name": "Alex Moreau", "email": "alex@moreau.dev" },
+  "experience": [
+    { "role": "Senior Infrastructure Engineer",
+      "organisation": "Stripe",
+      "dates": { "start": "Mar 2022", "end": "Present" },
+      "highlights": ["Took p99 commit latency from 340ms to 45ms."] }
+  ]
+}
+```
+
+A position needs a `role`, an education a `qualification`, a project a `name` — everything else defaults exactly as the Swift initialiser does. This does not come free: Swift's synthesised decoder ignores a property's default, so a type you can build in one line still demands every key in JSON unless the decoders are written out. They are.
+
+Three shorthands, for the things written most often:
+
+```json
+"dates": "2023"                      "dates": { "start": "2023", "end": "" }
+"links": ["https://github.com/x"]    [{ "url": "…", "label": "github.com/x" }]
+"labels": "de"                        the whole German label set
+```
+
+What is *not* defaulted is the identifying field. A position with no role is not a position, and accepting one would turn a mistyped key into a blank line on somebody's résumé.
+
 ## Photographs
 
 `Profile.photo` takes a path to a baseline JPEG or a PNG. `plaque`, `bulletin`, `nocturne` and `sidebar` have somewhere to put one; the rest ignore it, and `check` says which.

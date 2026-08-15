@@ -384,10 +384,6 @@ extension RenderTests {
 
 extension RenderTests {
 
-    private var scratch: String {
-        "/private/tmp/claude-501/-Users-davidsherlock-Developer-Swift-Libraries/ff8e37d5-9238-42d7-88ba-bc4b95ec3dba/scratchpad"
-    }
-
     private func withPhoto(_ path: String) -> Resume {
         Resume(
             profile: Profile(name: "Alex Moreau", email: "a@b.co", photo: path),
@@ -399,8 +395,7 @@ extension RenderTests {
         // The bug this guards: sidebar declared showsPhoto and never drew one,
         // so a résumé carrying a portrait rendered silently without it — and
         // the checks, which read the declaration, said nothing.
-        let jpeg = "\(scratch)/portrait.jpg"
-        try XCTSkipUnless(FileManager.default.fileExists(atPath: jpeg), "no test portrait")
+        let jpeg = Fixtures.photoPath
 
         for design in DesignKind.allCases where design.showsPhoto {
             let raw = try XCTUnwrap(
@@ -412,8 +407,7 @@ extension RenderTests {
     }
 
     func testDesignsThatClaimNoPhotoDrawNone() throws {
-        let jpeg = "\(scratch)/portrait.jpg"
-        try XCTSkipUnless(FileManager.default.fileExists(atPath: jpeg), "no test portrait")
+        let jpeg = Fixtures.photoPath
 
         for design in DesignKind.allCases where !design.showsPhoto {
             let raw = try XCTUnwrap(
@@ -425,8 +419,7 @@ extension RenderTests {
     }
 
     func testAPNGPortraitWorksToo() throws {
-        let png = "\(scratch)/portrait.png"
-        try XCTSkipUnless(FileManager.default.fileExists(atPath: png), "no test PNG")
+        let png = Fixtures.pngPhotoPath
 
         for design in DesignKind.allCases where design.showsPhoto {
             let raw = try XCTUnwrap(

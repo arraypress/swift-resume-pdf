@@ -105,7 +105,7 @@ extension Resume {
         let pages = document.pageCount()
 
         var findings = ATS.check(self, design: design, pages: pages)
-        findings += region.check(self, pages: pages)
+        findings += region.check(self, design: design, pages: pages)
         findings += ATS.substitutions(in: document)
 
         return Report(

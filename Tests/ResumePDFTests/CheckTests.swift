@@ -200,6 +200,67 @@ final class CheckTests: XCTestCase {
         XCTAssertTrue(report.findings.contains { $0.message.contains("headings are in English") }, messages(report))
     }
 
+    // MARK: Photographs
+
+    func testAPhotographIsNotedAsMissingWhereItIsConventional() throws {
+        let resume = Resume(
+            profile: Profile(name: "A", email: "a@b.co"),
+            experience: [Position(role: "Ingenieur", dates: DateRange("2020", "2022"))],
+            labels: .german
+        )
+        let report = try resume.check(design: .plaque, region: .germany)
+        XCTAssertTrue(report.findings.contains { $0.message.contains("none is set") }, messages(report))
+    }
+
+    func testASetPhotographIsNotReportedAsMissing() throws {
+        // This note used to say the writer "has no image support, so there is
+        // no way to attach a photograph" — true when it was written and false
+        // since. A check that describes the library rather than the document
+        // goes stale silently, so it now asks the design and the profile.
+        let resume = Resume(
+            profile: Profile(name: "A", email: "a@b.co", photo: Fixtures.photoPath),
+            experience: [Position(role: "Ingenieur", dates: DateRange("2020", "2022"))],
+            labels: .german
+        )
+        let report = try resume.check(design: .plaque, region: .germany)
+
+        XCTAssertFalse(report.findings.contains { $0.message.contains("photograph") }, messages(report))
+    }
+
+    func testAPhotographOnADesignWithNowhereToPutItIsReported() throws {
+        let resume = Resume(
+            profile: Profile(name: "A", email: "a@b.co", photo: Fixtures.photoPath),
+            experience: [Position(role: "Engineer", dates: DateRange("2020", "2022"))]
+        )
+        let report = try resume.check(design: .ledger)
+
+        XCTAssertTrue(
+            report.findings.contains { $0.message.contains("nowhere to put it") },
+            messages(report)
+        )
+    }
+
+    func testTheDesignsNamedAsPlacingOneActuallyDo() throws {
+        // The note names designs to switch to. If one of them stopped drawing
+        // a portrait the advice would send somebody to a design that drops it.
+        let named = DesignKind.allCases.filter(\.showsPhoto)
+        XCTAssertFalse(named.isEmpty)
+
+        for design in named {
+            let resume = Resume(
+                profile: Profile(name: "A", email: "a@b.co", photo: Fixtures.photoPath),
+                experience: [Position(role: "Engineer", dates: DateRange("2020", "2022"))]
+            )
+            let raw = try XCTUnwrap(
+                String(data: try resume.render(design: design), encoding: .isoLatin1)
+            )
+            XCTAssertTrue(
+                raw.contains("/DCTDecode"),
+                "the note sends people to \(design.displayName), which drew no photograph"
+            )
+        }
+    }
+
     // MARK: Content
 
     func testBoilerplateReferencesAreNoted() throws {

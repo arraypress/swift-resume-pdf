@@ -131,3 +131,91 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(decoded, theme)
     }
 }
+
+// MARK: - JSON that leaves things out
+
+extension ModelTests {
+
+    private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
+        try JSONDecoder().decode(type, from: XCTUnwrap(json.data(using: .utf8)))
+    }
+
+    func testAPositionNeedsOnlyItsRole() throws {
+        // Swift's synthesised decoder ignores an initialiser's defaults, so a
+        // type you can build in Swift with one argument used to need every key
+        // spelled out in JSON. That is the difference between a schema
+        // somebody writes by hand and one they give up on.
+        let position = try decode(Position.self, #"{"role": "Engineer"}"#)
+
+        XCTAssertEqual(position.role, "Engineer")
+        XCTAssertEqual(position.organisation, "")
+        XCTAssertTrue(position.highlights.isEmpty)
+        XCTAssertTrue(position.dates.isEmpty)
+    }
+
+    func testEveryEntryTypeNeedsOnlyItsName() throws {
+        XCTAssertEqual(try decode(Education.self, #"{"qualification":"BSc"}"#).qualification, "BSc")
+        XCTAssertEqual(try decode(Project.self, #"{"name":"x"}"#).name, "x")
+        XCTAssertEqual(try decode(Publication.self, #"{"title":"x"}"#).title, "x")
+        XCTAssertEqual(try decode(Credential.self, #"{"name":"x"}"#).name, "x")
+        XCTAssertEqual(try decode(Award.self, #"{"name":"x"}"#).name, "x")
+        XCTAssertEqual(try decode(Grant.self, #"{"title":"x"}"#).title, "x")
+        XCTAssertEqual(try decode(Profile.self, #"{"name":"Alex"}"#).name, "Alex")
+    }
+
+    func testTheIdentifyingFieldIsStillRequired() {
+        // A position without a role is not a position. Defaulting it would
+        // turn a typo into a blank line on somebody's résumé.
+        XCTAssertThrowsError(try decode(Position.self, #"{"organisation": "Stripe"}"#))
+        XCTAssertThrowsError(try decode(Profile.self, #"{"email": "a@b.co"}"#))
+    }
+
+    func testAResumeNeedsOnlyAProfile() throws {
+        let resume = try decode(Resume.self, #"{"profile":{"name":"Alex Moreau"}}"#)
+
+        XCTAssertEqual(resume.profile.name, "Alex Moreau")
+        XCTAssertTrue(resume.experience.isEmpty)
+        XCTAssertEqual(resume.order, Section.conventional)
+        XCTAssertEqual(resume.labels.language, "en")
+    }
+
+    func testShorthandsForTheThingsWrittenMostOften() throws {
+        // A date that is one date, a link that is one URL, a language that is
+        // one language, and a whole label set named by its language code.
+        XCTAssertEqual(try decode(DateRange.self, #""2023""#).rendered(), "2023")
+        XCTAssertEqual(try decode(Link.self, #""https://github.com/x""#).label, "github.com/x")
+        XCTAssertEqual(try decode(Language.self, #""English""#).name, "English")
+
+        let german = try decode(Labels.self, #""de""#)
+        XCTAssertEqual(german.title(for: .experience), "Berufserfahrung")
+        XCTAssertEqual(german.present, "heute")
+    }
+
+    func testTheLongFormStillWorks() throws {
+        XCTAssertEqual(
+            try decode(DateRange.self, #"{"start":"Mar 2022","end":"Present"}"#).rendered(),
+            "Mar 2022 – Present"
+        )
+        XCTAssertEqual(
+            try decode(Link.self, #"{"url":"https://x.dev","label":"Portfolio"}"#).label,
+            "Portfolio"
+        )
+    }
+
+    func testALetterNeedsOnlyAProfile() throws {
+        let letter = try decode(CoverLetter.self, #"{"profile":{"name":"Alex"}}"#)
+        XCTAssertEqual(letter.profile.name, "Alex")
+        XCTAssertTrue(letter.recipient.isEmpty)
+        XCTAssertEqual(letter.signOff, "Yours faithfully,")
+    }
+
+    func testRoundTrippingStillWorks() throws {
+        // Everything written out has to read back, or the encoder and the
+        // hand-written decoders have drifted.
+        let encoded = try JSONEncoder().encode(Resume.sample)
+        XCTAssertEqual(try JSONDecoder().decode(Resume.self, from: encoded), Resume.sample)
+
+        let letter = try JSONEncoder().encode(CoverLetter.sample)
+        XCTAssertEqual(try JSONDecoder().decode(CoverLetter.self, from: letter), CoverLetter.sample)
+    }
+}

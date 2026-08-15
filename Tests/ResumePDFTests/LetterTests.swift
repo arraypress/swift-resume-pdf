@@ -221,9 +221,7 @@ extension LetterTests {
     }
 
     func testAPanelLetterCarriesAPortrait() throws {
-        let jpeg = "/private/tmp/claude-501/-Users-davidsherlock-Developer-Swift-Libraries/ff8e37d5-9238-42d7-88ba-bc4b95ec3dba/scratchpad/portrait.jpg"
-        try XCTSkipUnless(FileManager.default.fileExists(atPath: jpeg), "no test portrait")
-
+        let jpeg = Fixtures.photoPath
         let withPhoto = CoverLetter(
             profile: Profile(name: "Alex Moreau", email: "a@b.co", photo: jpeg),
             recipient: Recipient(name: "Ms Okonkwo", organisation: "Northwind"),
