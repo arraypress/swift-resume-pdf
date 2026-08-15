@@ -37,6 +37,14 @@ A `Blueprint` is a design as data — no Swift, no recompile. These are the star
 
 And for letters: [memo](blueprints/letter-memo.pdf) · [letterheaded](blueprints/letter-letterheaded.pdf) · [panelled](blueprints/letter-panelled.pdf) · [monogrammed](blueprints/letter-monogrammed.pdf)
 
+## A code to scan
+
+The three designs with room for one, and the same résumé under each:
+
+[ledger](codes/ledger.pdf) · [swiss](codes/swiss.pdf) · [terminal](codes/terminal.pdf)
+
+Ledger and terminal put it beside the name; swiss puts it in the contact band, because taking sixty points off that masthead would make a long name shrink and then truncate.
+
 ## Themes, not templates
 
 The same design under the settings most tools spend a dozen templates on:
@@ -47,4 +55,5 @@ The same design under the settings most tools spend a dozen templates on:
 
 - [academic-cv](shapes/academic-cv.pdf) — publications, grants, teaching, talks; length is not a constraint
 - [lebenslauf](shapes/lebenslauf.pdf) — German headings and the personal particulars that belong on one
+- [archival](shapes/archival.pdf) — PDF/A-3, for an application that asks for one by name
 - [graduate](shapes/graduate.pdf) — education first, for a first CV

@@ -112,6 +112,29 @@ final class ExampleTests: XCTestCase {
         }
     }
 
+    func testACodeAndAnArchivalCopy() throws {
+        let coded = Resume(
+            profile: Profile(
+                name: "Alex Moreau", headline: "Senior Infrastructure Engineer",
+                location: "London, UK", email: "alex@moreau.dev",
+                links: [Link("https://moreau.dev/cv")], qr: "https://moreau.dev/cv"
+            ),
+            summary: Resume.sample.summary, experience: Resume.sample.experience,
+            education: Resume.sample.education, skills: Resume.sample.skills,
+            projects: Resume.sample.projects
+        )
+
+        for design in DesignKind.allCases where design.showsCode {
+            let document = try coded.document(
+                design: design, theme: Theme(typeface: design.intendedTypeface)
+            )
+            try put(document.render(creationDate: Self.stamped), "codes/\(design.rawValue).pdf")
+        }
+
+        // And the archival copy, which some applications ask for by name.
+        try put(try Resume.sample.render(design: .ledger, archival: true), "shapes/archival.pdf")
+    }
+
     func testTheOtherShapesOfDocument() throws {
         let cases: [(String, Resume, DesignKind, Theme)] = [
             ("academic-cv", .academicSample, .broadsheet, .classic),
