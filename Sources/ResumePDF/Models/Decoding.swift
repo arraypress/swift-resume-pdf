@@ -317,6 +317,68 @@ extension CustomSection {
     enum CodingKeys: String, CodingKey { case title, content }
 }
 
+extension CustomSection.Content {
+
+    /// Read and written as `{ "list": ["…"] }`.
+    ///
+    /// Swift's synthesised coding for an enum with associated values names the
+    /// payload by position — `{"list": {"_0": ["…"]}}` — which is a shape
+    /// nobody would write and nobody could guess. Custom sections are the
+    /// whole extensibility story of this library; theirs has to be the shape
+    /// somebody would type.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: Kind.self)
+
+        guard let kind = container.allKeys.first, container.allKeys.count == 1 else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(
+                codingPath: decoder.codingPath,
+                debugDescription: container.allKeys.isEmpty
+                    ? "A block of a custom section needs one of: "
+                        + Kind.allCases.map(\.rawValue).joined(separator: ", ")
+                    : "A block holds one kind of content, not "
+                        + container.allKeys.map(\.rawValue).joined(separator: " and ")
+            ))
+        }
+
+        switch kind {
+        case .prose: self = .prose(try container.decode(String.self, forKey: .prose))
+        case .list: self = .list(try container.decode([String].self, forKey: .list))
+        case .positions: self = .positions(try container.decode([Position].self, forKey: .positions))
+        case .education: self = .education(try container.decode([Education].self, forKey: .education))
+        case .projects: self = .projects(try container.decode([Project].self, forKey: .projects))
+        case .publications: self = .publications(try container.decode([Publication].self, forKey: .publications))
+        case .credentials: self = .credentials(try container.decode([Credential].self, forKey: .credentials))
+        case .awards: self = .awards(try container.decode([Award].self, forKey: .awards))
+        case .grants: self = .grants(try container.decode([Grant].self, forKey: .grants))
+        case .skills: self = .skills(try container.decode([SkillGroup].self, forKey: .skills))
+        case .languages: self = .languages(try container.decode([Language].self, forKey: .languages))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Kind.self)
+
+        switch self {
+        case .prose(let value): try container.encode(value, forKey: .prose)
+        case .list(let value): try container.encode(value, forKey: .list)
+        case .positions(let value): try container.encode(value, forKey: .positions)
+        case .education(let value): try container.encode(value, forKey: .education)
+        case .projects(let value): try container.encode(value, forKey: .projects)
+        case .publications(let value): try container.encode(value, forKey: .publications)
+        case .credentials(let value): try container.encode(value, forKey: .credentials)
+        case .awards(let value): try container.encode(value, forKey: .awards)
+        case .grants(let value): try container.encode(value, forKey: .grants)
+        case .skills(let value): try container.encode(value, forKey: .skills)
+        case .languages(let value): try container.encode(value, forKey: .languages)
+        }
+    }
+
+    enum Kind: String, CodingKey, CaseIterable {
+        case prose, list, positions, education, projects, publications
+        case credentials, awards, grants, skills, languages
+    }
+}
+
 extension CoverLetter {
 
     public init(from decoder: Decoder) throws {

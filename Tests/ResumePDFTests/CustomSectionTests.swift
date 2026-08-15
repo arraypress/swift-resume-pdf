@@ -341,3 +341,106 @@ extension CustomSectionTests {
         XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
     }
 }
+
+// MARK: - Written by hand
+
+extension CustomSectionTests {
+
+    private func decodeSection(_ json: String) throws -> CustomSection {
+        try JSONDecoder().decode(CustomSection.self, from: XCTUnwrap(json.data(using: .utf8)))
+    }
+
+    func testABlockIsNamedByItsKind() throws {
+        // Not {"list": {"_0": [...]}}, which is what the synthesised coding
+        // produces and what nobody would type. Custom sections are the whole
+        // extensibility story; theirs has to be a shape somebody can write.
+        let section = try decodeSection("""
+            { "title": "Patents",
+              "content": [
+                { "prose": "Two granted, one pending." },
+                { "list": ["GB2601234 — Ledger write ordering"] }
+              ] }
+            """)
+
+        XCTAssertEqual(section.title, "Patents")
+        XCTAssertEqual(section.content, [
+            .prose("Two granted, one pending."),
+            .list(["GB2601234 — Ledger write ordering"])
+        ])
+    }
+
+    func testEveryKindOfBlockCanBeWritten() throws {
+        let section = try decodeSection("""
+            { "title": "Everything",
+              "content": [
+                { "positions": [{ "role": "Engineer" }] },
+                { "education": [{ "qualification": "BSc" }] },
+                { "projects": [{ "name": "Ledger" }] },
+                { "publications": [{ "title": "On write ordering" }] },
+                { "credentials": [{ "name": "AWS SA" }] },
+                { "awards": [{ "name": "Prize" }] },
+                { "grants": [{ "title": "EPSRC" }] },
+                { "skills": [{ "name": "Systems", "items": ["Go"] }] },
+                { "languages": ["English"] }
+              ] }
+            """)
+
+        XCTAssertEqual(section.content.count, 9)
+        XCTAssertFalse(section.content.contains(where: \.isEmpty))
+    }
+
+    func testABlockOfNothingIsRefused() {
+        XCTAssertThrowsError(try decodeSection(#"{"title":"X","content":[{}]}"#)) {
+            XCTAssertTrue("\($0)".contains("needs one of"), "\($0)")
+        }
+    }
+
+    func testABlockOfTwoThingsIsRefused() {
+        // Ambiguous rather than generous: which one was meant to render?
+        XCTAssertThrowsError(
+            try decodeSection(#"{"title":"X","content":[{"prose":"a","list":["b"]}]}"#)
+        )
+    }
+
+    func testAMisspelledKindNamesTheOnesThereAre() {
+        XCTAssertThrowsError(try decodeSection(#"{"title":"X","content":[{"bullets":["a"]}]}"#)) {
+            XCTAssertTrue("\($0)".contains("prose, list"), "\($0)")
+        }
+    }
+
+    func testABlockSurvivesARoundTrip() throws {
+        let section = CustomSection("Patents", [
+            .prose("Two granted."),
+            .list(["GB2601234"]),
+            .positions([Position(role: "Engineer", organisation: "Stripe")])
+        ])
+
+        let encoded = try JSONEncoder().encode(section)
+        XCTAssertEqual(try JSONDecoder().decode(CustomSection.self, from: encoded), section)
+
+        // And what it wrote is the shape it documents.
+        let written = try XCTUnwrap(String(data: encoded, encoding: .utf8))
+        XCTAssertTrue(written.contains(#""list":["#), written)
+        XCTAssertFalse(written.contains("_0"), written)
+    }
+}
+
+extension CustomSectionTests {
+
+    func testTheOrderIsWrittenAsPlainNames() throws {
+        // Documented as ["summary", "experience", "custom:Patents"], so it had
+        // better not be [{"rawValue": "summary"}].
+        let resume = try JSONDecoder().decode(Resume.self, from: XCTUnwrap("""
+            { "profile": { "name": "A" },
+              "summary": "Something.",
+              "custom": [{ "title": "Patents", "content": [{ "list": ["GB2601234"] }] }],
+              "order": ["summary", "custom:Patents"] }
+            """.data(using: .utf8)))
+
+        XCTAssertEqual(resume.order, [.summary, .custom("Patents")])
+        XCTAssertEqual(resume.populated(), [.summary, .custom("Patents")])
+
+        let written = try XCTUnwrap(String(data: JSONEncoder().encode(resume), encoding: .utf8))
+        XCTAssertTrue(written.contains(#""custom:Patents""#), written)
+    }
+}

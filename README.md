@@ -170,6 +170,22 @@ Resume(
 
 A block carries prose, a list and dated entries, and renders whichever are filled. One with no place in `order` is not drawn — which is how a section gets left out of this application without being deleted.
 
+In JSON each block is named by its kind, so a section of your own is as writable as the built-in ones:
+
+```json
+{ "custom": [
+    { "title": "Patents",
+      "content": [
+        { "prose": "Two granted, one pending." },
+        { "list": ["GB2601234 — Ledger write ordering"] },
+        { "positions": [{ "role": "Named inventor", "organisation": "Stripe" }] }
+      ] }
+  ],
+  "order": ["summary", "experience", "custom:Patents", "education"] }
+```
+
+Eleven kinds: `prose`, `list`, `positions`, `education`, `projects`, `publications`, `credentials`, `awards`, `grants`, `skills`, `languages`. A block naming two of them, or none, is an error rather than a guess.
+
 ### Monospace
 
 `terminal` sets the labels, dates and contact details in JetBrains Mono and the prose in Inter. The mixture is the design and not decoration: dates are read by comparing them down a column, where a monospace lines the digits up, and sentences are read along a line, where nine-point monospaced prose is markedly harder work.
