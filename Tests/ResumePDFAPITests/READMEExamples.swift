@@ -124,3 +124,9 @@ func readmeOpeningExample(url: URL) throws {
 
     try resume.save(to: url, design: .ledger)     // 54 KB
 }
+
+/// The blueprint example, which reuses the README's name for its own thing.
+func readmeBlueprintExample(url: URL, out: URL, resume: Resume) throws {
+    let mine = try Blueprint(contentsOf: url)
+    try resume.save(to: out, design: mine)
+}

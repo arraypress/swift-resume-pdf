@@ -122,7 +122,7 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     /// by a line of the right, and an employment history comes out
     /// interleaved with a skills list. Nobody reads the result — it is
     /// scored, and it scores badly.
-    public var isSingleColumn: Bool { self != .sidebar }
+    public var isSingleColumn: Bool { design.isSingleColumn }
 
     /// The typeface the design was drawn for.
     ///
@@ -136,15 +136,18 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     ///
     /// Reported rather than silently ignored: a résumé that carries a portrait
     /// and renders without one should say which design dropped it.
-    public var showsPhoto: Bool {
-        switch self {
-        case .plaque, .bulletin, .nocturne, .sidebar: return true
-        case .ledger, .broadsheet, .timeline, .margin, .register, .marker,
-             .slate, .swiss, .card, .terminal: return false
-        }
-    }
+    /// Asked of the design itself, so the declaration cannot drift from the
+    /// thing that draws — which it did: these were two lists, and the checks
+    /// read the wrong one the moment a design was reached by any other route.
+    public var showsPhoto: Bool { design.showsPhoto }
 
-    var design: any Design {
+    /// The thing that draws.
+    ///
+    /// Public so a caller can reach a built-in design through the same
+    /// ``Design`` interface a design of their own uses — which is what lets a
+    /// tool treat "one of the fourteen" and "a blueprint from a file" as the
+    /// same kind of thing.
+    public var design: any Design {
         switch self {
         case .ledger: return Ledger()
         case .broadsheet: return Broadsheet()
@@ -165,10 +168,39 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
 }
 
 /// An arrangement of a résumé on a page.
+///
+/// Beyond drawing, a design declares three things about itself, because the
+/// checks read declarations as well as the finished page. They have defaults —
+/// a design of your own is assumed to be a readable single column that draws
+/// no photograph, which is what one written with ``Blocks`` will be — so
+/// `render` remains the only requirement.
 public protocol Design: Sendable {
 
     /// Lays the document out on a prepared sheet.
     func render(_ resume: Resume, on sheet: Sheet)
+
+    /// What this design is called, in a report or a listing.
+    var displayName: String { get }
+
+    /// Whether the text runs in one column in reading order.
+    ///
+    /// A tracking system extracts text in order and does not know a rail is a
+    /// separate column, so declaring `false` is what makes ``ATS`` block the
+    /// document rather than let somebody send it into a form.
+    var isSingleColumn: Bool { get }
+
+    /// Whether the design has somewhere to put a photograph.
+    ///
+    /// Read by the checks, so a résumé carrying a portrait that this design
+    /// will not draw is reported rather than silently dropped.
+    var showsPhoto: Bool { get }
+}
+
+extension Design {
+
+    public var displayName: String { String(describing: type(of: self)) }
+    public var isSingleColumn: Bool { true }
+    public var showsPhoto: Bool { false }
 }
 
 // MARK: - Rendering
@@ -246,10 +278,20 @@ extension Resume {
         design: DesignKind = .ledger,
         theme: Theme = .plain
     ) throws -> Theme? {
+        try fitted(to: pages, design: design.design, theme: theme)
+    }
+
+    /// The same, for a design of your own.
+    public func fitted(
+        to pages: Int = 1,
+        design: any Design,
+        theme: Theme = .plain
+    ) throws -> Theme? {
         for density in [Density.relaxed, .normal, .compact] {
             let candidate = Theme(
                 typeface: theme.typeface, accent: theme.accent, pageSize: theme.pageSize,
-                density: density, scheme: theme.scheme, tint: theme.tint
+                density: density, scheme: theme.scheme, tint: theme.tint,
+                justified: theme.justified
             )
             if try document(design: design, theme: candidate).pageCount() <= pages {
                 return candidate

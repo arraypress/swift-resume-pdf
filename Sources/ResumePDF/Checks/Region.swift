@@ -86,7 +86,7 @@ public enum Region: String, Sendable, CaseIterable, Codable {
 
     // MARK: Checking
 
-    func check(_ resume: Resume, design: DesignKind, pages: Int) -> [Finding] {
+    func check(_ resume: Resume, design: any Design, pages: Int) -> [Finding] {
         var findings: [Finding] = []
         findings += particulars(resume)
         findings += length(resume, pages: pages)
@@ -150,7 +150,7 @@ public enum Region: String, Sendable, CaseIterable, Codable {
         )]
     }
 
-    private func photograph(_ resume: Resume, design: DesignKind) -> [Finding] {
+    private func photograph(_ resume: Resume, design: any Design) -> [Finding] {
         let named = !resume.profile.photo.isEmpty
 
         // A photograph set on a design with nowhere to put it is the one case

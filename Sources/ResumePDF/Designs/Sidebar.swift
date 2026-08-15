@@ -31,6 +31,13 @@ import TextPDF
 
 struct Sidebar: Design {
 
+    /// The rail is a second column, and a parser reads it interleaved with
+    /// the main one. Declared here rather than inferred, because it is the
+    /// single fact that decides whether this document survives a form.
+    var isSingleColumn: Bool { false }
+
+    var showsPhoto: Bool { true }
+
     private let railWidth = 190.0
     private let railInset = 30.0
     private let railTrailing = 24.0

@@ -75,7 +75,13 @@ public struct Report: Sendable, Equatable, Codable {
     /// How many pages it came to.
     public let pages: Int
 
-    public let design: DesignKind
+    /// The design it was checked as, by name.
+    ///
+    /// A name rather than a ``DesignKind``: a report on a design of your own —
+    /// a ``Blueprint`` read from a file, say — is still a report, and one that
+    /// could only name the built-in fourteen would have nothing to say about
+    /// the design somebody actually sent.
+    public let design: String
     public let region: Region
 
     /// Nothing that would stop it being read.
@@ -100,6 +106,20 @@ extension Resume {
         theme: Theme = .plain,
         region: Region = .international
     ) throws -> Report {
+        try check(design: design.design, theme: theme, region: region)
+    }
+
+    /// The same, for a design of your own.
+    ///
+    /// Every check here reads either the résumé or the finished page, so a
+    /// design written outside the package is checked exactly as the built-in
+    /// ones are — which is the difference between an extension point and a
+    /// hole in the safety net.
+    public func check(
+        design: any Design,
+        theme: Theme = .plain,
+        region: Region = .international
+    ) throws -> Report {
         let document = try document(design: design, theme: theme)
         _ = document.render()
         let pages = document.pageCount()
@@ -111,7 +131,7 @@ extension Resume {
         return Report(
             findings: findings.sorted { $0.severity < $1.severity },
             pages: pages,
-            design: design,
+            design: design.displayName,
             region: region
         )
     }
@@ -120,7 +140,7 @@ extension Resume {
 /// Machine-readability checks.
 public enum ATS {
 
-    static func check(_ resume: Resume, design: DesignKind, pages: Int) -> [Finding] {
+    static func check(_ resume: Resume, design: any Design, pages: Int) -> [Finding] {
         var findings: [Finding] = []
 
         findings += columnLayout(design)
@@ -136,7 +156,7 @@ public enum ATS {
 
     // MARK: Layout
 
-    private static func columnLayout(_ design: DesignKind) -> [Finding] {
+    private static func columnLayout(_ design: any Design) -> [Finding] {
         guard !design.isSingleColumn else { return [] }
         return [Finding(
             .blocker,
@@ -368,7 +388,7 @@ public enum ATS {
 
     // MARK: Length
 
-    private static func length(_ resume: Resume, design: DesignKind, pages: Int) -> [Finding] {
+    private static func length(_ resume: Resume, design: any Design, pages: Int) -> [Finding] {
         var findings: [Finding] = []
 
         // An academic CV has no length convention worth enforcing; a
@@ -383,7 +403,7 @@ public enum ATS {
             ))
         }
 
-        if design == .sidebar, pages > 1 {
+        if !design.isSingleColumn, pages > 1 {
             findings.append(Finding(
                 .warning,
                 "The sidebar has run past one page.",

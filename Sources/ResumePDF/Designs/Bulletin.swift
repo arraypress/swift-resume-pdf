@@ -20,6 +20,8 @@ import TextPDF
 
 struct Bulletin: Design {
 
+    var showsPhoto: Bool { true }
+
     func render(_ resume: Resume, on sheet: Sheet) {
         masthead(resume, on: sheet)
 

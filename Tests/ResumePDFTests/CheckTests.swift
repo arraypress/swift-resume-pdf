@@ -282,7 +282,7 @@ final class CheckTests: XCTestCase {
     func testTheReportCarriesThePageCount() throws {
         let report = try Resume.sample.check()
         XCTAssertGreaterThan(report.pages, 0)
-        XCTAssertEqual(report.design, .ledger)
+        XCTAssertEqual(report.design, "Ledger")
     }
 
     func testFindingsAreOrderedBySeverity() throws {

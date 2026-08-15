@@ -33,7 +33,7 @@ extension CoverLetter {
         return Report(
             findings: findings.sorted { $0.severity < $1.severity },
             pages: pages,
-            design: design.pairsWith,
+            design: design.displayName,
             region: region
         )
     }

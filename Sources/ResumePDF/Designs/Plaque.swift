@@ -22,6 +22,8 @@ import TextPDF
 
 struct Plaque: Design {
 
+    var showsPhoto: Bool { true }
+
     func render(_ resume: Resume, on sheet: Sheet) {
         let pdf = sheet.pdf
         let panel = masthead(resume, on: sheet)

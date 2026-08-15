@@ -38,6 +38,7 @@ This writes the PDF directly, in designs that are honest about which side of tha
 
 - ✒️ **Real typography** — Inter, Source Serif 4 and JetBrains Mono travel with the package, in several weights and italic
 - 🎨 **Fourteen designs** — genuinely different arrangements, not one with the colours changed
+- 🧩 **Designs as JSON** — a `Blueprint` composes the same parts the fourteen are built from, no recompile
 - ✉️ **Cover letters** — four letter designs, each paired with a résumé one
 - 🌗 **Light, dark and tinted** — a property of the theme, so every design gets all three
 - 🤖 **ATS checks** — column layout, heading names, date formats, ordering, length
@@ -110,6 +111,8 @@ A cover letter *is* a different document, so it is a different type. See below.
 
 ## Building your own
 
+Two ways: describe one as JSON, or write one in Swift. The first covers the range the fourteen cover; the second covers anything.
+
 Three things are open, and they are the three that matter:
 
 **Sections.** `Section` is a struct, not an enum, so the set is not fixed.
@@ -150,6 +153,42 @@ try resume.save(to: url, design: Broadside())
 `Blocks` renders any section exactly as the built-in designs do, so you inherit page breaking, the date placement rules and every entry shape. `Sheet` carries the rest — the palette, the vertical rhythm, and the components: `chips`, `dots`, `dial`, `gauge`, `icon`, `portrait`, `runOn`, `contactFlow`. `sheet.pdf` is the raw `Document` underneath if you want to draw something none of them cover.
 
 A design of your own gets light, dark and tinted for free: the page is painted by `Sheet`, not by the design.
+
+### A design written as JSON
+
+A design does not have to be Swift. All fourteen are the same skeleton — masthead, then heading + entries + gap per section, then footer — and what separates them is a bounded set of choices about it. That vocabulary is a `Blueprint`, and a blueprint is data:
+
+```json
+{
+  "name": "ember",
+  "masthead": { "nameSize": 31, "uppercase": true, "tracking": 1.2 },
+  "heading": { "style": "marker", "colour": "#B00020" },
+  "entries": { "skills": "chips", "entryGap": 15 },
+  "ornament": "bands"
+}
+```
+
+```swift
+let mine = try Blueprint(contentsOf: url)
+try resume.save(to: out, design: mine)
+```
+
+Name only what you want changed — everything else takes the default, so two keys is a design. `Blueprint.starting` holds eight to begin from, because nobody writes one from an empty file.
+
+| | |
+|---|---|
+| `masthead` | align, nameSize, uppercase, tracking, headline, contacts, `panel`, `photo`, `rule` |
+| `column` | full width, or inset with labels hung in the margin |
+| `heading` | `ruled`, `plain`, `accentBar`, `centred`, `tab`, `marker`, `margin` — size, colour, icon |
+| `entries` | date placement, four sizes, entry gap, accent roles, `list`/`chips`/`bars`/`dots` skills |
+| `ornament` | `none`, `bands`, `cards` |
+| `palette` | theme colours this design overrides |
+
+Colours are named (`accent`, `ink`, `muted`, `wash`, `hairline`, `page`) or given as hex. Named ones follow the theme, so a blueprint works under whatever accent somebody sets rather than pinning one into it.
+
+**There is no layout language here** — no boxes, no coordinates, no expressions. A general one lets somebody build a résumé that overlaps itself, and its failure mode is a document that renders looking wrong rather than an error saying what is wrong. Composition of known-good parts fails differently: every combination of these choices produces a page that reads, and none of them can produce a two-column document that a parser reads out of order. That is what makes the format safe to hand somebody.
+
+A blueprint is checked exactly like a compiled design — `check(design:)` takes any `Design` — because an extension point that skips the checks is a hole in them.
 
 ### Sections of your own
 
