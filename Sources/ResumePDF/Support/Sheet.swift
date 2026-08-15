@@ -73,6 +73,16 @@ final class Sheet {
         family.face(weight, italic: italic)
     }
 
+    /// The monospaced family, loaded on first use.
+    ///
+    /// Lazy because two designs out of fourteen want it, and three subset
+    /// faces is not a cost to impose on the twelve that do not.
+    private lazy var monoFamily: FontFamily? = try? Typography.mono()
+
+    var mono: EmbeddedFont? { monoFamily?.face(.regular) }
+    var monoMedium: EmbeddedFont? { monoFamily?.face(.medium) }
+    var monoBold: EmbeddedFont? { monoFamily?.face(.bold) }
+
     var regular: EmbeddedFont? { face(.regular) }
     var medium: EmbeddedFont? { face(.medium) }
     var semibold: EmbeddedFont? { face(.semibold) }

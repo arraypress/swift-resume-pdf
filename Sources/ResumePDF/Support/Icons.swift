@@ -154,6 +154,7 @@ public enum Icon: String, Sendable, CaseIterable, Codable {
         case .talks: return .publications
         case .service: return .volunteering
         case .memberships: return .certifications
+        default: return .projects
         }
     }
 }

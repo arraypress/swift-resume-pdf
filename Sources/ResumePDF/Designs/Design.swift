@@ -71,6 +71,10 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     /// to one long one.
     case card
 
+    /// Monospace for the data — dates, labels, technologies — and
+    /// proportional type for the prose. Technical without being a costume.
+    case terminal
+
     public var displayName: String {
         switch self {
         case .ledger: return "Ledger"
@@ -86,6 +90,7 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .slate: return "Slate"
         case .swiss: return "Swiss"
         case .card: return "Card"
+        case .terminal: return "Terminal"
         }
     }
 
@@ -105,6 +110,7 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .slate: return "Twin panels and section tabs."
         case .swiss: return "An oversized name and a lot of air."
         case .card: return "Every entry on its own panel."
+        case .terminal: return "Monospaced labels and dates, proportional prose."
         }
     }
 
@@ -134,7 +140,7 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         switch self {
         case .plaque, .bulletin, .nocturne, .sidebar: return true
         case .ledger, .broadsheet, .timeline, .margin, .register, .marker,
-             .slate, .swiss, .card: return false
+             .slate, .swiss, .card, .terminal: return false
         }
     }
 
@@ -153,6 +159,7 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .slate: return Slate()
         case .swiss: return Swiss()
         case .card: return Card()
+        case .terminal: return Terminal()
         }
     }
 }

@@ -74,6 +74,13 @@ public struct Resume: Sendable, Equatable, Codable {
     /// and stay correct for a graduate and a professor alike.
     public let order: [Section]
 
+    /// Sections the built-in set does not name.
+    ///
+    /// Placed by putting ``Section/custom(_:)`` in `order`; a block with no
+    /// matching entry there is not drawn, which is how one gets left out
+    /// without being deleted.
+    public let custom: [CustomSection]
+
     /// The section headings and the handful of words a design has to print.
     public let labels: Labels
 
@@ -96,6 +103,7 @@ public struct Resume: Sendable, Equatable, Codable {
         memberships: [Credential] = [],
         interests: String = "",
         references: String = "",
+        custom: [CustomSection] = [],
         order: [Section] = Section.conventional,
         labels: Labels = .english
     ) {
@@ -117,6 +125,7 @@ public struct Resume: Sendable, Equatable, Codable {
         self.memberships = memberships
         self.interests = interests
         self.references = references
+        self.custom = custom
         self.order = order
         self.labels = labels
     }
@@ -145,7 +154,17 @@ public struct Resume: Sendable, Equatable, Codable {
         case .memberships: return !memberships.isEmpty
         case .interests: return !interests.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .references: return !references.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        default:
+            // A section of your own is populated when the block matching it
+            // has something in it.
+            return customSection(section).map { !$0.isEmpty } ?? false
         }
+    }
+
+    /// The custom block a section names, if there is one.
+    func customSection(_ section: Section) -> CustomSection? {
+        guard let title = section.customTitle else { return nil }
+        return custom.first { $0.title == title }
     }
 
     /// The heading a section is printed under.
@@ -157,25 +176,71 @@ public struct Resume: Sendable, Equatable, Codable {
 // MARK: - Section
 
 /// A block of the document.
-public enum Section: String, Sendable, CaseIterable, Codable {
+///
+/// A struct rather than an enum so the set is open. The built-in names cover
+/// what a résumé and a CV are made of, and there is always something they do
+/// not — patents, exhibitions, press, clearances, licences by state. A closed
+/// enum makes those unrepresentable, and the usual workaround is to bend an
+/// existing section into holding them, which is how a "Projects" heading ends
+/// up over a list of patents.
+public struct Section: Hashable, Sendable, Codable, RawRepresentable {
 
-    case summary
-    case experience
-    case education
-    case skills
-    case projects
-    case volunteering
-    case certifications
-    case publications
-    case awards
-    case languages
-    case grants
-    case teaching
-    case talks
-    case service
-    case memberships
-    case interests
-    case references
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    // MARK: The built-in set
+
+    public static let summary = Section(rawValue: "summary")
+    public static let experience = Section(rawValue: "experience")
+    public static let education = Section(rawValue: "education")
+    public static let skills = Section(rawValue: "skills")
+    public static let projects = Section(rawValue: "projects")
+    public static let volunteering = Section(rawValue: "volunteering")
+    public static let certifications = Section(rawValue: "certifications")
+    public static let publications = Section(rawValue: "publications")
+    public static let awards = Section(rawValue: "awards")
+    public static let languages = Section(rawValue: "languages")
+    public static let grants = Section(rawValue: "grants")
+    public static let teaching = Section(rawValue: "teaching")
+    public static let talks = Section(rawValue: "talks")
+    public static let service = Section(rawValue: "service")
+    public static let memberships = Section(rawValue: "memberships")
+    public static let interests = Section(rawValue: "interests")
+    public static let references = Section(rawValue: "references")
+
+    /// Every section the library names itself.
+    public static let builtIn: [Section] = [
+        .summary, .experience, .education, .skills, .projects, .volunteering,
+        .certifications, .publications, .awards, .languages, .grants,
+        .teaching, .talks, .service, .memberships, .interests, .references,
+    ]
+
+    // MARK: Sections of your own
+
+    /// A section the built-in set does not name.
+    ///
+    /// The title is the identity: `.custom("Patents")` in the order matches
+    /// the ``CustomSection`` titled "Patents". That means the same string
+    /// appears twice, which is a small cost against the alternative of
+    /// inventing an identifier nobody wants to type.
+    public static func custom(_ title: String) -> Section {
+        Section(rawValue: customPrefix + title)
+    }
+
+    private static let customPrefix = "custom:"
+
+    /// The title, when this is a section of your own.
+    public var customTitle: String? {
+        guard rawValue.hasPrefix(Section.customPrefix) else { return nil }
+        return String(rawValue.dropFirst(Section.customPrefix.count))
+    }
+
+    public var isCustom: Bool { customTitle != nil }
+
+    // MARK: Orders
 
     /// The order a reader expects, which is not always the best one.
     ///
@@ -197,7 +262,6 @@ public enum Section: String, Sendable, CaseIterable, Codable {
         .certifications, .awards, .volunteering, .languages, .interests, .references,
     ]
 
-    /// Publications and grants carry the weight; length is not a constraint.
     /// Publications and funding carry the weight; length is not a constraint.
     ///
     /// The ordering is a discipline's convention rather than a rule — the
@@ -208,6 +272,80 @@ public enum Section: String, Sendable, CaseIterable, Codable {
         .talks, .awards, .service, .memberships, .projects, .certifications,
         .languages, .skills, .references,
     ]
+
+    // MARK: Titles
+
+    /// The heading most readers, and most parsers, expect.
+    ///
+    /// Deliberately plain. An applicant tracking system looks for these words
+    /// to work out which block is which, so "Where I've Worked" costs a
+    /// candidate the entire employment history — the section is still read,
+    /// but filed as nothing in particular.
+    public var defaultTitle: String {
+        if let custom = customTitle { return custom }
+        return Section.titles[self] ?? rawValue.capitalized
+    }
+
+    private static let titles: [Section: String] = [
+        .summary: "Summary",
+        .experience: "Experience",
+        .education: "Education",
+        .skills: "Skills",
+        .projects: "Projects",
+        .volunteering: "Volunteering",
+        .certifications: "Certifications",
+        .publications: "Publications",
+        .awards: "Awards",
+        .languages: "Languages",
+        .grants: "Grants and Funding",
+        .teaching: "Teaching",
+        .talks: "Talks",
+        .service: "Service",
+        .memberships: "Memberships",
+        .interests: "Interests",
+        .references: "References",
+    ]
+}
+
+// MARK: - Custom section
+
+/// A section the built-in set does not name.
+///
+/// Carries all three shapes a section can take, and renders whichever are
+/// filled: prose, a list, or dated entries. That is more permissive than the
+/// built-in sections, which each have one shape — but the whole point of this
+/// type is that the library does not know what it is holding.
+public struct CustomSection: Sendable, Equatable, Codable {
+
+    /// Matches ``Section/custom(_:)`` in the order, and is printed as the
+    /// heading.
+    public let title: String
+
+    /// Free prose.
+    public let body: String
+
+    /// A plain list, set as bullets.
+    public let items: [String]
+
+    /// Dated entries, set the way a job is.
+    public let entries: [Position]
+
+    public init(
+        _ title: String,
+        body: String = "",
+        items: [String] = [],
+        entries: [Position] = []
+    ) {
+        self.title = title
+        self.body = body
+        self.items = items
+        self.entries = entries
+    }
+
+    public var isEmpty: Bool {
+        body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && items.isEmpty && entries.isEmpty
+    }
 }
 
 // MARK: - Labels
@@ -289,35 +427,4 @@ public struct Labels: Sendable, Equatable, Codable {
         dateSeparator: "–",
         language: "de"
     )
-}
-
-extension Section {
-
-    /// The heading most readers, and most parsers, expect.
-    ///
-    /// Deliberately plain. An applicant tracking system looks for these words
-    /// to work out which block is which, so "Where I've Worked" costs a
-    /// candidate the entire employment history — the section is still read,
-    /// but filed as nothing in particular.
-    public var defaultTitle: String {
-        switch self {
-        case .summary: return "Summary"
-        case .experience: return "Experience"
-        case .education: return "Education"
-        case .skills: return "Skills"
-        case .projects: return "Projects"
-        case .volunteering: return "Volunteering"
-        case .certifications: return "Certifications"
-        case .publications: return "Publications"
-        case .awards: return "Awards"
-        case .languages: return "Languages"
-        case .grants: return "Grants and Funding"
-        case .teaching: return "Teaching"
-        case .talks: return "Talks"
-        case .service: return "Service"
-        case .memberships: return "Memberships"
-        case .interests: return "Interests"
-        case .references: return "References"
-        }
-    }
 }

@@ -1,6 +1,6 @@
 # Swift Resume PDF
 
-Résumés, CVs and cover letters as PDFs. Thirteen designs, real typography, and the checks that decide whether the thing gets read.
+Résumés, CVs and cover letters as PDFs. Fourteen designs, real typography, and the checks that decide whether the thing gets read.
 
 ```swift
 let resume = Resume(
@@ -36,8 +36,8 @@ This writes the PDF directly, in designs that are honest about which side of tha
 
 ## Features
 
-- ✒️ **Real typography** — Inter and Source Serif 4 travel with the package, in several weights and italic
-- 🎨 **Thirteen designs** — genuinely different arrangements, not one with the colours changed
+- ✒️ **Real typography** — Inter, Source Serif 4 and JetBrains Mono travel with the package, in several weights and italic
+- 🎨 **Fourteen designs** — genuinely different arrangements, not one with the colours changed
 - ✉️ **Cover letters** — four letter designs, each paired with a résumé one
 - 🌗 **Light, dark and tinted** — a property of the theme, so every design gets all three
 - 🤖 **ATS checks** — column layout, heading names, date formats, ordering, length
@@ -63,9 +63,10 @@ This writes the PDF directly, in designs that are honest about which side of tha
 | `slate` | Twin masthead panels and a tab beside every section. | ✅ |
 | `swiss` | An oversized name and a great deal of air. | ✅ |
 | `card` | Every entry on a panel of its own. | ✅ |
+| `terminal` | Monospaced labels and dates, proportional prose. | ✅ |
 | `sidebar` | Tinted rail carrying contact and skills. | ❌ |
 
-`sidebar` is the best-looking of the thirteen and the only one a tracking system cannot read. That is not a bug to be fixed later — two columns and machine-readability are the same trade-off seen from either end. Send it where a person will open it, and use one of the others for anything that goes through a form. `check` says so rather than leaving it to be discovered.
+`sidebar` is the best-looking of the fourteen and the only one a tracking system cannot read. That is not a bug to be fixed later — two columns and machine-readability are the same trade-off seen from either end. Send it where a person will open it, and use one of the others for anything that goes through a form. `check` says so rather than leaving it to be discovered.
 
 ## Themes, not templates
 
@@ -102,6 +103,31 @@ A CV has sections a résumé does not, and those are real:
 | `memberships` | Professional bodies |
 
 A cover letter *is* a different document, so it is a different type. See below.
+
+### Sections of your own
+
+The built-in set will always be missing something — patents, exhibitions, press, licences by state. `Section` is open, so add one and put it where it belongs:
+
+```swift
+Resume(
+    profile: profile,
+    experience: roles,
+    custom: [
+        CustomSection("Patents",
+                      body: "Two granted, one pending.",
+                      items: ["GB2601234 — Ledger write ordering"])
+    ],
+    order: [.summary, .experience, .custom("Patents"), .education]
+)
+```
+
+A block carries prose, a list and dated entries, and renders whichever are filled. One with no place in `order` is not drawn — which is how a section gets left out of this application without being deleted.
+
+### Monospace
+
+`terminal` sets the labels, dates and contact details in JetBrains Mono and the prose in Inter. The mixture is the design and not decoration: dates are read by comparing them down a column, where a monospace lines the digits up, and sentences are read along a line, where nine-point monospaced prose is markedly harder work.
+
+The mono family is available to any design and loaded only when one asks, so the other thirteen do not carry it.
 
 ## Fitting the page
 

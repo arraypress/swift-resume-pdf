@@ -40,6 +40,17 @@ public enum Typeface: String, Sendable, CaseIterable, Codable {
         }
     }
 
+    /// The monospaced face every family can reach for.
+    ///
+    /// One family rather than one per typeface: a mono is set beside text
+    /// rather than instead of it, and JetBrains Mono sits against both of
+    /// these without arguing. It is loaded only when a design asks.
+    static let monoFaces: [(file: String, weight: FontFamily.Weight, italic: Bool)] = [
+        ("JetBrainsMono-Regular", .regular, false),
+        ("JetBrainsMono-Medium", .medium, false),
+        ("JetBrainsMono-Bold", .bold, false),
+    ]
+
     /// The files making up the family, by weight and slope.
     var faces: [(file: String, weight: FontFamily.Weight, italic: Bool)] {
         switch self {
@@ -64,6 +75,27 @@ public enum Typeface: String, Sendable, CaseIterable, Codable {
 
 /// Loads the bundled families.
 public enum Typography {
+
+    /// JetBrains Mono, for the parts of a résumé that are data rather than
+    /// prose — dates, versions, keys, anything meant to be compared down a
+    /// column rather than read along a line.
+    ///
+    /// Body text is not one of those. A page of monospaced prose at nine
+    /// points is markedly harder to read than the same words proportionally
+    /// set, and the designs here use it on labels and figures rather than on
+    /// the sentences somebody is being asked to read.
+    public static func mono() throws -> FontFamily {
+        var family = FontFamily(name: "JetBrains Mono")
+        for face in Typeface.monoFaces {
+            guard let url = Bundle.module.url(
+                forResource: face.file, withExtension: "ttf", subdirectory: "Fonts"
+            ) else {
+                throw ResumeError.missingFont("\(face.file).ttf")
+            }
+            family.add(try EmbeddedFont.load(url), weight: face.weight, italic: face.italic)
+        }
+        return family
+    }
 
     /// A fresh family, loaded from the package's resources.
     ///

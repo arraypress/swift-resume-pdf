@@ -129,6 +129,33 @@ enum Blocks {
 
         case .references:
             sheet.paragraph(resume.references, x: style.x, width: style.width, size: style.bodySize)
+
+        default:
+            custom(section, of: resume, on: sheet, style: style)
+        }
+    }
+
+    // MARK: Sections of your own
+
+    /// Whatever the block turned out to be holding.
+    ///
+    /// All three shapes render, in the order somebody would expect to read
+    /// them: the prose that introduces the section, then the list, then the
+    /// dated entries. A block with only one of them — which is the usual
+    /// case — reads as though the other two were never a possibility.
+    static func custom(_ section: Section, of resume: Resume, on sheet: Sheet, style: Style) {
+        guard let block = resume.customSection(section) else { return }
+
+        if !block.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            sheet.paragraph(block.body, x: style.x, width: style.width, size: style.bodySize)
+        }
+        if !block.items.isEmpty {
+            sheet.rigidGap(3)
+            sheet.bullets(block.items, x: style.x, width: style.width, size: style.bodySize)
+        }
+        if !block.entries.isEmpty {
+            sheet.rigidGap(4)
+            positions(block.entries, on: sheet, style: style, labels: resume.labels)
         }
     }
 
