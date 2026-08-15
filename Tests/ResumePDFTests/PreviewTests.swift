@@ -60,6 +60,25 @@ final class PreviewTests: XCTestCase {
         }
     }
 
+    func testRenderEveryLetter() throws {
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+
+        for design in LetterDesign.allCases {
+            let theme = Theme(typeface: design.intendedTypeface, accent: "#1F3A5F")
+            let data = try CoverLetter.sample.render(design: design, theme: theme)
+            let name = "letter-\(design.rawValue)"
+
+            try data.write(to: output.appendingPathComponent("\(name).pdf"))
+            let doc = try XCTUnwrap(PDFDocument(data: data), "PDFKit refused \(name)")
+            print("\(name): \(data.count) bytes, \(doc.pageCount) page(s)")
+
+            for index in 0..<doc.pageCount {
+                try rasterise(try XCTUnwrap(doc.page(at: index)),
+                              to: output.appendingPathComponent("\(name)-\(index + 1).png"))
+            }
+        }
+    }
+
     private func rasterise(_ page: PDFPage, to url: URL, scale: CGFloat = 2) throws {
         let bounds = page.bounds(for: .mediaBox)
         let size = CGSize(width: bounds.width * scale, height: bounds.height * scale)

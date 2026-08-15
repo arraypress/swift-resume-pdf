@@ -168,3 +168,48 @@ extension Resume {
         )
     }
 }
+
+// MARK: - Letters
+
+extension CoverLetter {
+
+    /// A worked letter, for previews and tests.
+    ///
+    /// Written the way a good one is: addressed to a person, specific about
+    /// the reader rather than about the writer, and short enough to be read.
+    public static var sample: CoverLetter {
+        CoverLetter(
+            profile: Resume.sample.profile,
+            recipient: Recipient(
+                name: "Ms Adaeze Okonkwo",
+                role: "Head of Infrastructure",
+                organisation: "Northwind Payments",
+                address: ["12 Finsbury Circus", "London EC2M 7EA"]
+            ),
+            date: "14 August 2026",
+            subject: "Re: Staff Infrastructure Engineer (ref. NW-2291)",
+            body: [
+                """
+                I am writing about the Staff Infrastructure Engineer role. I have spent \
+                eleven years on payment and ledger systems, four of them at Stripe on the \
+                team responsible for the double-entry ledger, and Northwind is one of the \
+                few places doing that work at a scale where it is genuinely hard.
+                """,
+                """
+                Your engineering blog's account of moving settlement off a shared primary \
+                described a problem I spent most of 2023 on. We took the ledger's p99 \
+                commit latency from 340ms to 45ms without weakening the audit guarantees \
+                the finance team depends on, and retired the last single point of failure \
+                in the payments path across forty services.
+                """,
+            ],
+            highlights: [
+                Highlight("Ledger reliability", "Rebuilt a write path handling £4.2bn a year, with no customer-visible incident during the migration."),
+                Highlight("On-call that people can live with", "Cut paging volume 60% at Monzo by fixing the three alerts responsible for most of it rather than by raising thresholds."),
+                Highlight("Writing things down", "Wrote the incident review process now used across Stripe; median time to a published review fell from nine days to two."),
+            ],
+            closing: "",
+            postscript: ""
+        )
+    }
+}

@@ -587,6 +587,64 @@ final class Sheet {
         return try? EmbeddedImage.load(URL(fileURLWithPath: expanded))
     }
 
+    /// A wrapped block whose opening phrase is set in a heavier weight.
+    ///
+    /// The two runs are laid end to end, not drawn over one another. Printing
+    /// the whole thing in one weight and re-stamping the lead-in on top is the
+    /// obvious shortcut and it only works if the two faces are the same width,
+    /// which is the one thing a bold and a regular are guaranteed not to be —
+    /// the result is a double-struck smear.
+    ///
+    /// So the lead is measured, the first line of the detail is filled with
+    /// whatever fits beside it, and the remainder wraps at full width.
+    func runOn(
+        _ lead: String,
+        _ detail: String,
+        x: Double? = nil,
+        width columnWidth: Double? = nil,
+        size: Double = 9.4,
+        leadFace: EmbeddedFont? = nil,
+        color: Color? = nil
+    ) {
+        let originX = x ?? left
+        let boxWidth = columnWidth ?? width
+        let heavy = leadFace ?? semibold
+        let tint = color ?? ink
+        let step = leading(size)
+
+        let trimmedLead = lead.trimmingCharacters(in: .whitespaces)
+        guard !trimmedLead.isEmpty else {
+            paragraph(detail, x: originX, width: boxWidth, size: size, color: tint)
+            return
+        }
+
+        let leadWidth = pdf.width(of: trimmedLead + " ", size: size, face: heavy)
+        var words = detail.split(whereSeparator: { $0 == " " }).map(String.init)
+
+        var opening = ""
+        while let word = words.first {
+            let candidate = opening.isEmpty ? word : opening + " " + word
+            guard leadWidth + pdf.width(of: candidate, size: size, face: regular) <= boxWidth else { break }
+            opening = candidate
+            words.removeFirst()
+        }
+
+        pdf.breakIfNeeded(step * 2)
+        let top = cursor
+
+        pdf.cell(trimmedLead, x: originX, boxWidth: boxWidth, size: size, color: tint, face: heavy)
+        if !opening.isEmpty {
+            pdf.cell(opening, x: originX + leadWidth, boxWidth: boxWidth - leadWidth,
+                     size: size, color: tint, face: regular)
+        }
+        pdf.move(to: top - step)
+
+        let remainder = words.joined(separator: " ")
+        guard !remainder.isEmpty else { return }
+        pdf.block(remainder, x: originX, width: boxWidth, size: size,
+                  color: tint, leading: step, face: regular)
+    }
+
     /// A rule across a column.
     func rule(x: Double? = nil, width columnWidth: Double? = nil, color: Color? = nil, thickness: Double = 0.6) {
         let originX = x ?? left
