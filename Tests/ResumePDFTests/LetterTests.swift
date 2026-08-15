@@ -178,3 +178,58 @@ final class LetterTests: XCTestCase {
         }
     }
 }
+
+// MARK: - Letter layouts of your own
+
+/// Written the way a caller would write one.
+private struct Broadsheet2: LetterLayout {
+    func masthead(_ letter: CoverLetter, on sheet: Sheet) {
+        sheet.line(letter.profile.name, size: 26, face: sheet.semibold)
+        sheet.gap(6)
+        sheet.rule(color: sheet.accent, thickness: 2)
+        sheet.gap(18)
+    }
+}
+
+extension LetterTests {
+
+    func testALetterLayoutCanBeWrittenOutside() throws {
+        let data = try CoverLetter.sample.render(design: Broadsheet2())
+        let text = try XCTUnwrap(try XCTUnwrap(PDFDocument(data: data)).string)
+
+        XCTAssertTrue(text.contains("Alex Moreau"))
+        // The body is still set by the library — only the masthead is yours.
+        XCTAssertTrue(text.contains("Dear Ms Adaeze Okonkwo,"))
+        XCTAssertTrue(text.contains("Yours sincerely,"))
+    }
+
+    func testSavingALetterLayoutOfYourOwn() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("letter-\(UUID().uuidString).pdf")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        XCTAssertGreaterThan(try CoverLetter.sample.save(to: url, design: Broadsheet2()), 1000)
+    }
+
+    func testTheBuiltInMastheadsAreConstructible() {
+        // Public types with public inits, so one can be subclassed in spirit —
+        // reused inside a layout of your own rather than reimplemented.
+        XCTAssertNotNil(MemoLetter())
+        XCTAssertNotNil(LetterheadLetter())
+        XCTAssertNotNil(PanelLetter())
+        XCTAssertNotNil(MonogramLetter())
+    }
+
+    func testAPanelLetterCarriesAPortrait() throws {
+        let jpeg = "/private/tmp/claude-501/-Users-davidsherlock-Developer-Swift-Libraries/ff8e37d5-9238-42d7-88ba-bc4b95ec3dba/scratchpad/portrait.jpg"
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: jpeg), "no test portrait")
+
+        let withPhoto = CoverLetter(
+            profile: Profile(name: "Alex Moreau", email: "a@b.co", photo: jpeg),
+            recipient: Recipient(name: "Ms Okonkwo", organisation: "Northwind"),
+            body: ["Northwind is why I am writing, at sufficient length to keep the checks quiet."]
+        )
+        let raw = try XCTUnwrap(String(data: try withPhoto.render(design: .panel), encoding: .isoLatin1))
+        XCTAssertTrue(raw.contains("/DCTDecode"), "the portrait was not embedded")
+    }
+}

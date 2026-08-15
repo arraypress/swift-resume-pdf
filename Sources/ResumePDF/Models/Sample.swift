@@ -32,8 +32,7 @@ extension Resume {
             summary: """
                 Infrastructure engineer with eleven years on payment and ledger systems, \
                 most of it on the reliability side of teams that could not afford an \
-                outage. Happiest reducing a system nobody wants to touch into something \
-                three people can change safely.
+                outage.
                 """,
             experience: [
                 Position(
@@ -42,9 +41,8 @@ extension Resume {
                     location: "London",
                     dates: .since("Mar 2022"),
                     highlights: [
-                        "Rebuilt the double-entry ledger's write path, taking p99 commit latency from 340ms to 45ms while keeping the audit guarantees the finance team relies on.",
-                        "Led the migration of 40 services off a shared Postgres primary, retiring the last single point of failure in the payments path.",
-                        "Wrote the incident review process now used across the org; median time to a published review fell from nine days to two.",
+                        "Rebuilt the ledger write path: p99 commit latency from 340ms to 45ms.",
+                        "Led 40 services off a shared Postgres primary, retiring the last SPOF in payments.",
                     ],
                     skills: ["Go", "Postgres", "Kubernetes", "Terraform"]
                 ),
@@ -53,10 +51,9 @@ extension Resume {
                     organisation: "Monzo",
                     location: "London",
                     dates: DateRange("Jun 2019", "Feb 2022"),
-                    summary: "Core banking platform, 200 engineers, 5m customers.",
                     highlights: [
-                        "Built the deployment tooling that took the bank from 20 to 200 deploys a day without adding an approval step.",
-                        "On-call lead for the ledger. Cut paging volume 60% by fixing the three alerts responsible for most of it rather than tuning thresholds.",
+                        "Took the bank from 20 to 200 deploys a day, with no new approval step.",
+                        "Cut paging 60% by fixing three alerts rather than raising thresholds.",
                     ],
                     skills: ["Go", "Cassandra", "AWS"]
                 ),
@@ -65,9 +62,7 @@ extension Resume {
                     organisation: "Deliveroo",
                     location: "London",
                     dates: DateRange("Sep 2016", "May 2019"),
-                    highlights: [
-                        "Rider dispatch. Owned the assignment service through a period when order volume grew eight-fold.",
-                    ]
+                    summary: "Rider dispatch, through a period when order volume grew eight-fold."
                 ),
             ],
             education: [
@@ -89,8 +84,7 @@ extension Resume {
                     role: "Author",
                     link: Link("https://github.com/alexmoreau/ledgerfuzz"),
                     dates: DateRange("2023"),
-                    summary: "A property-based fuzzer for double-entry ledgers. Used in production at two banks.",
-                    skills: ["Go"]
+                    summary: "A property-based fuzzer for double-entry ledgers. In production at two banks."
                 ),
             ],
             certifications: [

@@ -209,6 +209,15 @@ public enum ATS {
         .publications: ["publications", "selected publications", "papers", "publications and preprints"],
         .grants: ["grants", "funding", "grants and funding", "research funding", "awarded funding"],
         .teaching: ["teaching", "teaching experience", "courses taught", "teaching and supervision"],
+        .talks: ["talks", "invited talks", "presentations", "conference presentations", "speaking"],
+        .service: ["service", "academic service", "professional service", "committees", "reviewing"],
+        .memberships: ["memberships", "professional memberships", "affiliations",
+                       "professional affiliations", "societies"],
+        .projects: ["projects", "selected projects", "personal projects", "open source"],
+        .awards: ["awards", "honours", "honors", "awards and honours", "awards and honors"],
+        .certifications: ["certifications", "certificates", "licences", "licenses",
+                          "certifications and licences"],
+        .languages: ["languages", "language skills", "spoken languages"],
     ]
 
     private static func headings(_ resume: Resume) -> [Finding] {

@@ -71,7 +71,14 @@ public enum LetterDesign: String, Sendable, CaseIterable, Codable {
 }
 
 /// An arrangement of a letter on a page.
-protocol LetterLayout: Sendable {
+///
+/// Public for the same reason ``Design`` is: a letter arrives beside a résumé,
+/// and somebody who has written a design of their own for one will want the
+/// other to match. Only the masthead is yours — ``Letters/body(_:on:)`` sets
+/// the recipient, the argument and the sign-off, because the shape of a letter
+/// is older and less negotiable than a résumé's and moving those about does
+/// not make it look modern.
+public protocol LetterLayout: Sendable {
 
     /// Draws the masthead, and leaves the cursor where the body starts.
     func masthead(_ letter: CoverLetter, on sheet: Sheet)
@@ -83,13 +90,36 @@ extension CoverLetter {
 
     /// Lays the letter out.
     public func document(design: LetterDesign = .memo, theme: Theme = .plain) throws -> Document {
+        try document(design: design.design, theme: theme)
+    }
+
+    /// The same, with a masthead of your own.
+    public func document(design: any LetterLayout, theme: Theme = .plain) throws -> Document {
         let family = try Typography.family(theme.typeface)
         let sheet = Sheet(theme: theme, family: family, labels: .english)
         sheet.pdf.language = "en"
 
-        design.design.masthead(self, on: sheet)
+        design.masthead(self, on: sheet)
         Letters.body(self, on: sheet)
         return sheet.pdf
+    }
+
+    /// The finished bytes, from a masthead of your own.
+    public func render(design: any LetterLayout, theme: Theme = .plain) throws -> Data {
+        try document(design: design, theme: theme).render(metadata: [
+            "Title": profile.name.isEmpty ? "Cover letter" : "\(profile.name) — cover letter",
+            "Author": profile.name,
+            "Subject": subject.isEmpty ? "Letter of application" : subject,
+            "Creator": "ResumePDF",
+        ])
+    }
+
+    /// Writes a letter laid out by a masthead of your own.
+    @discardableResult
+    public func save(to url: URL, design: any LetterLayout, theme: Theme = .plain) throws -> Int {
+        let data = try render(design: design, theme: theme)
+        try data.write(to: url, options: .atomic)
+        return data.count
     }
 
     public func render(design: LetterDesign = .memo, theme: Theme = .plain) throws -> Data {
@@ -114,10 +144,10 @@ extension CoverLetter {
 // MARK: - Shared body
 
 /// The parts of a letter every design sets the same way.
-enum Letters {
+public enum Letters {
 
     /// Recipient, greeting, argument, sign-off.
-    static func body(_ letter: CoverLetter, on sheet: Sheet) {
+    public static func body(_ letter: CoverLetter, on sheet: Sheet) {
         let size = 9.8
 
         if !letter.date.isEmpty {
@@ -189,16 +219,19 @@ enum Letters {
     }
 
     /// The contact line every letter head carries, linked where it can be.
-    static func contact(_ profile: Profile) -> [(text: String, url: String)] {
+    public static func contact(_ profile: Profile) -> [(text: String, url: String)] {
         profile.contactEntries()
     }
 }
 
 // MARK: - Memo
 
-struct MemoLetter: LetterLayout {
+public struct MemoLetter: LetterLayout {
 
-    func masthead(_ letter: CoverLetter, on sheet: Sheet) {
+    public init() {}
+
+
+    public func masthead(_ letter: CoverLetter, on sheet: Sheet) {
         let pdf = sheet.pdf
         let profile = letter.profile
         let top = pdf.height() - sheet.theme.density.margin
@@ -224,9 +257,12 @@ struct MemoLetter: LetterLayout {
 
 // MARK: - Letterhead
 
-struct LetterheadLetter: LetterLayout {
+public struct LetterheadLetter: LetterLayout {
 
-    func masthead(_ letter: CoverLetter, on sheet: Sheet) {
+    public init() {}
+
+
+    public func masthead(_ letter: CoverLetter, on sheet: Sheet) {
         let pdf = sheet.pdf
         let profile = letter.profile
         let top = pdf.height() - sheet.theme.density.margin
@@ -263,18 +299,34 @@ struct LetterheadLetter: LetterLayout {
 
 // MARK: - Panel
 
-struct PanelLetter: LetterLayout {
+public struct PanelLetter: LetterLayout {
 
-    func masthead(_ letter: CoverLetter, on sheet: Sheet) {
+    public init() {}
+
+
+    public func masthead(_ letter: CoverLetter, on sheet: Sheet) {
         let pdf = sheet.pdf
         let profile = letter.profile
         let top = pdf.height() - sheet.theme.density.margin
 
-        pdf.textAt(profile.name, x: sheet.left, y: top - 22, size: 25,
+        // A portrait against the right edge, where it does not push the name
+        // about. Conventional on a letter of application across much of
+        // Europe, and a liability in the US and UK — Region reports which.
+        let diameter = 74.0
+        let hasPhoto = Sheet.photo(at: profile.photo) != nil
+        if hasPhoto {
+            sheet.portrait(profile.photo, x: sheet.right - diameter,
+                           y: top - diameter + 6, diameter: diameter)
+        }
+
+        let nameWidth = hasPhoto ? sheet.width - diameter - 20 : sheet.width
+        pdf.textAt(pdf.fit(profile.name, into: nameWidth, size: 25, face: sheet.semibold),
+                   x: sheet.left, y: top - 22, size: 25,
                    color: sheet.ink, face: sheet.semibold, tracking: -0.4)
 
         if !profile.headline.isEmpty {
-            pdf.textAt(profile.headline, x: sheet.left, y: top - 42, size: 11,
+            pdf.textAt(pdf.fit(profile.headline, into: nameWidth, size: 11, face: sheet.regular),
+                       x: sheet.left, y: top - 42, size: 11,
                        color: sheet.theme.isMonochrome ? sheet.muted : sheet.accent,
                        face: sheet.regular)
         }
@@ -322,9 +374,12 @@ struct PanelLetter: LetterLayout {
 
 // MARK: - Monogram
 
-struct MonogramLetter: LetterLayout {
+public struct MonogramLetter: LetterLayout {
 
-    func masthead(_ letter: CoverLetter, on sheet: Sheet) {
+    public init() {}
+
+
+    public func masthead(_ letter: CoverLetter, on sheet: Sheet) {
         let pdf = sheet.pdf
         let profile = letter.profile
         let top = pdf.height() - sheet.theme.density.margin
