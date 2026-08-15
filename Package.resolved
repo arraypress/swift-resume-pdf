@@ -1,13 +1,13 @@
 {
-  "originHash" : "2f569c4f2dd18edee1ac2d73dc907c5e9ade2e8f42f9a3a486e7c11679a5a3b1",
+  "originHash" : "a7240b58cf5cec0106ea5f0fefc5e9a0fda5ee12f2fc9a04fbe607c65dad6ba0",
   "pins" : [
     {
       "identity" : "swift-text-pdf",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/arraypress/swift-text-pdf.git",
       "state" : {
-        "revision" : "c962cfbacdca90021526ab3362166e4926bcad33",
-        "version" : "2.4.0"
+        "revision" : "7e0f1d1f5688921fccfed05742fa132b199f972e",
+        "version" : "2.4.1"
       }
     }
   ],
