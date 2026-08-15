@@ -79,10 +79,60 @@ final class Sheet {
     var bold: EmbeddedFont? { face(.bold) }
     var italic: EmbeddedFont? { face(.regular, italic: true) }
 
-    var ink: Color { theme.ink }
-    var muted: Color { theme.muted }
-    var accent: Color { theme.accentColor }
-    var hairline: Color { theme.hairline }
+    /// Set while drawing over something that is not the page colour.
+    private var override: Palette?
+
+    var ink: Color { override?.ink ?? theme.ink }
+    var muted: Color { override?.muted ?? theme.muted }
+    var accent: Color { override?.accent ?? theme.accentColor }
+    var hairline: Color { override?.hairline ?? theme.hairline }
+    var wash: Color { override?.wash ?? theme.wash }
+    var page: Color { override?.page ?? theme.page }
+
+    /// A palette, for a region of the page that is not the page's colour.
+    struct Palette {
+        var page: Color
+        var ink: Color
+        var muted: Color
+        var hairline: Color
+        var wash: Color
+        var accent: Color
+
+        /// Derived from a background, so a design says what it is drawing on
+        /// and gets a palette that reads against it.
+        ///
+        /// This is what lets one design invert a band and keep every shared
+        /// block — bullets, dates, rules — legible inside it, without any of
+        /// them being told that anything unusual is happening.
+        static func against(_ background: Color, accent: Color) -> Palette {
+            let dark = background.luminance < 0.5
+
+            // An accent picked for the page can vanish against a band that is
+            // the opposite colour, so it is lifted the same way the theme
+            // lifts it — the band is just a smaller page.
+            var readable = accent
+            if abs(accent.luminance - background.luminance) < 0.28 {
+                readable = dark ? accent.lightened(by: 0.6) : accent.darkened(by: 0.4)
+            }
+
+            return Palette(
+                page: background,
+                ink: dark ? .grey(236) : .grey(26),
+                muted: dark ? .grey(158) : .grey(120),
+                hairline: dark ? background.lightened(by: 0.24) : background.darkened(by: 0.14),
+                wash: dark ? background.lightened(by: 0.09) : background.darkened(by: 0.045),
+                accent: readable
+            )
+        }
+    }
+
+    /// Runs `body` with a different palette in force.
+    func drawing(on palette: Palette?, _ body: () -> Void) {
+        let previous = override
+        override = palette
+        body()
+        override = previous
+    }
 
     // MARK: Geometry
 
@@ -277,7 +327,7 @@ final class Sheet {
     ) {
         let originX = x ?? left
         let boxWidth = columnWidth ?? width
-        let items = group.items.joined(separator: ", ")
+        let items = group.names.joined(separator: ", ")
         let step = leading(size)
 
         let height = pdf.blockHeight(
@@ -373,6 +423,168 @@ final class Sheet {
                      size: size, color: muted, face: regular)
         }
         pdf.move(to: top - leading(size))
+    }
+
+    // MARK: Components
+
+    /// Keyword tags, flowed across a width and wrapping.
+    ///
+    /// The one decorative treatment on a résumé that costs nothing: a chip is
+    /// a real word a parser reads as a keyword, unlike a bar or a dial, which
+    /// are pictures of a number nobody can check.
+    @discardableResult
+    func chips(
+        _ items: [String],
+        x: Double? = nil,
+        width columnWidth: Double? = nil,
+        size: Double = 8.4,
+        filled: Bool = true
+    ) -> Double {
+        let entries = items.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        guard !entries.isEmpty else { return 0 }
+
+        let originX = x ?? left
+        let boxWidth = columnWidth ?? width
+        let padding = size * 0.72
+        let height = size * 1.95
+        let spacing = size * 0.42
+        let top = cursor
+
+        // Broken into rows before anything is drawn, so each row can be
+        // page-broken on its own. Flowing straight onto the page with a
+        // running y instead is how a list of skills ends up printed over the
+        // footer — the cursor never moves, so nothing ever checks the margin.
+        var rows: [[(text: String, width: Double)]] = []
+        var row: [(text: String, width: Double)] = []
+        var used = 0.0
+
+        for entry in entries {
+            let chipWidth = pdf.width(of: entry, size: size, face: regular) + padding * 2
+            if !row.isEmpty, used + chipWidth > boxWidth {
+                rows.append(row)
+                row = []
+                used = 0
+            }
+            row.append((entry, chipWidth))
+            used += chipWidth + spacing
+        }
+        if !row.isEmpty { rows.append(row) }
+
+        for line in rows {
+            pdf.breakIfNeeded(height + spacing)
+            let baseline = cursor - height
+            var cursorX = originX
+
+            for chip in line {
+                if filled {
+                    pdf.roundedRect(x: cursorX, y: baseline, width: chip.width,
+                                    height: height, radius: height / 2, color: wash)
+                } else {
+                    pdf.roundedRect(x: cursorX, y: baseline, width: chip.width,
+                                    height: height, radius: height / 2, color: page)
+                    pdf.line(from: cursorX, baseline, to: cursorX + chip.width, baseline,
+                             color: hairline, thickness: 0.6)
+                }
+
+                pdf.textAt(
+                    chip.text, x: cursorX + padding,
+                    y: baseline + (height - size * 0.72) / 2,
+                    size: size, color: ink, face: regular
+                )
+                cursorX += chip.width + spacing
+            }
+            pdf.move(to: baseline - spacing)
+        }
+
+        pdf.gap(size * 0.3)
+        return top - cursor
+    }
+
+    /// A row of filled and empty dots.
+    ///
+    /// Five of them, because a scale with more points than a reader can
+    /// distinguish is a scale pretending to a precision it does not have.
+    func dots(_ fraction: Double, x: Double, y dotY: Double, size: Double = 4, count: Int = 5) {
+        let filled = Int((min(max(fraction, 0), 1) * Double(count)).rounded())
+        let spacing = size * 2.6
+
+        for index in 0..<count {
+            let centre = x + Double(index) * spacing + size / 2
+            if index < filled {
+                pdf.circle(x: centre, y: dotY, radius: size / 2, color: accent)
+            } else {
+                pdf.ring(x: centre, y: dotY, radius: size / 2 - 0.35, thickness: 0.7, color: hairline)
+            }
+        }
+    }
+
+    /// A dial — a ring with an arc over it and the figure inside.
+    func dial(
+        _ fraction: Double,
+        x: Double, y dialY: Double,
+        radius: Double,
+        caption: String = ""
+    ) {
+        let value = min(max(fraction, 0), 1)
+        let thickness = max(2.2, radius * 0.17)
+
+        pdf.ring(x: x, y: dialY, radius: radius, thickness: thickness, color: hairline)
+        if value > 0.001 {
+            pdf.arc(x: x, y: dialY, radius: radius, from: 0, to: 360 * value,
+                    thickness: thickness, color: accent)
+        }
+
+        let figure = "\(Int((value * 100).rounded()))"
+        let size = radius * 0.72
+        pdf.textAt(figure, x: x - radius, y: dialY - size * 0.36, size: size,
+                   color: ink, align: .center, boxWidth: radius * 2, face: medium)
+
+        guard !caption.isEmpty else { return }
+        pdf.textAt(caption, x: x - radius * 1.5, y: dialY - radius - 11, size: 7.6,
+                   color: muted, align: .center, boxWidth: radius * 3, face: regular)
+    }
+
+    /// A labelled bar.
+    func gauge(
+        _ label: String,
+        _ fraction: Double,
+        x: Double,
+        width columnWidth: Double,
+        labelWidth: Double,
+        size: Double = 8.6
+    ) {
+        let top = cursor
+        pdf.cell(label, x: x, boxWidth: labelWidth - 8, size: size, color: ink, face: regular)
+
+        let barWidth = columnWidth - labelWidth
+        if barWidth > 20 {
+            pdf.meter(
+                x: x + labelWidth, y: top - size * 1.05,
+                width: barWidth, height: max(3.4, size * 0.42),
+                fraction: fraction, color: accent, track: wash
+            )
+        }
+        pdf.move(to: top - leading(size))
+    }
+
+    /// A portrait, clipped to a circle.
+    ///
+    /// Silently absent when there is no photograph or it cannot be read: a
+    /// résumé that refuses to render because a JPEG moved is worse than one
+    /// with a gap where a face was, and ``ATS`` reports the reason.
+    @discardableResult
+    func portrait(_ path: String, x: Double, y photoY: Double, diameter: Double) -> Bool {
+        guard let picture = Sheet.photo(at: path) else { return false }
+        pdf.circularImage(picture, x: x, y: photoY, diameter: diameter)
+        return true
+    }
+
+    /// Loads a portrait, or nothing.
+    static func photo(at path: String) -> EmbeddedImage? {
+        let trimmed = path.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+        let expanded = (trimmed as NSString).expandingTildeInPath
+        return try? EmbeddedImage.load(URL(fileURLWithPath: expanded))
     }
 
     /// A rule across a column.

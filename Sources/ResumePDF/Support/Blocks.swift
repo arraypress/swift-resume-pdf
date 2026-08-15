@@ -53,6 +53,26 @@ enum Blocks {
 
         /// Whether an entry's role is set in the accent colour.
         var accentRoles: Bool = false
+
+        /// How a skills section is drawn.
+        var skills: SkillStyle = .list
+    }
+
+    /// How a skills section is set.
+    enum SkillStyle {
+
+        /// Label, then the terms. Every word is a keyword a parser can read.
+        case list
+
+        /// Rounded tags. Still real words, and the only decorative treatment
+        /// here that costs nothing.
+        case chips
+
+        /// Labelled bars, for the ratings a design asked for.
+        case bars
+
+        /// Five dots per skill.
+        case dots
     }
 
     // MARK: Dispatch
@@ -183,6 +203,66 @@ enum Blocks {
     // MARK: Skills
 
     static func skills(_ groups: [SkillGroup], on sheet: Sheet, style: Style) {
+        switch style.skills {
+        case .list:
+            listedSkills(groups, on: sheet, style: style)
+
+        case .chips:
+            for group in groups {
+                // The label and its first row of chips, kept together: a group
+                // name alone at the foot of a page names nothing.
+                sheet.pdf.breakIfNeeded(sheet.leading(style.dateSize) + style.dateSize * 2.4)
+                sheet.line(group.name, x: style.x, width: style.width,
+                           size: style.dateSize, face: sheet.medium, color: sheet.muted)
+                sheet.chips(group.names, x: style.x, width: style.width, size: style.dateSize)
+                sheet.rigidGap(3)
+            }
+
+        case .bars:
+            // Anything unrated falls back to being listed rather than being
+            // drawn as an empty bar, which reads as a score of zero.
+            for group in groups {
+                sheet.line(group.name.uppercased(), x: style.x, width: style.width,
+                           size: style.dateSize, face: sheet.medium, color: sheet.muted,
+                           tracking: style.dateSize * 0.1)
+
+                let rated = group.items.filter { $0.level != nil }
+                for skill in rated {
+                    sheet.gauge(skill.name, skill.level ?? 0, x: style.x,
+                                width: style.width, labelWidth: style.width * 0.52,
+                                size: style.detailSize)
+                }
+                let plain = group.items.filter { $0.level == nil }.map(\.name)
+                if !plain.isEmpty {
+                    sheet.paragraph(plain.joined(separator: ", "), x: style.x,
+                                    width: style.width, size: style.detailSize, color: sheet.ink)
+                }
+                sheet.rigidGap(5)
+            }
+
+        case .dots:
+            for group in groups {
+                sheet.line(group.name.uppercased(), x: style.x, width: style.width,
+                           size: style.dateSize, face: sheet.medium, color: sheet.muted,
+                           tracking: style.dateSize * 0.1)
+
+                for skill in group.items {
+                    let top = sheet.cursor
+                    sheet.pdf.cell(skill.name, x: style.x, boxWidth: style.width * 0.62,
+                                   size: style.detailSize, color: sheet.ink, face: sheet.regular)
+                    if let level = skill.level {
+                        sheet.dots(level, x: style.x + style.width * 0.66,
+                                   y: top - style.detailSize * 0.72, size: 4)
+                    }
+                    sheet.pdf.move(to: top - sheet.leading(style.detailSize))
+                }
+                sheet.rigidGap(5)
+            }
+        }
+    }
+
+    /// Label on the left, terms beside it.
+    private static func listedSkills(_ groups: [SkillGroup], on sheet: Sheet, style: Style) {
         // A label column wide enough for the longest name, within reason: past
         // a third of the column the terms have nowhere to go, and the label is
         // not the thing being read.
@@ -197,7 +277,7 @@ enum Blocks {
             for group in groups {
                 sheet.line(group.name, x: style.x, width: style.width,
                            size: style.detailSize, face: sheet.medium, color: sheet.ink)
-                sheet.paragraph(group.items.joined(separator: ", "), x: style.x,
+                sheet.paragraph(group.names.joined(separator: ", "), x: style.x,
                                 width: style.width, size: style.detailSize, color: sheet.muted)
                 sheet.rigidGap(4)
             }

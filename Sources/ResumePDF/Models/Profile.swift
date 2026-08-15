@@ -42,6 +42,20 @@ public struct Profile: Sendable, Equatable, Codable {
     /// Portfolio, repository and profile links.
     public let links: [Link]
 
+    /// A path to a baseline JPEG portrait.
+    ///
+    /// A path rather than the bytes, so a résumé stays a small readable
+    /// document that survives being kept in version control beside the work
+    /// it describes.
+    ///
+    /// Conventional on a Lebenslauf and on much of the résumé world outside
+    /// the English-speaking part of it; a liability in the US and UK, where an
+    /// employer may not consider what a photograph reveals and the cheapest
+    /// way to prove they did not is never to have seen it. ``Region`` reports
+    /// which situation you are in. Designs that have nowhere to put one
+    /// ignore it.
+    public let photo: String
+
     // MARK: Regional particulars
 
     /// Conventional on a German or Austrian Lebenslauf, and on résumés across
@@ -69,6 +83,7 @@ public struct Profile: Sendable, Equatable, Codable {
         email: String = "",
         phone: String = "",
         links: [Link] = [],
+        photo: String = "",
         dateOfBirth: String = "",
         nationality: String = "",
         maritalStatus: String = "",
@@ -80,6 +95,7 @@ public struct Profile: Sendable, Equatable, Codable {
         self.email = email
         self.phone = phone
         self.links = links
+        self.photo = photo
         self.dateOfBirth = dateOfBirth
         self.nationality = nationality
         self.maritalStatus = maritalStatus

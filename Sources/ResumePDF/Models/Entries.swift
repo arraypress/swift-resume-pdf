@@ -209,6 +209,61 @@ public struct Project: Sendable, Equatable, Codable {
 
 // MARK: - Skills
 
+/// One skill, optionally rated.
+///
+/// The rating exists because a great many résumé designs ask for it, and it
+/// is worth being clear about what it is: a number the candidate chose about
+/// themselves, on a scale nobody defined, which no reader can check and no
+/// parser can read. "Java 95%" is a claim about nothing.
+///
+/// It is here, it renders, and ``ATS`` says so.
+public struct Skill: Sendable, Equatable, Codable, ExpressibleByStringLiteral {
+
+    public let name: String
+
+    /// 0 to 1, or `nil` when the skill is simply listed.
+    public let level: Double?
+
+    public init(_ name: String, _ level: Double? = nil) {
+        self.name = name
+        self.level = level.map { min(max($0, 0), 1) }
+    }
+
+    public init(stringLiteral value: String) {
+        self.init(value)
+    }
+
+    /// Decodes from either `"Swift"` or `{"name": "Swift", "level": 0.9}`.
+    ///
+    /// Both spellings, because a skills list is the part of a résumé most
+    /// likely to be written by hand, and making somebody type an object per
+    /// item to say "I know Swift" is a tax on the common case.
+    public init(from decoder: Decoder) throws {
+        if let single = try? decoder.singleValueContainer(), let name = try? single.decode(String.self) {
+            self.init(name)
+            return
+        }
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            try container.decode(String.self, forKey: .name),
+            try container.decodeIfPresent(Double.self, forKey: .level)
+        )
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        guard let level else {
+            var single = encoder.singleValueContainer()
+            try single.encode(name)
+            return
+        }
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encode(level, forKey: .level)
+    }
+
+    private enum CodingKeys: String, CodingKey { case name, level }
+}
+
 /// A named group of skills.
 ///
 /// Grouped rather than one long list, because an unlabelled run of thirty
@@ -216,12 +271,18 @@ public struct Project: Sendable, Equatable, Codable {
 public struct SkillGroup: Sendable, Equatable, Codable {
 
     public let name: String
-    public let items: [String]
+    public let items: [Skill]
 
-    public init(_ name: String, _ items: [String]) {
+    public init(_ name: String, _ items: [Skill]) {
         self.name = name
         self.items = items
     }
+
+    /// The names alone, for the designs that only list them.
+    public var names: [String] { items.map(\.name) }
+
+    /// Whether anything here carries a rating.
+    public var isRated: Bool { items.contains { $0.level != nil } }
 }
 
 // MARK: - Credential

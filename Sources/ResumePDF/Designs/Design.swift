@@ -34,9 +34,30 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     case timeline
 
     /// A tinted rail carrying contact, skills and languages, with the
-    /// experience beside it. The best-looking of the four and the only one
+    /// experience beside it. The best-looking of the set and the only one
     /// that will not survive an applicant tracking system.
     case sidebar
+
+    /// Section names hung in the left margin, content in one column beside
+    /// them. Book typography, and the calmest page here.
+    case margin
+
+    /// A light band at the top and the rest of the page reversed out.
+    /// Striking on a screen, expensive on somebody's office printer.
+    case nocturne
+
+    /// A coloured panel across the top with the name reversed out of it.
+    case plaque
+
+    /// Section headings as tabs with a mark beside each. Navigable at a
+    /// glance, which suits a long CV.
+    case bulletin
+
+    /// Alternate sections on a tinted band, labels in the margin.
+    case register
+
+    /// Headings struck through with a highlighter. The least formal of them.
+    case marker
 
     public var displayName: String {
         switch self {
@@ -44,6 +65,12 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .broadsheet: return "Broadsheet"
         case .timeline: return "Timeline"
         case .sidebar: return "Sidebar"
+        case .margin: return "Margin"
+        case .nocturne: return "Nocturne"
+        case .plaque: return "Plaque"
+        case .bulletin: return "Bulletin"
+        case .register: return "Register"
+        case .marker: return "Marker"
         }
     }
 
@@ -54,6 +81,12 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .broadsheet: return "Serif, centred masthead. Academic and formal."
         case .timeline: return "A date rail down the left edge."
         case .sidebar: return "Two columns with a tinted rail. Not machine-readable."
+        case .margin: return "Section names hung in the left margin."
+        case .nocturne: return "Light masthead, reversed body."
+        case .plaque: return "A coloured panel across the top."
+        case .bulletin: return "Headings as tabs, each with a mark."
+        case .register: return "Alternating tinted bands."
+        case .marker: return "Highlighter headings. Informal."
         }
     }
 
@@ -75,12 +108,29 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         self == .broadsheet ? .sourceSerif : .inter
     }
 
+    /// Whether the design has somewhere to put a photograph.
+    ///
+    /// Reported rather than silently ignored: a résumé that carries a portrait
+    /// and renders without one should say which design dropped it.
+    public var showsPhoto: Bool {
+        switch self {
+        case .plaque, .bulletin, .nocturne, .sidebar: return true
+        case .ledger, .broadsheet, .timeline, .margin, .register, .marker: return false
+        }
+    }
+
     var design: any Design {
         switch self {
         case .ledger: return Ledger()
         case .broadsheet: return Broadsheet()
         case .timeline: return Timeline()
         case .sidebar: return Sidebar()
+        case .margin: return Margin()
+        case .nocturne: return Nocturne()
+        case .plaque: return Plaque()
+        case .bulletin: return Bulletin()
+        case .register: return Register()
+        case .marker: return Marker()
         }
     }
 }
@@ -137,7 +187,7 @@ extension Resume {
         ]
         // Keywords are read by some tracking systems, and skills are the terms
         // being matched against.
-        let terms = skills.flatMap(\.items)
+        let terms = skills.flatMap(\.names)
         if !terms.isEmpty { fields["Keywords"] = terms.joined(separator: ", ") }
         fields["Subject"] = design.displayName
         return fields
