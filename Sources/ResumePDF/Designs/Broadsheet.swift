@@ -61,7 +61,7 @@ struct Broadsheet: Design {
 
         pdf.move(to: y)
         sheet.contactFlow(
-            profile.contactLine() + profile.links.map(\.label),
+            profile.contactEntries(),
             size: 8.8, align: .center
         )
 

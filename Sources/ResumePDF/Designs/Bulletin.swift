@@ -106,7 +106,7 @@ struct Bulletin: Design {
 
         pdf.move(to: y - 2)
         let width = hasPhoto ? sheet.width - diameter - 20 : sheet.width
-        sheet.contactFlow(profile.contactLine() + profile.links.map(\.label),
+        sheet.contactFlow(profile.contactEntries(),
                           width: width, size: 8.7)
 
         let particulars = profile.particulars()

@@ -149,6 +149,11 @@ public enum Icon: String, Sendable, CaseIterable, Codable {
         case .interests: return .interests
         case .references: return .references
         case .volunteering: return .volunteering
+        case .grants: return .awards
+        case .teaching: return .education
+        case .talks: return .publications
+        case .service: return .volunteering
+        case .memberships: return .certifications
         }
     }
 }

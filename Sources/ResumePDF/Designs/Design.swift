@@ -59,6 +59,18 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     /// Headings struck through with a highlighter. The least formal of them.
     case marker
 
+    /// Two panels across the head — summary on one, contact on the other —
+    /// and a coloured tab beside every section.
+    case slate
+
+    /// A very large name, very small labels, and a great deal of nothing.
+    /// The most confident page here, and the first to run over.
+    case swiss
+
+    /// Every entry on a panel of its own. Suits several short roles; unkind
+    /// to one long one.
+    case card
+
     public var displayName: String {
         switch self {
         case .ledger: return "Ledger"
@@ -71,6 +83,9 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .bulletin: return "Bulletin"
         case .register: return "Register"
         case .marker: return "Marker"
+        case .slate: return "Slate"
+        case .swiss: return "Swiss"
+        case .card: return "Card"
         }
     }
 
@@ -87,6 +102,9 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .bulletin: return "Headings as tabs, each with a mark."
         case .register: return "Alternating tinted bands."
         case .marker: return "Highlighter headings. Informal."
+        case .slate: return "Twin panels and section tabs."
+        case .swiss: return "An oversized name and a lot of air."
+        case .card: return "Every entry on its own panel."
         }
     }
 
@@ -115,7 +133,8 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     public var showsPhoto: Bool {
         switch self {
         case .plaque, .bulletin, .nocturne, .sidebar: return true
-        case .ledger, .broadsheet, .timeline, .margin, .register, .marker: return false
+        case .ledger, .broadsheet, .timeline, .margin, .register, .marker,
+             .slate, .swiss, .card: return false
         }
     }
 
@@ -131,6 +150,9 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .bulletin: return Bulletin()
         case .register: return Register()
         case .marker: return Marker()
+        case .slate: return Slate()
+        case .swiss: return Swiss()
+        case .card: return Card()
         }
     }
 }
@@ -155,8 +177,39 @@ extension Resume {
     public func document(design: DesignKind = .ledger, theme: Theme = .plain) throws -> Document {
         let family = try Typography.family(theme.typeface)
         let sheet = Sheet(theme: theme, family: family, labels: labels)
+        sheet.pdf.language = labels.language
         design.design.render(self, on: sheet)
         return sheet.pdf
+    }
+
+    /// The loosest setting that fits the résumé into `pages`.
+    ///
+    /// The complaint every résumé tool gets is that the document runs four
+    /// lines onto a second page, and the usual answer — drop the type to 8pt —
+    /// makes it look desperate. Tightening the leading and the gaps between
+    /// blocks buys most of the same room and costs far less legibility, so
+    /// that is what this tries, in order, and it stops at the first setting
+    /// that works.
+    ///
+    /// Returns the theme it settled on, `nil` when even the tightest will not
+    /// fit. That is a content problem and not a formatting one: something has
+    /// to come off the page, and choosing what is not a decision a layout
+    /// engine should be making on somebody's behalf.
+    public func fitted(
+        to pages: Int = 1,
+        design: DesignKind = .ledger,
+        theme: Theme = .plain
+    ) throws -> Theme? {
+        for density in [Density.relaxed, .normal, .compact] {
+            let candidate = Theme(
+                typeface: theme.typeface, accent: theme.accent, pageSize: theme.pageSize,
+                density: density, scheme: theme.scheme, tint: theme.tint
+            )
+            if try document(design: design, theme: candidate).pageCount() <= pages {
+                return candidate
+            }
+        }
+        return nil
     }
 
     /// The finished PDF bytes.

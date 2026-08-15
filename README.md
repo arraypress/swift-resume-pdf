@@ -1,6 +1,6 @@
 # Swift Resume PDF
 
-Résumés, CVs and cover letters as PDFs. Ten designs, real typography, and the checks that decide whether the thing gets read.
+Résumés, CVs and cover letters as PDFs. Thirteen designs, real typography, and the checks that decide whether the thing gets read.
 
 ```swift
 let resume = Resume(
@@ -37,7 +37,7 @@ This writes the PDF directly, in designs that are honest about which side of tha
 ## Features
 
 - ✒️ **Real typography** — Inter and Source Serif 4 travel with the package, in several weights and italic
-- 🎨 **Ten designs** — genuinely different arrangements, not one with the colours changed
+- 🎨 **Thirteen designs** — genuinely different arrangements, not one with the colours changed
 - ✉️ **Cover letters** — four letter designs, each paired with a résumé one
 - 🌗 **Light, dark and tinted** — a property of the theme, so every design gets all three
 - 🤖 **ATS checks** — column layout, heading names, date formats, ordering, length
@@ -60,9 +60,12 @@ This writes the PDF directly, in designs that are honest about which side of tha
 | `bulletin` | Headings as tabs, each with a mark. Navigable at a glance. | ✅ |
 | `register` | Alternating tinted section bands, labels in the margin. | ✅ |
 | `marker` | Headings struck through with a highlighter. Informal. | ✅ |
+| `slate` | Twin masthead panels and a tab beside every section. | ✅ |
+| `swiss` | An oversized name and a great deal of air. | ✅ |
+| `card` | Every entry on a panel of its own. | ✅ |
 | `sidebar` | Tinted rail carrying contact and skills. | ❌ |
 
-`sidebar` is the best-looking of the ten and the only one a tracking system cannot read. That is not a bug to be fixed later — two columns and machine-readability are the same trade-off seen from either end. Send it where a person will open it, and use one of the others for anything that goes through a form. `check` says so rather than leaving it to be discovered.
+`sidebar` is the best-looking of the thirteen and the only one a tracking system cannot read. That is not a bug to be fixed later — two columns and machine-readability are the same trade-off seen from either end. Send it where a person will open it, and use one of the others for anything that goes through a form. `check` says so rather than leaving it to be discovered.
 
 ## Themes, not templates
 
@@ -76,6 +79,37 @@ Theme(density: .compact)                        // six more lines per page
 ```
 
 An accent chosen against white is routinely invisible on a dark page, so it is lifted when it comes too close to the background and left alone when it does not. A design that inverts a band gets a palette derived from that band, so bullets, dates and rules inside it stay legible without knowing anything unusual is happening.
+
+## Résumé, CV, or letter
+
+Two documents, not three. A résumé and a CV are the same data under different conventions — length, ordering, and what is included — so both are a `Resume`, and the conventions are parameters:
+
+```swift
+Resume(profile: profile, experience: roles, order: .conventional)   // a résumé
+Resume(profile: profile, grants: funding, order: .academic)         // a CV
+```
+
+`Section.academic` leads with publications and funding; `Section.graduate` leads with the degree. `Region` supplies the rest — a US résumé is one page and carries no date of birth, a Lebenslauf carries one.
+
+A CV has sections a résumé does not, and those are real:
+
+| | |
+|---|---|
+| `grants` | Funding, with the funder, the amount, the period and whether you led it |
+| `teaching` | Courses taught |
+| `talks` | Given, invited or otherwise |
+| `service` | Reviewing, editorial work, committees |
+| `memberships` | Professional bodies |
+
+A cover letter *is* a different document, so it is a different type. See below.
+
+## Fitting the page
+
+```swift
+let theme = try resume.fitted(to: 1, design: .ledger)
+```
+
+Tries relaxed, then normal, then compact, and stops at the first that fits. Returns `nil` when even the tightest will not — that is a content problem, and what to cut is not a decision a layout engine should make on somebody's behalf.
 
 ## Cover letters
 

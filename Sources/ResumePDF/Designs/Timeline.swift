@@ -150,7 +150,7 @@ struct Timeline: Design {
         }
 
         pdf.move(to: y)
-        sheet.contactFlow(profile.contactLine() + profile.links.map(\.label), size: 8.6)
+        sheet.contactFlow(profile.contactEntries(), size: 8.6)
 
         let particulars = profile.particulars()
         if !particulars.isEmpty {

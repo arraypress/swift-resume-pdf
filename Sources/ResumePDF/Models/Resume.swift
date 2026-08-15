@@ -39,6 +39,24 @@ public struct Resume: Sendable, Equatable, Codable {
     public let awards: [Award]
     public let languages: [Language]
 
+    // MARK: The sections a CV has and a résumé does not
+
+    /// Funding awarded. The section an academic CV is read for.
+    public let grants: [Grant]
+
+    /// Courses taught, filed as positions because that is their shape.
+    public let teaching: [Position]
+
+    /// Talks given. Invited ones are worth saying so in the venue.
+    public let talks: [Publication]
+
+    /// Reviewing, editorial work, committees — the unpaid work that a
+    /// department counts and a company does not know exists.
+    public let service: [Position]
+
+    /// Professional bodies.
+    public let memberships: [Credential]
+
     /// Free text. Specific ones are worth the line; "reading, travel, music"
     /// is worth none.
     public let interests: String
@@ -71,6 +89,11 @@ public struct Resume: Sendable, Equatable, Codable {
         publications: [Publication] = [],
         awards: [Award] = [],
         languages: [Language] = [],
+        grants: [Grant] = [],
+        teaching: [Position] = [],
+        talks: [Publication] = [],
+        service: [Position] = [],
+        memberships: [Credential] = [],
         interests: String = "",
         references: String = "",
         order: [Section] = Section.conventional,
@@ -87,6 +110,11 @@ public struct Resume: Sendable, Equatable, Codable {
         self.publications = publications
         self.awards = awards
         self.languages = languages
+        self.grants = grants
+        self.teaching = teaching
+        self.talks = talks
+        self.service = service
+        self.memberships = memberships
         self.interests = interests
         self.references = references
         self.order = order
@@ -110,6 +138,11 @@ public struct Resume: Sendable, Equatable, Codable {
         case .publications: return !publications.isEmpty
         case .awards: return !awards.isEmpty
         case .languages: return !languages.isEmpty
+        case .grants: return !grants.isEmpty
+        case .teaching: return !teaching.isEmpty
+        case .talks: return !talks.isEmpty
+        case .service: return !service.isEmpty
+        case .memberships: return !memberships.isEmpty
         case .interests: return !interests.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .references: return !references.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
@@ -136,6 +169,11 @@ public enum Section: String, Sendable, CaseIterable, Codable {
     case publications
     case awards
     case languages
+    case grants
+    case teaching
+    case talks
+    case service
+    case memberships
     case interests
     case references
 
@@ -160,9 +198,15 @@ public enum Section: String, Sendable, CaseIterable, Codable {
     ]
 
     /// Publications and grants carry the weight; length is not a constraint.
+    /// Publications and funding carry the weight; length is not a constraint.
+    ///
+    /// The ordering is a discipline's convention rather than a rule — the
+    /// sciences lead with grants, the humanities with publications — so this
+    /// is a starting point to reorder, not an answer.
     public static let academic: [Section] = [
-        .summary, .education, .publications, .experience, .awards,
-        .projects, .certifications, .languages, .skills, .references,
+        .summary, .education, .publications, .grants, .experience, .teaching,
+        .talks, .awards, .service, .memberships, .projects, .certifications,
+        .languages, .skills, .references,
     ]
 }
 
@@ -233,6 +277,11 @@ public struct Labels: Sendable, Equatable, Codable {
             .publications: "Publikationen",
             .awards: "Auszeichnungen",
             .languages: "Sprachen",
+            .grants: "Drittmittel",
+            .teaching: "Lehre",
+            .talks: "Vorträge",
+            .service: "Akademische Selbstverwaltung",
+            .memberships: "Mitgliedschaften",
             .interests: "Interessen",
             .references: "Referenzen",
         ],
@@ -262,6 +311,11 @@ extension Section {
         case .publications: return "Publications"
         case .awards: return "Awards"
         case .languages: return "Languages"
+        case .grants: return "Grants and Funding"
+        case .teaching: return "Teaching"
+        case .talks: return "Talks"
+        case .service: return "Service"
+        case .memberships: return "Memberships"
         case .interests: return "Interests"
         case .references: return "References"
         }

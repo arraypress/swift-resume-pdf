@@ -359,7 +359,26 @@ final class Sheet {
         align: Align = .left,
         separator: String = "·"
     ) -> Double {
-        let entries = items.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        contactFlow(items.map { (text: $0, url: "") }, x: x, width: columnWidth,
+                    size: size, color: color, align: align, separator: separator)
+    }
+
+    /// The same, with each entry linked where it has somewhere to go.
+    ///
+    /// Laid out entry by entry rather than as a joined string, because a link
+    /// area has to be measured against the run it covers — and because that is
+    /// the only way to know where a separator goes when the row is centred.
+    @discardableResult
+    func contactFlow(
+        _ items: [(text: String, url: String)],
+        x: Double? = nil,
+        width columnWidth: Double? = nil,
+        size: Double = 8.6,
+        color: Color? = nil,
+        align: Align = .left,
+        separator: String = "·"
+    ) -> Double {
+        let entries = items.filter { !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }
         guard !entries.isEmpty else { return 0 }
 
         let originX = x ?? left
@@ -367,30 +386,57 @@ final class Sheet {
         let joiner = "  \(separator)  "
         let joinerWidth = pdf.width(of: joiner, size: size, face: regular)
 
-        var rows: [String] = []
-        var row = ""
-        var rowWidth = 0.0
+        var rows: [[(text: String, url: String, width: Double)]] = []
+        var row: [(text: String, url: String, width: Double)] = []
+        var used = 0.0
 
         for entry in entries {
-            let entryWidth = pdf.width(of: entry, size: size, face: regular)
-            let needed = row.isEmpty ? entryWidth : rowWidth + joinerWidth + entryWidth
+            let entryWidth = pdf.width(of: entry.text, size: size, face: regular)
+            let needed = row.isEmpty ? entryWidth : used + joinerWidth + entryWidth
 
             if !row.isEmpty, needed > boxWidth {
                 rows.append(row)
-                row = entry
-                rowWidth = entryWidth
-            } else {
-                row = row.isEmpty ? entry : row + joiner + entry
-                rowWidth = needed
+                row = []
+                used = 0
             }
+            row.append((entry.text, entry.url, entryWidth))
+            used = row.count == 1 ? entryWidth : used + joinerWidth + entryWidth
         }
         if !row.isEmpty { rows.append(row) }
 
         let step = size * 1.5
-        for text in rows {
-            pdf.cell(text, x: originX, boxWidth: boxWidth, size: size,
-                     color: color ?? muted, align: align, face: regular)
-            pdf.move(to: pdf.cursor() - step)
+        let tint = color ?? muted
+
+        for line in rows {
+            let content = line.reduce(0.0) { $0 + $1.width }
+                + joinerWidth * Double(max(0, line.count - 1))
+
+            var cursorX = originX
+            switch align {
+            case .center: cursorX += (boxWidth - content) / 2
+            case .right: cursorX += boxWidth - content
+            case .left: break
+            }
+
+            let baseline = cursor - (regular?.ascender(size) ?? size * 0.78)
+
+            for (index, entry) in line.enumerated() {
+                if index > 0 {
+                    pdf.textAt(joiner, x: cursorX, y: baseline, size: size,
+                               color: tint, face: regular)
+                    cursorX += joinerWidth
+                }
+
+                if entry.url.isEmpty {
+                    pdf.textAt(entry.text, x: cursorX, y: baseline, size: size,
+                               color: tint, face: regular)
+                } else {
+                    pdf.linked(entry.text, url: entry.url, x: cursorX, y: baseline,
+                               size: size, color: tint, face: regular)
+                }
+                cursorX += entry.width
+            }
+            pdf.move(to: cursor - step)
         }
         return Double(rows.count) * step
     }

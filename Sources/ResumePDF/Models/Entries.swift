@@ -372,3 +372,50 @@ public struct Language: Sendable, Equatable, Codable {
         self.level = level
     }
 }
+
+// MARK: - Grant
+
+/// Funding awarded.
+///
+/// Its own type rather than another ``Award`` because the things a reader
+/// wants from it are different: who funded it, how much, over what period, and
+/// whether you led it. On an academic CV this is the section that is read
+/// first, and "Best Paper, ACL" and "£1.2m from EPSRC over four years" are not
+/// the same kind of fact.
+public struct Grant: Sendable, Equatable, Codable {
+
+    public let title: String
+
+    /// "EPSRC", "Wellcome Trust", "Horizon Europe".
+    public let funder: String
+
+    /// Pre-formatted, like every other amount in this family — the currency's
+    /// conventions belong wherever the money lives.
+    public let amount: String
+
+    public let dates: DateRange
+
+    /// "Principal investigator", "Co-investigator". The distinction is the
+    /// whole point of listing it, and omitting it reads as a claim to the
+    /// former.
+    public let role: String
+
+    /// The grant reference, which is how a reader verifies it.
+    public let identifier: String
+
+    public init(
+        title: String,
+        funder: String = "",
+        amount: String = "",
+        dates: DateRange = DateRange(""),
+        role: String = "",
+        identifier: String = ""
+    ) {
+        self.title = title
+        self.funder = funder
+        self.amount = amount
+        self.dates = dates
+        self.role = role
+        self.identifier = identifier
+    }
+}

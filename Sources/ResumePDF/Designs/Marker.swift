@@ -87,7 +87,7 @@ struct Marker: Design {
         }
 
         pdf.move(to: y)
-        sheet.contactFlow(profile.contactLine() + profile.links.map(\.label),
+        sheet.contactFlow(profile.contactEntries(),
                           size: 8.7, align: .center, separator: "▪")
 
         let particulars = profile.particulars()

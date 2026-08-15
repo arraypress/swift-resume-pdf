@@ -83,7 +83,7 @@ struct Margin: Design {
         }
         pdf.move(to: y - 8)
 
-        let contact = profile.contactLine() + profile.links.map(\.label)
+        let contact = profile.contactEntries()
         if !contact.isEmpty {
             sheet.rule(x: bodyX, width: bodyWidth, thickness: 0.6)
             sheet.gap(11)

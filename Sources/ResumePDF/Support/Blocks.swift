@@ -109,6 +109,21 @@ enum Blocks {
         case .languages:
             languages(resume.languages, on: sheet, style: style)
 
+        case .grants:
+            grants(resume.grants, on: sheet, style: style, labels: resume.labels)
+
+        case .teaching:
+            positions(resume.teaching, on: sheet, style: style, labels: resume.labels)
+
+        case .service:
+            positions(resume.service, on: sheet, style: style, labels: resume.labels)
+
+        case .talks:
+            publications(resume.talks, on: sheet, style: style)
+
+        case .memberships:
+            credentials(resume.memberships, on: sheet, style: style)
+
         case .interests:
             sheet.paragraph(resume.interests, x: style.x, width: style.width, size: style.bodySize)
 
@@ -318,6 +333,29 @@ enum Blocks {
                 sheet.line(item.skills.joined(separator: " · "), x: style.x, width: style.width,
                            size: style.dateSize, face: sheet.regular, color: sheet.muted)
             }
+        }
+    }
+
+    // MARK: Grants
+
+    static func grants(_ items: [Grant], on sheet: Sheet, style: Style, labels: Labels) {
+        for item in items {
+            let dates = item.dates.rendered(present: labels.present, dash: labels.dateSeparator)
+            heading(item.title, dates: dates, on: sheet, style: style,
+                    size: style.detailSize, face: sheet.medium,
+                    color: style.accentRoles ? sheet.accent : sheet.ink)
+
+            // Funder and amount on one line, because they are read together:
+            // a reader is asking who backed it and for how much, in that
+            // order, and separating them makes them look like two facts.
+            let detail = [item.funder, item.amount, item.role, item.identifier]
+                .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+
+            if !detail.isEmpty {
+                sheet.paragraph(detail.joined(separator: "  ·  "), x: style.x, width: style.width,
+                                size: style.dateSize, color: sheet.muted)
+            }
+            sheet.rigidGap(5)
         }
     }
 

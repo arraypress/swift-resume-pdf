@@ -206,6 +206,9 @@ public enum ATS {
         .education: ["education", "academic background", "qualifications", "education and training"],
         .skills: ["skills", "technical skills", "core skills", "competencies", "expertise"],
         .summary: ["summary", "profile", "professional summary", "about", "objective"],
+        .publications: ["publications", "selected publications", "papers", "publications and preprints"],
+        .grants: ["grants", "funding", "grants and funding", "research funding", "awarded funding"],
+        .teaching: ["teaching", "teaching experience", "courses taught", "teaching and supervision"],
     ]
 
     private static func headings(_ resume: Resume) -> [Finding] {

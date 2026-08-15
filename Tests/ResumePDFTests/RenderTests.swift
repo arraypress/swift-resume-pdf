@@ -205,3 +205,96 @@ final class RenderTests: XCTestCase {
         XCTAssertLessThan(data.count, 200_000, "\(data.count) bytes")
     }
 }
+
+// MARK: - Later additions
+
+extension RenderTests {
+
+    func testNoDesignPrintsTheSummaryTwice() throws {
+        // Slate sets the summary in a masthead panel. Rendering it again as a
+        // section put the same paragraph on the page twice, which reads as a
+        // copy-and-paste error by the candidate rather than by the tool.
+        for design in DesignKind.allCases {
+            let text = try read(.sample, design: design,
+                                theme: Theme(typeface: design.intendedTypeface))
+            let opening = "Infrastructure engineer with eleven years"
+            XCTAssertEqual(
+                text.components(separatedBy: opening).count - 1, 1,
+                "\(design.rawValue) printed the summary more than once"
+            )
+        }
+    }
+
+    func testContactDetailsAreClickable() throws {
+        let data = try Resume.sample.render()
+        let document = try XCTUnwrap(PDFDocument(data: data))
+        let page = try XCTUnwrap(document.page(at: 0))
+
+        let urls = page.annotations.compactMap { $0.url?.absoluteString }
+        XCTAssertTrue(urls.contains("mailto:alex@moreau.dev"), "\(urls)")
+        XCTAssertTrue(urls.contains { $0.contains("github.com/alexmoreau") }, "\(urls)")
+    }
+
+    func testTheLocationIsNotALink() throws {
+        // It is the one contact detail that is not a way of reaching somebody.
+        let data = try Resume.sample.render()
+        let page = try XCTUnwrap(try XCTUnwrap(PDFDocument(data: data)).page(at: 0))
+        let urls = page.annotations.compactMap { $0.url?.absoluteString }
+
+        XCTAssertFalse(urls.contains { $0.contains("London") })
+    }
+
+    func testTheDocumentDeclaresItsLanguage() throws {
+        let english = try XCTUnwrap(String(data: try Resume.sample.render(), encoding: .isoLatin1))
+        XCTAssertTrue(english.contains("/Lang (en)"))
+
+        var german = Resume.sample
+        german = Resume(profile: german.profile, summary: german.summary,
+                        experience: german.experience, labels: .german)
+        let raw = try XCTUnwrap(String(data: try german.render(), encoding: .isoLatin1))
+        XCTAssertTrue(raw.contains("/Lang (de)"))
+    }
+
+    func testFittingChoosesTheLoosestDensityThatWorks() throws {
+        // The sample runs to two pages at normal density, so asking for two
+        // should settle on the relaxed setting rather than tightening at all.
+        let two = try XCTUnwrap(try Resume.sample.fitted(to: 2))
+        XCTAssertEqual(two.density, .relaxed)
+
+        // And a résumé that cannot be made to fit says so rather than
+        // returning something that does not.
+        let long = Resume(
+            profile: Resume.sample.profile,
+            experience: Array(repeating: Resume.sample.experience[0], count: 12)
+        )
+        XCTAssertNil(try long.fitted(to: 1))
+    }
+
+    func testTheCVSectionsRender() throws {
+        let cv = Resume(
+            profile: Profile(name: "Dr Ingrid Sørensen", email: "i@ed.ac.uk"),
+            experience: [Position(role: "Reader", organisation: "Edinburgh", dates: .since("2021"))],
+            grants: [Grant(title: "Morphology at scale", funder: "EPSRC", amount: "£1.2m",
+                           dates: DateRange("2022", "2026"), role: "Principal investigator",
+                           identifier: "EP/X01234/1")],
+            teaching: [Position(role: "Computational Morphology", organisation: "Edinburgh",
+                                dates: .since("2021"))],
+            talks: [Publication(title: "What morphology costs a language model",
+                                venue: "ACL keynote", date: "2024")],
+            service: [Position(role: "Area chair", organisation: "EMNLP", dates: DateRange("2023"))],
+            memberships: [Credential(name: "Association for Computational Linguistics")],
+            order: Section.academic
+        )
+
+        // Case-insensitive: every design sets its section headings in
+        // capitals, which is a design decision and not a fact to assert on.
+        let text = try read(cv, design: .broadsheet, theme: .classic)
+        for expected in ["Grants and Funding", "EPSRC", "£1.2m", "Principal investigator",
+                         "Teaching", "Talks", "Service", "Memberships"] {
+            XCTAssertNotNil(
+                text.range(of: expected, options: .caseInsensitive),
+                "\"\(expected)\" missing"
+            )
+        }
+    }
+}

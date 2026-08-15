@@ -84,11 +84,20 @@ struct Sidebar: Design {
 
         sheet.gap(15)
 
-        let contact = profile.contactLine() + profile.links.map(\.label)
+        let contact = profile.contactEntries()
         if !contact.isEmpty {
             railHeading("Contact", on: sheet, x: x, width: width)
             for entry in contact {
-                sheet.paragraph(entry, x: x, width: width, size: 8.6, color: sheet.ink)
+                // One per line in a rail this narrow, and linked where it goes
+                // somewhere. Wrapped rather than placed, because an email
+                // address is often wider than the column.
+                let top = sheet.cursor
+                sheet.paragraph(entry.text, x: x, width: width, size: 8.6, color: sheet.ink)
+
+                if !entry.url.isEmpty {
+                    pdf.link(entry.url, x: x, y: sheet.cursor,
+                             width: width, height: top - sheet.cursor)
+                }
                 sheet.rigidGap(2)
             }
             sheet.gap(13)

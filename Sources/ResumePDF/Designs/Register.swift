@@ -97,7 +97,7 @@ struct Register: Design {
         }
 
         pdf.move(to: y - 2)
-        sheet.contactFlow(profile.contactLine() + profile.links.map(\.label),
+        sheet.contactFlow(profile.contactEntries(),
                           x: bodyX, width: bodyWidth, size: 8.7, align: .center)
 
         let particulars = profile.particulars()

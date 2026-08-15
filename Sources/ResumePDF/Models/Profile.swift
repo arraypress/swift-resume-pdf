@@ -110,6 +110,32 @@ public struct Profile: Sendable, Equatable, Codable {
         [email, phone, location].filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
     }
 
+    /// The contact line, with somewhere to go where there is somewhere.
+    ///
+    /// A résumé is read from a screen far more often than from paper, and an
+    /// address nobody can click is one somebody has to retype — which is the
+    /// difference between a recruiter opening your GitHub and meaning to.
+    ///
+    /// The location has no URL. It is the one thing here that is not a way of
+    /// reaching you, and putting it on a map is answering a question nobody
+    /// asked.
+    public func contactEntries() -> [(text: String, url: String)] {
+        var entries: [(text: String, url: String)] = []
+
+        if !email.trimmingCharacters(in: .whitespaces).isEmpty {
+            entries.append((email, "mailto:\(email.trimmingCharacters(in: .whitespaces))"))
+        }
+        if !phone.trimmingCharacters(in: .whitespaces).isEmpty {
+            // tel: wants the number and nothing else — no spaces, no brackets.
+            let dialable = phone.filter { $0.isNumber || $0 == "+" }
+            entries.append((phone, dialable.count > 5 ? "tel:\(dialable)" : ""))
+        }
+        if !location.trimmingCharacters(in: .whitespaces).isEmpty {
+            entries.append((location, ""))
+        }
+        return entries + links.map { ($0.label, $0.absolute) }
+    }
+
     /// The regional particulars that are actually set, as label and value.
     public func particulars() -> [(label: String, value: String)] {
         [

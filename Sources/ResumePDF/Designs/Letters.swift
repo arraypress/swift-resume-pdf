@@ -85,6 +85,7 @@ extension CoverLetter {
     public func document(design: LetterDesign = .memo, theme: Theme = .plain) throws -> Document {
         let family = try Typography.family(theme.typeface)
         let sheet = Sheet(theme: theme, family: family, labels: .english)
+        sheet.pdf.language = "en"
 
         design.design.masthead(self, on: sheet)
         Letters.body(self, on: sheet)
@@ -187,9 +188,9 @@ enum Letters {
         sheet.rigidGap(4)
     }
 
-    /// The contact line every letter head carries.
-    static func contact(_ profile: Profile) -> [String] {
-        profile.contactLine() + profile.links.map(\.label)
+    /// The contact line every letter head carries, linked where it can be.
+    static func contact(_ profile: Profile) -> [(text: String, url: String)] {
+        profile.contactEntries()
     }
 }
 
@@ -242,8 +243,15 @@ struct LetterheadLetter: LetterLayout {
         // sets it — the two together make the head, and neither is a list.
         var y = top - 14
         for entry in Letters.contact(profile) {
-            pdf.textAt(entry, x: sheet.left, y: y, size: 8.8, color: sheet.muted,
-                       align: .right, boxWidth: sheet.width, face: sheet.regular)
+            let measured = pdf.width(of: entry.text, size: 8.8, face: sheet.regular)
+            let originX = sheet.right - measured
+            if entry.url.isEmpty {
+                pdf.textAt(entry.text, x: originX, y: y, size: 8.8,
+                           color: sheet.muted, face: sheet.regular)
+            } else {
+                pdf.linked(entry.text, url: entry.url, x: originX, y: y, size: 8.8,
+                           color: sheet.muted, face: sheet.regular)
+            }
             y -= 13
         }
 

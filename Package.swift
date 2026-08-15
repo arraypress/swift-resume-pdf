@@ -13,7 +13,7 @@ let package = Package(
         .library(name: "ResumePDF", targets: ["ResumePDF"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/arraypress/swift-text-pdf.git", from: "1.7.0"),
+        .package(url: "https://github.com/arraypress/swift-text-pdf.git", from: "1.8.0"),
     ],
     targets: [
         .target(
