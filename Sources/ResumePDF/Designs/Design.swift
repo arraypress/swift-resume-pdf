@@ -258,10 +258,11 @@ extension Resume {
 
     /// The finished bytes, from a design of your own.
     public func render(
-        design: any Design, theme: Theme = .plain, archival: Bool = false, password: String = ""
+        design: any Design, theme: Theme = .plain, archival: Bool = false,
+        password: String = "", creationDate: Date = Date()
     ) throws -> Data {
         try document(design: design, theme: theme)
-            .render(metadata: metadata(design: .ledger),
+            .render(metadata: metadata(design: .ledger), creationDate: creationDate,
                     standard: archival ? .pdfA3b : .none, password: password)
     }
 
@@ -319,12 +320,16 @@ extension Resume {
     ///   government applications ask for by name. Free here: the typefaces
     ///   travel with the document already, which is the requirement most
     ///   documents fail.
+    /// - Parameter creationDate: Stamped into the file. Given rather than
+    ///   taken where a document is committed or compared: a PDF carries the
+    ///   time it was written, so the same résumé rendered twice differs by
+    ///   the clock alone.
     public func render(
         design: DesignKind = .ledger, theme: Theme = .plain,
-        archival: Bool = false, password: String = ""
+        archival: Bool = false, password: String = "", creationDate: Date = Date()
     ) throws -> Data {
         try document(design: design, theme: theme)
-            .render(metadata: metadata(design: design),
+            .render(metadata: metadata(design: design), creationDate: creationDate,
                     standard: archival ? .pdfA3b : .none, password: password)
     }
 

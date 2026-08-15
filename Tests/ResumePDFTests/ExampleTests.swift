@@ -132,7 +132,8 @@ final class ExampleTests: XCTestCase {
         }
 
         // And the archival copy, which some applications ask for by name.
-        try put(try Resume.sample.render(design: .ledger, archival: true), "shapes/archival.pdf")
+        try put(try Resume.sample.render(design: .ledger, archival: true,
+                                         creationDate: Self.stamped), "shapes/archival.pdf")
     }
 
     func testTheOtherShapesOfDocument() throws {
