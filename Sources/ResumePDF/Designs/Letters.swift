@@ -46,6 +46,13 @@ public enum LetterDesign: String, Sendable, CaseIterable, Codable {
         }
     }
 
+    /// The thing that draws.
+    ///
+    /// Public for the same reason ``DesignKind/design`` is: a tool wants to
+    /// treat "one of the four" and "a blueprint from a file" as one kind of
+    /// thing.
+    public var layout: any LetterLayout { design }
+
     /// The résumé design this was drawn to sit beside.
     public var pairsWith: DesignKind {
         switch self {
@@ -82,6 +89,13 @@ public protocol LetterLayout: Sendable {
 
     /// Draws the masthead, and leaves the cursor where the body starts.
     func masthead(_ letter: CoverLetter, on sheet: Sheet)
+
+    /// What this design is called, in a report or a listing.
+    var displayName: String { get }
+}
+
+extension LetterLayout {
+    public var displayName: String { String(describing: type(of: self)) }
 }
 
 // MARK: - Rendering

@@ -23,6 +23,15 @@ extension CoverLetter {
         theme: Theme = .plain,
         region: Region = .international
     ) throws -> Report {
+        try check(design: design.design, theme: theme, region: region)
+    }
+
+    /// The same, for a letter design of your own.
+    public func check(
+        design: any LetterLayout,
+        theme: Theme = .plain,
+        region: Region = .international
+    ) throws -> Report {
         let document = try document(design: design, theme: theme)
         _ = document.render()
         let pages = document.pageCount()

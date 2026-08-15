@@ -213,3 +213,126 @@ final class BlueprintTests: XCTestCase {
         XCTAssertEqual(Set(Blueprint.starting.map(\.name)).count, Blueprint.starting.count)
     }
 }
+
+// MARK: - Letters written as data
+
+final class LetterBlueprintTests: XCTestCase {
+
+    private func decode(_ json: String) throws -> LetterBlueprint {
+        try JSONDecoder().decode(LetterBlueprint.self, from: XCTUnwrap(json.data(using: .utf8)))
+    }
+
+    private func text(of data: Data) throws -> String {
+        try XCTUnwrap(try XCTUnwrap(PDFDocument(data: data)).string)
+    }
+
+    func testTheSmallestLetterDesignIsANameAndNothingElse() throws {
+        let blueprint = try decode(#"{"name": "mine"}"#)
+
+        XCTAssertEqual(blueprint.name, "mine")
+        XCTAssertEqual(blueprint.masthead.contacts, .flow)
+        XCTAssertEqual(blueprint.masthead.finish, .rule)
+        XCTAssertNoThrow(try CoverLetter.sample.render(design: blueprint))
+    }
+
+    func testOneChangeIsOneKey() throws {
+        let blueprint = try decode(#"{"masthead": {"contacts": "panel", "finish": "none"}}"#)
+
+        XCTAssertEqual(blueprint.masthead.contacts, .panel)
+        XCTAssertEqual(blueprint.masthead.finish, .none)
+        XCTAssertEqual(blueprint.masthead.nameSize, LetterBlueprint.Masthead().nameSize)
+    }
+
+    func testAMisspelledChoiceNamesTheRealOnes() {
+        XCTAssertThrowsError(try decode(#"{"masthead": {"contacts": "sidebar"}}"#)) {
+            let message = "\($0)"
+            XCTAssertTrue(message.contains("no contact arrangement called"), message)
+            XCTAssertTrue(message.contains("ranged"), message)
+        }
+
+        XCTAssertThrowsError(try decode(#"{"masthead": {"finish": "squiggle"}}"#)) {
+            XCTAssertTrue("\($0)".contains("capped"), "\($0)")
+        }
+    }
+
+    func testEveryStartingPointRenders() throws {
+        for blueprint in LetterBlueprint.starting {
+            let data = try CoverLetter.sample.render(design: blueprint)
+            XCTAssertNotNil(PDFDocument(data: data), blueprint.name)
+
+            let written = try text(of: data)
+            XCTAssertTrue(written.contains("Alex Moreau"), blueprint.name)
+            XCTAssertTrue(written.contains("Okonkwo"), "\(blueprint.name) lost the recipient")
+            XCTAssertTrue(written.contains("Yours sincerely"), "\(blueprint.name) lost the sign-off")
+        }
+    }
+
+    func testEveryContactArrangementDrawsTheContacts() throws {
+        // Except the one that says it does not.
+        for contacts in LetterBlueprint.Masthead.Contacts.allCases {
+            var blueprint = LetterBlueprint.memo
+            blueprint.masthead.contacts = contacts
+
+            let written = try text(of: try CoverLetter.sample.render(design: blueprint))
+            XCTAssertEqual(
+                written.contains("alex@moreau.dev"), contacts != .none,
+                "\(contacts.rawValue)"
+            )
+        }
+    }
+
+    func testTheBodyIsTheSameWhateverTheHead() throws {
+        // The shape of a letter is not a setting: the recipient, the argument
+        // and the sign-off are the same in every design, and a blueprint that
+        // could move them would be a way of writing a letter that is not one.
+        let bodies = try LetterBlueprint.starting.map { blueprint -> String in
+            let written = try text(of: try CoverLetter.sample.render(design: blueprint))
+            guard let start = written.range(of: "Dear") else { return written }
+            return String(written[start.lowerBound...])
+        }
+
+        for body in bodies.dropFirst() {
+            XCTAssertEqual(body, bodies[0], "the body differed between designs")
+        }
+    }
+
+    func testAPhotographIsOnlyDrawnWhenAsked() throws {
+        let letter = CoverLetter(
+            profile: Profile(name: "Alex Moreau", email: "a@b.co", photo: Fixtures.photoPath),
+            recipient: Recipient(name: "Ms Okonkwo"),
+            body: ["A paragraph long enough to be one rather than a line of text."]
+        )
+
+        var withPhoto = LetterBlueprint.memo
+        withPhoto.masthead.photo = Blueprint.Photo(diameter: 70)
+
+        let drawn = try XCTUnwrap(String(data: try letter.render(design: withPhoto), encoding: .isoLatin1))
+        XCTAssertTrue(drawn.contains("/DCTDecode"), "asked for a portrait and drew none")
+
+        let plain = try XCTUnwrap(String(data: try letter.render(design: .memo), encoding: .isoLatin1))
+        XCTAssertFalse(plain.contains("/DCTDecode"), "drew a portrait it was not asked for")
+    }
+
+    func testALetterBlueprintIsCheckedLikeAnyOther() throws {
+        for blueprint in LetterBlueprint.starting {
+            let report = try CoverLetter.sample.check(design: blueprint)
+            XCTAssertEqual(report.design, blueprint.name)
+            XCTAssertTrue(report.isClean, "\(blueprint.name): \(report.findings.map(\.message))")
+        }
+    }
+
+    func testItSurvivesJSON() throws {
+        for blueprint in LetterBlueprint.starting {
+            let decoded = try JSONDecoder().decode(
+                LetterBlueprint.self, from: try blueprint.encoded()
+            )
+            XCTAssertEqual(decoded, blueprint, blueprint.name)
+        }
+    }
+
+    func testItSaysWhichResumeDesignItSitsBeside() throws {
+        // The two documents arrive in the same email.
+        XCTAssertEqual(LetterBlueprint.letterheaded.pairsWith, .broadsheet)
+        XCTAssertEqual(try decode(#"{"pairsWith": "swiss"}"#).pairsWith, .swiss)
+    }
+}

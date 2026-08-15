@@ -38,7 +38,7 @@ This writes the PDF directly, in designs that are honest about which side of tha
 
 - ✒️ **Real typography** — Inter, Source Serif 4 and JetBrains Mono travel with the package, in several weights and italic
 - 🎨 **Fourteen designs** — genuinely different arrangements, not one with the colours changed
-- 🧩 **Designs as JSON** — a `Blueprint` composes the same parts the fourteen are built from, no recompile
+- 🧩 **Designs as JSON** — `Blueprint` and `LetterBlueprint` compose the same parts the built-ins are made of, no recompile
 - ✉️ **Cover letters** — four letter designs, each paired with a résumé one
 - 🌗 **Light, dark and tinted** — a property of the theme, so every design gets all three
 - 🤖 **ATS checks** — column layout, heading names, date formats, ordering, length
@@ -189,6 +189,27 @@ Colours are named (`accent`, `ink`, `muted`, `wash`, `hairline`, `page`) or give
 **There is no layout language here** — no boxes, no coordinates, no expressions. A general one lets somebody build a résumé that overlaps itself, and its failure mode is a document that renders looking wrong rather than an error saying what is wrong. Composition of known-good parts fails differently: every combination of these choices produces a page that reads, and none of them can produce a two-column document that a parser reads out of order. That is what makes the format safe to hand somebody.
 
 A blueprint is checked exactly like a compiled design — `check(design:)` takes any `Design` — because an extension point that skips the checks is a hole in them.
+
+### A letter design written as JSON
+
+Letters take the same treatment, with a smaller vocabulary — because `LetterLayout` asks for the masthead and nothing else:
+
+```json
+{
+  "name": "ember-letter",
+  "pairsWith": "marker",
+  "masthead": {
+    "align": "centre", "nameSize": 26, "uppercase": true, "tracking": 1.4,
+    "contacts": "flow", "finish": "capped"
+  }
+}
+```
+
+`contacts` is `flow`, `ranged` (stacked against the name, the way printed stationery sets it), `panel` (in a filled box, each with its mark) or `none`. `finish` is `rule`, `capped` (a short rule with a mark at each end) or `none`.
+
+**The body is not yours to move.** Recipient, greeting, argument, sign-off are set the same way by every design, built-in or written. That is not an omission: the shape of a letter is older and less negotiable than a résumé's, and rearranging those parts does not make it look modern — it makes it look like it was written by somebody who has not read one.
+
+`pairsWith` names the résumé design it sits beside, which is what a tool reads to set both halves of an application in the same face.
 
 ### Sections of your own
 
