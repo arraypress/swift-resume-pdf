@@ -74,6 +74,10 @@ func readmeExamples(
         order: [.summary, .experience, .custom("Patents"), .education]
     )
 
+    Profile(name: "Alex Moreau", email: "alex@moreau.dev", qr: "https://moreau.dev/cv")
+
+    try resume.render(design: .ledger, archival: true)   // PDF/A-3
+
     let theme = try resume.fitted(to: 1, design: .ledger)
 
     let letter = CoverLetter(
