@@ -77,6 +77,7 @@ Theme(accent: "#1F3A5F")                        // an ink blue
 Theme(accent: "#E8A33D", scheme: .dark)         // reversed out
 Theme(accent: "#7A4A2B", tint: "#F6F1E8")       // on warm paper
 Theme(density: .compact)                        // six more lines per page
+Theme(justified: true)                          // flush both edges
 ```
 
 An accent chosen against white is routinely invisible on a dark page, so it is lifted when it comes too close to the background and left alone when it does not. A design that inverts a band gets a palette derived from that band, so bullets, dates and rules inside it stay legible without knowing anything unusual is happening.
@@ -179,6 +180,14 @@ let theme = try resume.fitted(to: 1, design: .ledger)
 ```
 
 Tries relaxed, then normal, then compact, and stops at the first that fits. Returns `nil` when even the tightest will not — that is a content problem, and what to cut is not a decision a layout engine should make on somebody's behalf.
+
+### Justified prose
+
+Off by default, and applied only where there is room: below about forty characters of measure the gaps grow until they line up into rivers down the column, so a narrow rail stays ragged whatever the theme says.
+
+It is set a word at a time rather than with the `Tw` operator, because `Tw` adds its space to byte 32 and under Identity-H — how every embedded font here is encoded — byte 32 is half of a two-byte character code. A résumé set that way would come out with gaps inside its words.
+
+Costing nothing in extraction is the part that matters, and there is a test for it: the sentence still comes back out of the file as a sentence, with no doubled spaces for a keyword search to fall into.
 
 ## Cover letters
 

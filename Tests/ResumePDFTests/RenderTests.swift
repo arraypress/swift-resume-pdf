@@ -104,7 +104,7 @@ final class RenderTests: XCTestCase {
         // is the same string as its current job title — which is realistic,
         // and would otherwise match the masthead rather than the entry.
         let text = try read(.sample, design: .ledger)
-        let bodyStart = try XCTUnwrap(position(of: "change safely", in: text))
+        let bodyStart = try XCTUnwrap(position(of: "afford an outage", in: text))
 
         let pairs = [("Senior Infrastructure Engineer", "Stripe"),
                      ("Platform Engineer", "Monzo"),
@@ -175,7 +175,7 @@ final class RenderTests: XCTestCase {
 
         // And the text is unchanged by it.
         let text = try read(.sample, design: .ledger, theme: Theme(density: .compact))
-        XCTAssertTrue(text.contains("Rebuilt the double-entry ledger"))
+        XCTAssertTrue(text.contains("Rebuilt the ledger write path"))
     }
 
     func testTheLetterPageSizeIsHonoured() throws {
@@ -296,5 +296,86 @@ extension RenderTests {
                 "\"\(expected)\" missing"
             )
         }
+    }
+}
+
+// MARK: - Justified prose
+
+extension RenderTests {
+
+    func testJustificationIsOffByDefault() throws {
+        let raw = try XCTUnwrap(String(data: try Resume.sample.render(), encoding: .isoLatin1))
+        let ragged = raw.components(separatedBy: " Td\n").count
+
+        let justified = try XCTUnwrap(
+            String(data: try Resume.sample.render(theme: Theme(justified: true)),
+                   encoding: .isoLatin1)
+        )
+        // Justified prose is placed a word at a time, so it needs far more
+        // positioning operators than ragged-right does.
+        XCTAssertLessThan(ragged, justified.components(separatedBy: " Td\n").count)
+    }
+
+    func testJustifiedProseStillReadsBack() throws {
+        let text = try read(.sample, design: .ledger, theme: Theme(justified: true))
+        XCTAssertTrue(text.contains("Infrastructure engineer with eleven years"), text)
+        XCTAssertTrue(text.contains("Rebuilt the ledger write path"), text)
+    }
+
+    func testANarrowColumnIsNotJustified() throws {
+        // The sidebar rail is about 140 points. Justifying it would open gaps
+        // wide enough to line up into rivers down the column.
+        let wide = try XCTUnwrap(String(
+            data: try Resume.sample.render(design: .ledger, theme: Theme(justified: true)),
+            encoding: .isoLatin1
+        )).components(separatedBy: " Td\n").count
+
+        let narrow = try XCTUnwrap(String(
+            data: try Resume.sample.render(design: .sidebar, theme: Theme(justified: true)),
+            encoding: .isoLatin1
+        )).components(separatedBy: " Td\n").count
+
+        // The sidebar's main column justifies; its rail does not. Both render.
+        XCTAssertGreaterThan(wide, 0)
+        XCTAssertGreaterThan(narrow, 0)
+    }
+
+    func testALetterCanBeJustified() throws {
+        // Where it belongs most: a letter is read along its lines in order.
+        let plain = try CoverLetter.sample.render(design: .letterhead,
+                                                  theme: Theme(typeface: .sourceSerif))
+        let justified = try CoverLetter.sample.render(design: .letterhead,
+                                                      theme: Theme(typeface: .sourceSerif, justified: true))
+
+        let read = try XCTUnwrap(try XCTUnwrap(PDFDocument(data: justified)).string)
+        XCTAssertTrue(read.contains("Northwind"), read)
+
+        // Words placed individually make for a longer content stream.
+        XCTAssertGreaterThan(justified.count, plain.count)
+    }
+
+    func testJustifyingCostsNothingInExtraction() throws {
+        // The question that matters for a document a machine reads: placing
+        // words one at a time could have left the text extracting with the
+        // spacing mangled, or with gaps a keyword search would fall into.
+        // It does not — a reader reconstructs the line from the positions.
+        func sentence(_ theme: Theme) throws -> String {
+            let data = try Resume.sample.render(design: .ledger, theme: theme)
+            return try XCTUnwrap(try XCTUnwrap(PDFDocument(data: data)).string)
+                .replacingOccurrences(of: "\n", with: " ")
+        }
+
+        let target = "most of it on the reliability side of teams that could not afford an outage"
+        let ragged = try sentence(Theme())
+        let justified = try sentence(Theme(justified: true))
+
+        XCTAssertTrue(ragged.contains(target))
+        XCTAssertTrue(justified.contains(target), "justification broke the sentence up")
+        XCTAssertFalse(justified.contains("  "), "extra spaces crept in between words")
+    }
+
+    func testJustificationSurvivesJSON() throws {
+        let theme = Theme(justified: true)
+        XCTAssertTrue(try JSONDecoder().decode(Theme.self, from: JSONEncoder().encode(theme)).justified)
     }
 }

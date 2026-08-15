@@ -39,6 +39,15 @@ public struct Theme: Sendable, Equatable, Codable {
     /// How tightly the page is set.
     public let density: Density
 
+    /// Whether body prose is set flush to both edges.
+    ///
+    /// Off by default. Justification suits a letter, where the reader is going
+    /// along the lines in order, and it suits a wide measure. It does not suit
+    /// a narrow one — the gaps grow until they line up into rivers running
+    /// down the column — so it is applied only where there is room for it,
+    /// whatever this says.
+    public let justified: Bool
+
     /// Light or dark.
     public let scheme: Scheme
 
@@ -56,7 +65,8 @@ public struct Theme: Sendable, Equatable, Codable {
         pageSize: PageSize = .a4,
         density: Density = .normal,
         scheme: Scheme = .light,
-        tint: String? = nil
+        tint: String? = nil,
+        justified: Bool = false
     ) {
         self.typeface = typeface
         self.accent = accent
@@ -64,6 +74,7 @@ public struct Theme: Sendable, Equatable, Codable {
         self.density = density
         self.scheme = scheme
         self.tint = tint
+        self.justified = justified
     }
 
     // MARK: Palette

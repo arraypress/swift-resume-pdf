@@ -176,6 +176,18 @@ public final class Sheet {
         pdf.gap(points)
     }
 
+    /// The narrowest measure worth justifying.
+    ///
+    /// Below about this, the space a line has to absorb is a large fraction of
+    /// the line, so the gaps grow until they line up into rivers. Roughly
+    /// forty characters, which is where every manual on the subject puts it.
+    private static let justifiable = 220.0
+
+    /// How prose should be set in a column this wide.
+    func prose(_ columnWidth: Double) -> Align {
+        theme.justified && columnWidth >= Sheet.justifiable ? .justified : .left
+    }
+
     /// Line height for body text at a size.
     public func leading(_ size: Double) -> Double {
         size * 1.42 * theme.density.leading
@@ -300,7 +312,8 @@ public final class Sheet {
         pdf.breakIfNeeded(height)
 
         return pdf.block(trimmed, x: originX, width: boxWidth, size: size,
-                         color: color ?? ink, leading: step, face: resolved)
+                         color: color ?? ink, align: prose(boxWidth),
+                         leading: step, face: resolved)
     }
 
     /// A list with a hanging indent, so wrapped lines line up under the text
@@ -334,7 +347,8 @@ public final class Sheet {
             pdf.cell(glyph, x: originX, boxWidth: indent, size: size, color: muted, face: regular)
             pdf.move(to: top)
             pdf.block(trimmed, x: originX + indent, width: boxWidth - indent,
-                      size: size, color: ink, leading: step, face: regular)
+                      size: size, color: ink, align: prose(boxWidth - indent),
+                      leading: step, face: regular)
             rigidGap(size * 0.22)
         }
     }
@@ -437,7 +451,11 @@ public final class Sheet {
             switch align {
             case .center: cursorX += (boxWidth - content) / 2
             case .right: cursorX += boxWidth - content
-            case .left: break
+            // A contact line is a row of separate things rather than a
+            // sentence, so there is nothing to justify: stretching the gaps
+            // between an email address and a phone number would space them
+            // across the page for no reason.
+            case .left, .justified: break
             }
 
             let baseline = cursor - (regular?.ascender(size) ?? size * 0.78)
