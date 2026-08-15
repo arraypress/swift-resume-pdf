@@ -257,9 +257,11 @@ extension Resume {
     }
 
     /// The finished bytes, from a design of your own.
-    public func render(design: any Design, theme: Theme = .plain) throws -> Data {
+    public func render(
+        design: any Design, theme: Theme = .plain, archival: Bool = false
+    ) throws -> Data {
         try document(design: design, theme: theme)
-            .render(metadata: metadata(design: .ledger))
+            .render(metadata: metadata(design: .ledger), standard: archival ? .pdfA3b : .none)
     }
 
     /// Renders a design of your own and writes it, returning the byte count.

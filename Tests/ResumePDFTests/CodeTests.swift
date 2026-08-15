@@ -198,3 +198,19 @@ final class CodeTests: XCTestCase {
         XCTAssertFalse(raw.contains("pdfaid"))
     }
 }
+
+extension CodeTests {
+
+    func testADesignOfYourOwnCanBeArchivalToo() throws {
+        // The parameter was added to one overload and not the other, so a
+        // blueprint could not be written as PDF/A at all.
+        var blueprint = Blueprint.ledger
+        blueprint.masthead.qr = 58
+
+        let data = try resume().render(design: blueprint, archival: true)
+        let raw = try XCTUnwrap(String(data: data, encoding: .isoLatin1))
+
+        XCTAssertTrue(raw.contains("<pdfaid:part>3</pdfaid:part>"))
+        XCTAssertEqual(try scan(data), address)
+    }
+}
