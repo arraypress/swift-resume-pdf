@@ -13,9 +13,7 @@ let package = Package(
         .library(name: "ResumePDF", targets: ["ResumePDF"]),
     ],
     dependencies: [
-        // Local while the family support this needs is unreleased. Switch to
-        // the version URL once swift-text-pdf is tagged.
-        .package(path: "../swift-text-pdf"),
+        .package(url: "https://github.com/arraypress/swift-text-pdf.git", from: "1.7.0"),
     ],
     targets: [
         .target(
