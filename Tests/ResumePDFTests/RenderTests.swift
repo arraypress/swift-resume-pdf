@@ -379,3 +379,68 @@ extension RenderTests {
         XCTAssertTrue(try JSONDecoder().decode(Theme.self, from: JSONEncoder().encode(theme)).justified)
     }
 }
+
+// MARK: - Photographs
+
+extension RenderTests {
+
+    private var scratch: String {
+        "/private/tmp/claude-501/-Users-davidsherlock-Developer-Swift-Libraries/ff8e37d5-9238-42d7-88ba-bc4b95ec3dba/scratchpad"
+    }
+
+    private func withPhoto(_ path: String) -> Resume {
+        Resume(
+            profile: Profile(name: "Alex Moreau", email: "a@b.co", photo: path),
+            experience: [Position(role: "Engineer", organisation: "Stripe", dates: .since("2022"))]
+        )
+    }
+
+    func testEveryDesignThatClaimsAPhotoDrawsOne() throws {
+        // The bug this guards: sidebar declared showsPhoto and never drew one,
+        // so a résumé carrying a portrait rendered silently without it — and
+        // the checks, which read the declaration, said nothing.
+        let jpeg = "\(scratch)/portrait.jpg"
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: jpeg), "no test portrait")
+
+        for design in DesignKind.allCases where design.showsPhoto {
+            let raw = try XCTUnwrap(
+                String(data: try withPhoto(jpeg).render(design: design), encoding: .isoLatin1)
+            )
+            XCTAssertTrue(raw.contains("/DCTDecode"),
+                          "\(design.rawValue) claims a photo and drew none")
+        }
+    }
+
+    func testDesignsThatClaimNoPhotoDrawNone() throws {
+        let jpeg = "\(scratch)/portrait.jpg"
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: jpeg), "no test portrait")
+
+        for design in DesignKind.allCases where !design.showsPhoto {
+            let raw = try XCTUnwrap(
+                String(data: try withPhoto(jpeg).render(design: design), encoding: .isoLatin1)
+            )
+            XCTAssertFalse(raw.contains("/DCTDecode"),
+                           "\(design.rawValue) drew a photo it does not claim")
+        }
+    }
+
+    func testAPNGPortraitWorksToo() throws {
+        let png = "\(scratch)/portrait.png"
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: png), "no test PNG")
+
+        for design in DesignKind.allCases where design.showsPhoto {
+            let raw = try XCTUnwrap(
+                String(data: try withPhoto(png).render(design: design), encoding: .isoLatin1)
+            )
+            XCTAssertTrue(raw.contains("/FlateDecode"),
+                          "\(design.rawValue) did not embed the PNG")
+        }
+    }
+
+    func testAMissingPhotoIsNotFatal() throws {
+        // A résumé that refuses to render because a JPEG moved is worse than
+        // one with a gap where a face was.
+        let resume = withPhoto("/no/such/portrait.jpg")
+        XCTAssertNoThrow(try resume.render(design: .plaque))
+    }
+}

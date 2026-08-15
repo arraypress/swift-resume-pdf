@@ -43,6 +43,9 @@ This writes the PDF directly, in designs that are honest about which side of tha
 - 🤖 **ATS checks** — column layout, heading names, date formats, ordering, length
 - 🌍 **Regional conventions** — what a Lebenslauf must carry and a US résumé must not
 - 📄 **Multi-page** — footers know the page count, entries do not split from their headings
+- 🔗 **Clickable contacts** — every email and URL is a link, because a recruiter reads from a screen
+- 🖼️ **Photographs** — JPEG or PNG, circular, with transparency kept
+- ⬌ **Justified prose** — optional, and only where the measure is wide enough to take it
 - 🔤 **Any Latin, Greek or Cyrillic name** — subset and embedded, and still selectable afterwards
 - 📦 **One dependency** — [swift-text-pdf](https://github.com/arraypress/swift-text-pdf), which has none
 - 🪶 **~50 KB out** — three subset faces and a page of text
@@ -286,15 +289,19 @@ Headings become *Berufserfahrung* and *Ausbildung*, and an open-ended role reads
 
 ## Photographs
 
-`Profile.photo` takes a path to a baseline JPEG. `plaque`, `bulletin`, `nocturne` and `sidebar` have somewhere to put one; the rest ignore it, and `check` says which.
+`Profile.photo` takes a path to a baseline JPEG or a PNG. `plaque`, `bulletin`, `nocturne` and `sidebar` have somewhere to put one; the rest ignore it, and `check` says which.
+
+A PNG's transparency is kept — it becomes a soft mask rather than being flattened onto white, so a cut-out portrait does not arrive on a square. A missing or unreadable file leaves a gap rather than failing the render: a résumé that refuses to build because a photograph moved is worse than one with a space where a face was.
 
 Conventional on a Lebenslauf and across much of the résumé world outside the English-speaking part of it — and a liability in the US and UK, where an employer may not consider what a photograph reveals and the cheapest way to prove they did not is never to have seen it. `Region` reports which situation you are in.
 
 ## What it cannot do
 
-**No PNG.** JPEG bytes go into a PDF undecoded, which is what makes image support a hundred lines rather than a codec. Converting first is one command: `sips -s format jpeg in.png --out out.jpg`.
+**No right-to-left scripts.** Arabic and Hebrew need bidirectional reordering and contextual shaping — a letter changes form by its position in a word.
 
-**No right-to-left scripts.** Arabic and Hebrew need bidirectional layout and contextual shaping. Being wrong in a language the writer cannot read is worse than declining.
+The shaping is not the obstacle; CoreText would supply reordered, shaped glyphs. The obstacle is that this engine believes text is *strings you can measure* — wrapping, truncation, tracking and justification all assume you can measure a string and cut it at a character. Shaped runs are glyphs with positions, where a character may be half a ligature and the visual order is not the logical one. And an Arabic résumé needs a mirrored *page*, not only mirrored text.
+
+So it is refused rather than half-built. Correct Arabic text in a left-to-right layout is still a document nobody can send.
 
 ## Fitting one page
 

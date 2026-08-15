@@ -72,6 +72,13 @@ struct Sidebar: Design {
 
         pdf.move(to: top)
 
+        // A portrait sits at the head of the rail, which is the one place on
+        // this design with room for one.
+        if Sheet.photo(at: profile.photo) != nil {
+            sheet.portrait(profile.photo, x: x, y: top - width, diameter: width)
+            pdf.move(to: top - width - 16)
+        }
+
         // Wrapped rather than placed, because a long name at this size will
         // not fit the rail on one line and a truncated name is worse than a
         // name on two.
