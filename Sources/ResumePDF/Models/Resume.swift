@@ -184,14 +184,27 @@ public struct Labels: Sendable, Equatable, Codable {
     /// What separates the two ends of a date range.
     public let dateSeparator: String
 
+    /// The language the headings are written in, as an ISO 639-1 code.
+    ///
+    /// Carried explicitly rather than inferred from whether the headings are
+    /// the built-in ones. ``ATS`` warns about a heading a parser will not
+    /// recognise, and that warning is only meaningful in English — a
+    /// Lebenslauf saying *Berufserfahrung* is correct, not a mistake. Deriving
+    /// "is this English" from the labels being untouched gets it exactly
+    /// backwards: renaming a single heading is the case that most needs
+    /// flagging, and it is also the case that stops them being untouched.
+    public let language: String
+
     public init(
         _ overrides: [Section: String] = [:],
         present: String = "Present",
-        dateSeparator: String = "–"
+        dateSeparator: String = "–",
+        language: String = "en"
     ) {
         self.overrides = overrides
         self.present = present
         self.dateSeparator = dateSeparator
+        self.language = language
     }
 
     public func title(for section: Section) -> String {
@@ -202,7 +215,7 @@ public struct Labels: Sendable, Equatable, Codable {
     public func naming(_ section: Section, _ title: String) -> Labels {
         var copy = overrides
         copy[section] = title
-        return Labels(copy, present: present, dateSeparator: dateSeparator)
+        return Labels(copy, present: present, dateSeparator: dateSeparator, language: language)
     }
 
     public static let english = Labels()
@@ -224,7 +237,8 @@ public struct Labels: Sendable, Equatable, Codable {
             .references: "Referenzen",
         ],
         present: "heute",
-        dateSeparator: "–"
+        dateSeparator: "–",
+        language: "de"
     )
 }
 
