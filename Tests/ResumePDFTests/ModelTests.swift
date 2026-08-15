@@ -170,6 +170,37 @@ extension ModelTests {
         XCTAssertThrowsError(try decode(Profile.self, #"{"email": "a@b.co"}"#))
     }
 
+    func testABrokenEntryIsReportedRatherThanDropped() throws {
+        // The bug this replaced: defaulting on any failure rather than on
+        // absence. One mistyped key inside experience[1] made the whole
+        // employment history decode as [] — a résumé that renders, looks
+        // finished, and is missing the part it exists for.
+        XCTAssertThrowsError(
+            try decode(Resume.self, #"""
+            {"profile":{"name":"A"},
+             "experience":[{"role":"Engineer"},{"organisation":"Stripe"}]}
+            """#)
+        ) { error in
+            guard case DecodingError.keyNotFound(let key, let context)? = error as? DecodingError else {
+                return XCTFail("expected a missing-key error, got \(error)")
+            }
+            XCTAssertEqual(key.stringValue, "role")
+            XCTAssertEqual(context.codingPath.map(\.stringValue).first, "experience")
+            XCTAssertEqual(context.codingPath.compactMap(\.intValue).first, 1, "it should name which one")
+        }
+    }
+
+    func testAFieldOfTheWrongTypeIsReportedToo() {
+        XCTAssertThrowsError(try decode(Resume.self, #"{"profile":{"name":"A"},"summary":42}"#))
+        XCTAssertThrowsError(try decode(Position.self, #"{"role":"Engineer","highlights":"one"}"#))
+    }
+
+    func testAnAbsentFieldIsStillNotAnError() {
+        // The distinction being drawn: absent is fine, wrong is not.
+        XCTAssertNoThrow(try decode(Resume.self, #"{"profile":{"name":"A"}}"#))
+        XCTAssertNoThrow(try decode(Resume.self, #"{"profile":{"name":"A"},"summary":null}"#))
+    }
+
     func testAResumeNeedsOnlyAProfile() throws {
         let resume = try decode(Resume.self, #"{"profile":{"name":"Alex Moreau"}}"#)
 

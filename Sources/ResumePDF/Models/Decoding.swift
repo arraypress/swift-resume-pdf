@@ -25,14 +25,20 @@ import Foundation
 
 extension KeyedDecodingContainer {
 
-    /// The value at `key`, or `fallback` when it is absent or null.
-    func value<T: Decodable>(_ key: Key, or fallback: T) -> T {
-        ((try? decodeIfPresent(T.self, forKey: key)) ?? nil) ?? fallback
+    /// The value at `key`, or `fallback` when the key is absent or null.
+    ///
+    /// Absent and *wrong* are different answers. Written with `try?` this
+    /// defaults both, so one mistyped key inside `experience[3]` would drop
+    /// the entire employment history and render a résumé that looked finished
+    /// — the failure this library exists to prevent, committed by its own
+    /// decoder. A malformed value throws and names itself.
+    func value<T: Decodable>(_ key: Key, or fallback: T) throws -> T {
+        try decodeIfPresent(T.self, forKey: key) ?? fallback
     }
 
-    /// The value at `key`, or nothing.
-    func maybe<T: Decodable>(_ key: Key) -> T? {
-        (try? decodeIfPresent(T.self, forKey: key)) ?? nil
+    /// The value at `key`, or nothing when it is absent or null.
+    func maybe<T: Decodable>(_ key: Key) throws -> T? {
+        try decodeIfPresent(T.self, forKey: key)
     }
 }
 
@@ -49,7 +55,7 @@ extension DateRange {
             return
         }
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(container.value(.start, or: ""), container.value(.end, or: ""))
+        self.init(try container.value(.start, or: ""), try container.value(.end, or: ""))
     }
 
     enum CodingKeys: String, CodingKey { case start, end }
@@ -63,12 +69,12 @@ extension Position {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             role: try container.decode(String.self, forKey: .role),
-            organisation: container.value(.organisation, or: ""),
-            location: container.value(.location, or: ""),
-            dates: container.value(.dates, or: DateRange("")),
-            summary: container.value(.summary, or: ""),
-            highlights: container.value(.highlights, or: []),
-            skills: container.value(.skills, or: [])
+            organisation: try container.value(.organisation, or: ""),
+            location: try container.value(.location, or: ""),
+            dates: try container.value(.dates, or: DateRange("")),
+            summary: try container.value(.summary, or: ""),
+            highlights: try container.value(.highlights, or: []),
+            skills: try container.value(.skills, or: [])
         )
     }
 
@@ -83,11 +89,11 @@ extension Education {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             qualification: try container.decode(String.self, forKey: .qualification),
-            institution: container.value(.institution, or: ""),
-            location: container.value(.location, or: ""),
-            dates: container.value(.dates, or: DateRange("")),
-            grade: container.value(.grade, or: ""),
-            highlights: container.value(.highlights, or: [])
+            institution: try container.value(.institution, or: ""),
+            location: try container.value(.location, or: ""),
+            dates: try container.value(.dates, or: DateRange("")),
+            grade: try container.value(.grade, or: ""),
+            highlights: try container.value(.highlights, or: [])
         )
     }
 
@@ -102,12 +108,12 @@ extension Project {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             name: try container.decode(String.self, forKey: .name),
-            role: container.value(.role, or: ""),
-            link: container.maybe(.link),
-            dates: container.value(.dates, or: DateRange("")),
-            summary: container.value(.summary, or: ""),
-            highlights: container.value(.highlights, or: []),
-            skills: container.value(.skills, or: [])
+            role: try container.value(.role, or: ""),
+            link: try container.maybe(.link),
+            dates: try container.value(.dates, or: DateRange("")),
+            summary: try container.value(.summary, or: ""),
+            highlights: try container.value(.highlights, or: []),
+            skills: try container.value(.skills, or: [])
         )
     }
 
@@ -122,10 +128,10 @@ extension Publication {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             title: try container.decode(String.self, forKey: .title),
-            venue: container.value(.venue, or: ""),
-            date: container.value(.date, or: ""),
-            authors: container.value(.authors, or: ""),
-            link: container.maybe(.link)
+            venue: try container.value(.venue, or: ""),
+            date: try container.value(.date, or: ""),
+            authors: try container.value(.authors, or: ""),
+            link: try container.maybe(.link)
         )
     }
 
@@ -138,9 +144,9 @@ extension Credential {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             name: try container.decode(String.self, forKey: .name),
-            issuer: container.value(.issuer, or: ""),
-            date: container.value(.date, or: ""),
-            identifier: container.value(.identifier, or: "")
+            issuer: try container.value(.issuer, or: ""),
+            date: try container.value(.date, or: ""),
+            identifier: try container.value(.identifier, or: "")
         )
     }
 
@@ -153,9 +159,9 @@ extension Award {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             name: try container.decode(String.self, forKey: .name),
-            issuer: container.value(.issuer, or: ""),
-            date: container.value(.date, or: ""),
-            summary: container.value(.summary, or: "")
+            issuer: try container.value(.issuer, or: ""),
+            date: try container.value(.date, or: ""),
+            summary: try container.value(.summary, or: "")
         )
     }
 
@@ -168,11 +174,11 @@ extension Grant {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             title: try container.decode(String.self, forKey: .title),
-            funder: container.value(.funder, or: ""),
-            amount: container.value(.amount, or: ""),
-            dates: container.value(.dates, or: DateRange("")),
-            role: container.value(.role, or: ""),
-            identifier: container.value(.identifier, or: "")
+            funder: try container.value(.funder, or: ""),
+            amount: try container.value(.amount, or: ""),
+            dates: try container.value(.dates, or: DateRange("")),
+            role: try container.value(.role, or: ""),
+            identifier: try container.value(.identifier, or: "")
         )
     }
 
@@ -192,7 +198,7 @@ extension Language {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             try container.decode(String.self, forKey: .name),
-            container.value(.level, or: "")
+            try container.value(.level, or: "")
         )
     }
 
@@ -205,7 +211,7 @@ extension SkillGroup {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             try container.decode(String.self, forKey: .name),
-            container.value(.items, or: [])
+            try container.value(.items, or: [])
         )
     }
 
@@ -220,16 +226,16 @@ extension Profile {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             name: try container.decode(String.self, forKey: .name),
-            headline: container.value(.headline, or: ""),
-            location: container.value(.location, or: ""),
-            email: container.value(.email, or: ""),
-            phone: container.value(.phone, or: ""),
-            links: container.value(.links, or: []),
-            photo: container.value(.photo, or: ""),
-            dateOfBirth: container.value(.dateOfBirth, or: ""),
-            nationality: container.value(.nationality, or: ""),
-            maritalStatus: container.value(.maritalStatus, or: ""),
-            placeOfBirth: container.value(.placeOfBirth, or: "")
+            headline: try container.value(.headline, or: ""),
+            location: try container.value(.location, or: ""),
+            email: try container.value(.email, or: ""),
+            phone: try container.value(.phone, or: ""),
+            links: try container.value(.links, or: []),
+            photo: try container.value(.photo, or: ""),
+            dateOfBirth: try container.value(.dateOfBirth, or: ""),
+            nationality: try container.value(.nationality, or: ""),
+            maritalStatus: try container.value(.maritalStatus, or: ""),
+            placeOfBirth: try container.value(.placeOfBirth, or: "")
         )
     }
 
@@ -252,7 +258,7 @@ extension Link {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             try container.decode(String.self, forKey: .url),
-            label: container.value(.label, or: "")
+            label: try container.value(.label, or: "")
         )
     }
 
@@ -267,26 +273,26 @@ extension Resume {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             profile: try container.decode(Profile.self, forKey: .profile),
-            summary: container.value(.summary, or: ""),
-            experience: container.value(.experience, or: []),
-            education: container.value(.education, or: []),
-            skills: container.value(.skills, or: []),
-            projects: container.value(.projects, or: []),
-            volunteering: container.value(.volunteering, or: []),
-            certifications: container.value(.certifications, or: []),
-            publications: container.value(.publications, or: []),
-            awards: container.value(.awards, or: []),
-            languages: container.value(.languages, or: []),
-            grants: container.value(.grants, or: []),
-            teaching: container.value(.teaching, or: []),
-            talks: container.value(.talks, or: []),
-            service: container.value(.service, or: []),
-            memberships: container.value(.memberships, or: []),
-            interests: container.value(.interests, or: ""),
-            references: container.value(.references, or: ""),
-            custom: container.value(.custom, or: []),
-            order: container.value(.order, or: Section.conventional),
-            labels: container.value(.labels, or: .english)
+            summary: try container.value(.summary, or: ""),
+            experience: try container.value(.experience, or: []),
+            education: try container.value(.education, or: []),
+            skills: try container.value(.skills, or: []),
+            projects: try container.value(.projects, or: []),
+            volunteering: try container.value(.volunteering, or: []),
+            certifications: try container.value(.certifications, or: []),
+            publications: try container.value(.publications, or: []),
+            awards: try container.value(.awards, or: []),
+            languages: try container.value(.languages, or: []),
+            grants: try container.value(.grants, or: []),
+            teaching: try container.value(.teaching, or: []),
+            talks: try container.value(.talks, or: []),
+            service: try container.value(.service, or: []),
+            memberships: try container.value(.memberships, or: []),
+            interests: try container.value(.interests, or: ""),
+            references: try container.value(.references, or: ""),
+            custom: try container.value(.custom, or: []),
+            order: try container.value(.order, or: Section.conventional),
+            labels: try container.value(.labels, or: .english)
         )
     }
 
@@ -304,7 +310,7 @@ extension CustomSection {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             try container.decode(String.self, forKey: .title),
-            container.value(.content, or: [])
+            try container.value(.content, or: [])
         )
     }
 
@@ -317,15 +323,15 @@ extension CoverLetter {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             profile: try container.decode(Profile.self, forKey: .profile),
-            recipient: container.value(.recipient, or: Recipient()),
-            date: container.value(.date, or: ""),
-            subject: container.value(.subject, or: ""),
-            salutation: container.value(.salutation, or: ""),
-            body: container.value(.body, or: []),
-            highlights: container.value(.highlights, or: []),
-            closing: container.value(.closing, or: ""),
-            signature: container.value(.signature, or: ""),
-            postscript: container.value(.postscript, or: "")
+            recipient: try container.value(.recipient, or: Recipient()),
+            date: try container.value(.date, or: ""),
+            subject: try container.value(.subject, or: ""),
+            salutation: try container.value(.salutation, or: ""),
+            body: try container.value(.body, or: []),
+            highlights: try container.value(.highlights, or: []),
+            closing: try container.value(.closing, or: ""),
+            signature: try container.value(.signature, or: ""),
+            postscript: try container.value(.postscript, or: "")
         )
     }
 
@@ -340,10 +346,10 @@ extension Recipient {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
-            name: container.value(.name, or: ""),
-            role: container.value(.role, or: ""),
-            organisation: container.value(.organisation, or: ""),
-            address: container.value(.address, or: [])
+            name: try container.value(.name, or: ""),
+            role: try container.value(.role, or: ""),
+            organisation: try container.value(.organisation, or: ""),
+            address: try container.value(.address, or: [])
         )
     }
 
@@ -356,7 +362,7 @@ extension Highlight {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             try container.decode(String.self, forKey: .title),
-            container.value(.detail, or: "")
+            try container.value(.detail, or: "")
         )
     }
 
@@ -375,10 +381,10 @@ extension Labels {
         }
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
-            container.value(.overrides, or: [:]),
-            present: container.value(.present, or: "Present"),
-            dateSeparator: container.value(.dateSeparator, or: "–"),
-            language: container.value(.language, or: "en")
+            try container.value(.overrides, or: [:]),
+            present: try container.value(.present, or: "Present"),
+            dateSeparator: try container.value(.dateSeparator, or: "–"),
+            language: try container.value(.language, or: "en")
         )
     }
 
