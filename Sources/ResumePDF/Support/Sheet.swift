@@ -25,6 +25,9 @@ final class Sheet {
     let family: FontFamily
     let labels: Labels
 
+    /// Layers drawn behind the content, in the order they were added.
+    private var backgrounds: [(Document, Int, Int) -> Void] = []
+
     init(theme: Theme, family: FontFamily, labels: Labels) {
         self.theme = theme
         self.family = family
@@ -38,6 +41,30 @@ final class Sheet {
             leading: 13 * theme.density.leading
         )
         pdf.family = family
+
+        // The page colour goes down before anything a design adds, so a rail
+        // or a band sits on top of it rather than under it.
+        if theme.paintsPage {
+            let fill = theme.page
+            background { doc, _, _ in
+                doc.rect(x: 0, y: 0, width: doc.width(), height: doc.height(), color: fill)
+            }
+        }
+    }
+
+    /// Adds a layer behind the page's content.
+    ///
+    /// Composed rather than assigned. `Document` holds one background
+    /// callback, so a design registering its own panel would otherwise
+    /// silently replace the page colour underneath it — and the fault would
+    /// look like the theme being ignored rather than like two things fighting
+    /// over one slot.
+    func background(_ draw: @escaping (Document, Int, Int) -> Void) {
+        backgrounds.append(draw)
+        let layers = backgrounds
+        pdf.behindEachPage { doc, page, total in
+            for layer in layers { layer(doc, page, total) }
+        }
     }
 
     // MARK: Type

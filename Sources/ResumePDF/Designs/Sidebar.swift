@@ -49,7 +49,7 @@ struct Sidebar: Design {
         // The panel goes down before anything else on every page. Drawn after,
         // it would paint out the column it is supposed to sit behind.
         let width = railWidth
-        pdf.behindEachPage { doc, _, _ in
+        sheet.background { doc, _, _ in
             doc.rect(x: 0, y: 0, width: width, height: doc.height(), color: tint)
         }
 
@@ -156,11 +156,12 @@ extension Theme {
     /// the rail sits behind body text for the length of a page, and anything
     /// stronger turns reading it into work.
     var railTint: Color {
-        guard !isMonochrome else { return .grey(244) }
-        let colour = accentColor
-        func lift(_ channel: Int) -> Int {
-            Int((Double(channel) + (255 - Double(channel)) * 0.93).rounded())
-        }
-        return Color(red: lift(colour.red), green: lift(colour.green), blue: lift(colour.blue))
+        // On a dark page the rail has to step towards the light to be visible
+        // at all; on a light one it steps away. Same idea, opposite direction,
+        // which is the whole of what a scheme changes.
+        guard !isMonochrome else { return wash }
+        return scheme == .dark
+            ? accentColor.darkened(by: 0.72).lightened(by: 0.06)
+            : accentColor.lightened(by: 0.93)
     }
 }

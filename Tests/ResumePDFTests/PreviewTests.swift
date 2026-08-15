@@ -40,6 +40,10 @@ final class PreviewTests: XCTestCase {
             ("academic", .academicSample, .broadsheet, .classic),
             ("navy-sidebar", .sample, .sidebar, Theme(accent: "#1F3A5F")),
             ("compact-ledger", .sample, .ledger, Theme(density: .compact)),
+            ("dark-ledger", .sample, .ledger, .midnight),
+            ("dark-sidebar", .sample, .sidebar, Theme(accent: "#4EA1FF", scheme: .dark)),
+            ("paper-timeline", .sample, .timeline, .paper),
+            ("tinted-ledger", .sample, .ledger, Theme(accent: "#B3423B", tint: "#FDF0EE")),
         ]
 
         for (name, resume, design, theme) in cases {

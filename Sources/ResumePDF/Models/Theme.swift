@@ -6,9 +6,16 @@
 //
 //  How a design looks, separated from which design it is.
 //
-//  A theme changes the typeface, the accent and how tightly the page is set.
+//  A theme changes the typeface, the palette and how tightly the page is set.
 //  It does not change the arrangement — that is the design's job, and the
 //  reason there is more than one.
+//
+//  The separation earns its keep on the second look at a set of templates.
+//  Most of what appears to be a dozen different résumé designs is four
+//  arrangements in a dozen colourways: the same two-column body on white, on
+//  pale pink, on warm grey and on near-black. Making that an axis of the theme
+//  rather than a new template is the difference between ten designs and forty
+//  that need fixing one at a time.
 //
 
 import Foundation
@@ -32,35 +39,82 @@ public struct Theme: Sendable, Equatable, Codable {
     /// How tightly the page is set.
     public let density: Density
 
+    /// Light or dark.
+    public let scheme: Scheme
+
+    /// The page colour, as hex, overriding the scheme's default.
+    ///
+    /// A pale wash rather than a colour: this sits behind every word on the
+    /// page, and anything with saturation in it turns reading into work. It
+    /// also costs a great deal of toner, which is worth remembering about a
+    /// document whose whole purpose is to be printed by a stranger.
+    public let tint: String?
+
     public init(
         typeface: Typeface = .inter,
         accent: String = "#111111",
         pageSize: PageSize = .a4,
-        density: Density = .normal
+        density: Density = .normal,
+        scheme: Scheme = .light,
+        tint: String? = nil
     ) {
         self.typeface = typeface
         self.accent = accent
         self.pageSize = pageSize
         self.density = density
+        self.scheme = scheme
+        self.tint = tint
     }
 
     // MARK: Palette
 
-    public var accentColor: Color { .hex(accent) }
+    /// The page itself.
+    public var page: Color {
+        if let tint { return .hex(tint) }
+        return scheme == .dark ? .grey(24) : .grey(255)
+    }
 
-    /// Body text. Not pure black — slightly lifted reads better in print and
-    /// on screen, and is what well-set documents use.
-    public var ink: Color { .grey(26) }
+    /// Body text.
+    ///
+    /// Never pure black on white or pure white on black. Full contrast at text
+    /// sizes reads as a vibrating edge; a step in from either end is what
+    /// well-set documents use and what is easier to read for longer.
+    public var ink: Color {
+        scheme == .dark ? .grey(236) : .grey(26)
+    }
 
     /// Dates, locations, and anything the eye should pass over on the way to
     /// something else.
-    public var muted: Color { .grey(120) }
+    public var muted: Color {
+        scheme == .dark ? .grey(154) : .grey(120)
+    }
 
     /// Rules and borders.
-    public var hairline: Color { .grey(216) }
+    public var hairline: Color {
+        scheme == .dark ? .grey(74) : .grey(216)
+    }
 
-    /// Faint fill for a panel.
-    public var wash: Color { .grey(247) }
+    /// Faint fill for a panel — a step away from the page, in whichever
+    /// direction the page is not.
+    public var wash: Color {
+        scheme == .dark ? page.lightened(by: 0.07) : page.darkened(by: 0.035)
+    }
+
+    /// The accent, lifted where it would otherwise disappear.
+    ///
+    /// An accent chosen against white is routinely invisible on a dark page —
+    /// a navy heading on near-black is a heading nobody can read. Rather than
+    /// refuse the combination, the colour is moved far enough from the page to
+    /// be legible and left alone when it already is.
+    public var accentColor: Color {
+        let chosen = Color.hex(accent)
+        let separation = abs(chosen.luminance - page.luminance)
+        guard separation < 0.28 else { return chosen }
+
+        return page.luminance < 0.5
+            ? chosen.lightened(by: 0.55)
+            : chosen.darkened(by: 0.35)
+    }
 
     /// Whether the theme is effectively monochrome.
     ///
@@ -72,15 +126,10 @@ public struct Theme: Sendable, Equatable, Codable {
     }
 
     /// Whether text reversed out of the accent will be legible.
-    ///
-    /// Perceived luminance rather than a plain average — the eye is far more
-    /// sensitive to green than to blue, so a mid yellow and a mid blue with
-    /// the same arithmetic mean are nothing alike behind white text.
-    public var accentIsDark: Bool {
-        let colour = accentColor
-        let luminance = (0.299 * Double(colour.red) + 0.587 * Double(colour.green) + 0.114 * Double(colour.blue))
-        return luminance < 140
-    }
+    public var accentIsDark: Bool { accentColor.luminance < 0.55 }
+
+    /// Whether the page needs painting at all.
+    public var paintsPage: Bool { scheme == .dark || tint != nil }
 
     // MARK: Presets
 
@@ -96,6 +145,20 @@ public struct Theme: Sendable, Equatable, Codable {
     /// US Letter, because a résumé printed on A4 in Chicago comes out with a
     /// margin the printer had to invent.
     public static let american = Theme(pageSize: .letter)
+
+    /// Near-black, with a warm accent that survives it.
+    public static let midnight = Theme(accent: "#E8A33D", scheme: .dark)
+
+    /// A warm paper tint. Reads as considered; costs a lot of toner.
+    public static let paper = Theme(accent: "#7A4A2B", tint: "#F6F1E8")
+}
+
+// MARK: - Scheme
+
+/// Light or dark.
+public enum Scheme: String, Sendable, CaseIterable, Codable {
+    case light
+    case dark
 }
 
 // MARK: - Density
@@ -146,5 +209,33 @@ public enum Density: String, Sendable, CaseIterable, Codable {
         case .normal: return 54
         case .compact: return 44
         }
+    }
+}
+
+// MARK: - Colour arithmetic
+
+extension Color {
+
+    /// Perceived brightness, 0 to 1.
+    ///
+    /// Weighted rather than averaged: the eye is far more sensitive to green
+    /// than to blue, so a mid yellow and a mid blue with the same arithmetic
+    /// mean are nothing alike behind white text.
+    var luminance: Double {
+        (0.299 * Double(red) + 0.587 * Double(green) + 0.114 * Double(blue)) / 255
+    }
+
+    /// Mixed towards white.
+    func lightened(by amount: Double) -> Color {
+        func lift(_ channel: Int) -> Int {
+            Int((Double(channel) + (255 - Double(channel)) * amount).rounded())
+        }
+        return Color(red: lift(red), green: lift(green), blue: lift(blue))
+    }
+
+    /// Mixed towards black.
+    func darkened(by amount: Double) -> Color {
+        func drop(_ channel: Int) -> Int { Int((Double(channel) * (1 - amount)).rounded()) }
+        return Color(red: drop(red), green: drop(green), blue: drop(blue))
     }
 }
