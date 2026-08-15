@@ -275,6 +275,9 @@ public struct Section: Hashable, Sendable, Codable, RawRepresentable {
 
     // MARK: Titles
 
+    // (The three orders are also reachable as `.conventional`, `.graduate` and
+    // `.academic` on the array itself — see the extension below.)
+
     /// The heading most readers, and most parsers, expect.
     ///
     /// Deliberately plain. An applicant tracking system looks for these words
@@ -464,4 +467,23 @@ public struct Labels: Sendable, Equatable, Codable {
         dateSeparator: "–",
         language: "de"
     )
+}
+
+// MARK: - Orders, by their own name
+
+extension Array where Element == Section {
+
+    /// Experience first — the order a reader expects.
+    ///
+    /// Here as well as on ``Section`` so the parameter can be written the way
+    /// it reads: `Resume(profile: profile, order: .conventional)`. The
+    /// argument's type is `[Section]`, and a static member on `Section` is not
+    /// reachable through a leading dot from there.
+    public static var conventional: [Section] { Section.conventional }
+
+    /// Education first, for someone whose degree is the strongest thing on the page.
+    public static var graduate: [Section] { Section.graduate }
+
+    /// Publications and funding carry the weight.
+    public static var academic: [Section] { Section.academic }
 }

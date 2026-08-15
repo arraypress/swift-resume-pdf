@@ -17,7 +17,10 @@ import XCTest
 import ResumePDF
 
 /// A design written the way a caller would write one.
-private struct Broadside: Design {
+///
+/// Named for what it is rather than `SectionwiseDesign`, which is the README's
+/// example and lives in `READMEExamples.swift`.
+private struct SectionwiseDesign: Design {
 
     func render(_ resume: Resume, on sheet: Sheet) {
         sheet.line(resume.profile.name, size: 28, face: sheet.semibold)
@@ -66,7 +69,7 @@ final class PublicAPITests: XCTestCase {
     // MARK: Designs
 
     func testADesignCanBeWrittenOutsideThePackage() throws {
-        let read = try text(of: try Resume.sample.render(design: Broadside()))
+        let read = try text(of: try Resume.sample.render(design: SectionwiseDesign()))
         XCTAssertTrue(read.contains("Alex Moreau"))
         XCTAssertTrue(read.contains("Stripe"))
     }
@@ -78,7 +81,7 @@ final class PublicAPITests: XCTestCase {
     }
 
     func testADesignOfYourOwnGetsTheThemeForFree() throws {
-        let data = try Resume.sample.render(design: Broadside(), theme: .midnight)
+        let data = try Resume.sample.render(design: SectionwiseDesign(), theme: .midnight)
         XCTAssertNotNil(PDFDocument(data: data))
         XCTAssertTrue(try text(of: data).contains("Alex Moreau"))
     }

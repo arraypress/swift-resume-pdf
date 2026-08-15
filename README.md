@@ -160,9 +160,10 @@ Resume(
     profile: profile,
     experience: roles,
     custom: [
-        CustomSection("Patents",
-                      body: "Two granted, one pending.",
-                      items: ["GB2601234 — Ledger write ordering"])
+        CustomSection("Patents", [
+            .prose("Two granted, one pending."),
+            .list(["GB2601234 — Ledger write ordering"])
+        ])
     ],
     order: [.summary, .experience, .custom("Patents"), .education]
 )
