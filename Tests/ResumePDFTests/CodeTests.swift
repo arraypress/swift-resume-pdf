@@ -214,3 +214,25 @@ extension CodeTests {
         XCTAssertEqual(try scan(data), address)
     }
 }
+
+extension CodeTests {
+
+    func testAResumeCanBeLocked() throws {
+        // Rarely what you want — a recruiter who cannot open it does not ring
+        // to ask — but a document sent to a payroll or a background checker
+        // is a different errand.
+        let data = try Resume.sample.render(design: .ledger, password: "correct horse battery")
+
+        let document = try XCTUnwrap(PDFDocument(data: data))
+        XCTAssertTrue(document.isLocked)
+        XCTAssertFalse(document.unlock(withPassword: "wrong"))
+        XCTAssertTrue(document.unlock(withPassword: "correct horse battery"))
+        XCTAssertTrue(try XCTUnwrap(document.string).contains("Alex Moreau"))
+    }
+
+    func testTheNameIsNotReadableWithoutIt() throws {
+        let data = try Resume.sample.render(design: .ledger, password: "correct horse battery")
+        let raw = try XCTUnwrap(String(data: data, encoding: .isoLatin1))
+        XCTAssertFalse(raw.contains("Alex Moreau"), "the name is in the clear")
+    }
+}

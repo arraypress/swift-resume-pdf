@@ -258,10 +258,11 @@ extension Resume {
 
     /// The finished bytes, from a design of your own.
     public func render(
-        design: any Design, theme: Theme = .plain, archival: Bool = false
+        design: any Design, theme: Theme = .plain, archival: Bool = false, password: String = ""
     ) throws -> Data {
         try document(design: design, theme: theme)
-            .render(metadata: metadata(design: .ledger), standard: archival ? .pdfA3b : .none)
+            .render(metadata: metadata(design: .ledger),
+                    standard: archival ? .pdfA3b : .none, password: password)
     }
 
     /// Renders a design of your own and writes it, returning the byte count.
@@ -319,10 +320,12 @@ extension Resume {
     ///   travel with the document already, which is the requirement most
     ///   documents fail.
     public func render(
-        design: DesignKind = .ledger, theme: Theme = .plain, archival: Bool = false
+        design: DesignKind = .ledger, theme: Theme = .plain,
+        archival: Bool = false, password: String = ""
     ) throws -> Data {
         try document(design: design, theme: theme)
-            .render(metadata: metadata(design: design), standard: archival ? .pdfA3b : .none)
+            .render(metadata: metadata(design: design),
+                    standard: archival ? .pdfA3b : .none, password: password)
     }
 
     /// Renders and writes to a file, returning the byte count.
