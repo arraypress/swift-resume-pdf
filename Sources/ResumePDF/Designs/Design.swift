@@ -141,6 +141,9 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     /// read the wrong one the moment a design was reached by any other route.
     public var showsPhoto: Bool { design.showsPhoto }
 
+    /// Whether this design draws a scannable code.
+    public var showsCode: Bool { design.showsCode }
+
     /// The thing that draws.
     ///
     /// Public so a caller can reach a built-in design through the same
@@ -194,6 +197,12 @@ public protocol Design: Sendable {
     /// Read by the checks, so a résumé carrying a portrait that this design
     /// will not draw is reported rather than silently dropped.
     var showsPhoto: Bool { get }
+
+    /// Whether the design has somewhere to put a scannable code.
+    ///
+    /// Same contract as the photograph: a code that is set and not drawn is
+    /// reported, because it was meant.
+    var showsCode: Bool { get }
 }
 
 extension Design {
@@ -201,6 +210,7 @@ extension Design {
     public var displayName: String { String(describing: type(of: self)) }
     public var isSingleColumn: Bool { true }
     public var showsPhoto: Bool { false }
+    public var showsCode: Bool { false }
 }
 
 // MARK: - Rendering
@@ -301,8 +311,16 @@ extension Resume {
     }
 
     /// The finished PDF bytes.
-    public func render(design: DesignKind = .ledger, theme: Theme = .plain) throws -> Data {
-        try document(design: design, theme: theme).render(metadata: metadata(design: design))
+    ///
+    /// - Parameter archival: Write as PDF/A-3, which some academic and
+    ///   government applications ask for by name. Free here: the typefaces
+    ///   travel with the document already, which is the requirement most
+    ///   documents fail.
+    public func render(
+        design: DesignKind = .ledger, theme: Theme = .plain, archival: Bool = false
+    ) throws -> Data {
+        try document(design: design, theme: theme)
+            .render(metadata: metadata(design: design), standard: archival ? .pdfA3b : .none)
     }
 
     /// Renders and writes to a file, returning the byte count.

@@ -653,6 +653,22 @@ public final class Sheet {
         pdf.move(to: top - leading(size))
     }
 
+    /// A code somebody can scan, where the profile carries one.
+    ///
+    /// Silently absent when there is nothing to encode, so a design can call
+    /// this unconditionally. Drawn in the ink colour rather than the accent:
+    /// a scanner wants contrast, and a pale brand colour on white is a code
+    /// that reads on a screen and fails on a photocopy.
+    ///
+    /// - Returns: Whether anything was drawn.
+    @discardableResult
+    public func code(_ payload: String, x: Double, y codeY: Double, size: Double) -> Bool {
+        let trimmed = payload.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return false }
+
+        return pdf.qr(trimmed, x: x, y: codeY, size: size, color: ink)
+    }
+
     /// A portrait, clipped to a circle.
     ///
     /// Silently absent when there is no photograph or it cannot be read: a

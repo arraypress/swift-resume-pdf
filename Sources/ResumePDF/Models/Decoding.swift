@@ -232,6 +232,7 @@ extension Profile {
             phone: try container.value(.phone, or: ""),
             links: try container.value(.links, or: []),
             photo: try container.value(.photo, or: ""),
+            qr: try container.value(.qr, or: ""),
             dateOfBirth: try container.value(.dateOfBirth, or: ""),
             nationality: try container.value(.nationality, or: ""),
             maritalStatus: try container.value(.maritalStatus, or: ""),
@@ -240,7 +241,7 @@ extension Profile {
     }
 
     enum CodingKeys: String, CodingKey {
-        case name, headline, location, email, phone, links, photo
+        case name, headline, location, email, phone, links, photo, qr
         case dateOfBirth, nationality, maritalStatus, placeOfBirth
     }
 }

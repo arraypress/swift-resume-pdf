@@ -145,11 +145,44 @@ public enum ATS {
 
         findings += columnLayout(design)
         findings += contactDetails(resume)
+        findings += scannableCode(resume, design: design)
         findings += headings(resume)
         findings += dates(resume)
         findings += ordering(resume)
         findings += keywords(resume)
         findings += length(resume, design: design, pages: pages)
+
+        return findings
+    }
+
+    /// A code is for a person holding paper, and nothing else reads it.
+    private static func scannableCode(_ resume: Resume, design: any Design) -> [Finding] {
+        let code = resume.profile.qr.trimmingCharacters(in: .whitespaces)
+        guard !code.isEmpty else { return [] }
+
+        var findings: [Finding] = []
+
+        if !design.showsCode {
+            findings.append(Finding(
+                .note,
+                "A code is set, and the \(design.displayName) design has nowhere to put it.",
+                "Designs that place one: "
+                    + DesignKind.allCases.filter(\.showsCode).map(\.displayName).joined(separator: ", ")
+                    + "."
+            ))
+        }
+
+        // The failure worth naming: a URL that exists only inside a picture of
+        // a square is a URL no tracking system will ever see.
+        let written = resume.profile.links.map(\.absolute) + [resume.profile.email]
+        if !written.contains(where: { $0.contains(code) || code.contains($0) }) {
+            findings.append(Finding(
+                .note,
+                "The code is the only place that address appears.",
+                "A parser reads text, and a code is a picture. Put the same address in "
+                    + "Profile.links as well, so the machine reading this can follow it too."
+            ))
+        }
 
         return findings
     }

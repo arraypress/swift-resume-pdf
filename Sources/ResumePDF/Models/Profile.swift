@@ -56,6 +56,19 @@ public struct Profile: Sendable, Equatable, Codable {
     /// ignore it.
     public let photo: String
 
+    /// A URL to print as a code somebody can scan.
+    ///
+    /// A portfolio, a repository, a personal site. Worth the square inch on a
+    /// printed CV, where a link is a thing to be typed out by hand and
+    /// therefore not followed — and worth nothing on a screen, where the
+    /// contact line is already clickable. Designs that have nowhere to put one
+    /// ignore it, and ``ATS`` reports which.
+    ///
+    /// Not a substitute for the address in writing: a parser reads text, and
+    /// a URL that exists only inside a picture of a square is a URL no
+    /// tracking system will ever see.
+    public let qr: String
+
     // MARK: Regional particulars
 
     /// Conventional on a German or Austrian Lebenslauf, and on résumés across
@@ -84,6 +97,7 @@ public struct Profile: Sendable, Equatable, Codable {
         phone: String = "",
         links: [Link] = [],
         photo: String = "",
+        qr: String = "",
         dateOfBirth: String = "",
         nationality: String = "",
         maritalStatus: String = "",
@@ -96,6 +110,7 @@ public struct Profile: Sendable, Equatable, Codable {
         self.phone = phone
         self.links = links
         self.photo = photo
+        self.qr = qr
         self.dateOfBirth = dateOfBirth
         self.nationality = nationality
         self.maritalStatus = maritalStatus

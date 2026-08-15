@@ -22,6 +22,8 @@ import TextPDF
 
 struct Swiss: Design {
 
+    var showsCode: Bool { true }
+
     /// The label column, which is narrow because the labels are tiny.
     private let labelWidth = 76.0
     private let gutter = 26.0
@@ -67,6 +69,10 @@ struct Swiss: Design {
         // a short name fills the line and a long one still fits.
         let size = min(52.0, max(30.0, sheet.width * 62 / max(1, Double(profile.name.count)) / 3.4))
 
+        // The name keeps the whole measure. This design is an oversized name
+        // and a lot of air; taking sixty points off it for a code would make
+        // a long name shrink or truncate, and a truncated name is the one
+        // thing on a résumé that cannot be allowed.
         pdf.textAt(profile.name, x: sheet.left, y: top - size * 0.82, size: size,
                    color: sheet.ink, face: sheet.semibold, tracking: -size * 0.028)
 
@@ -85,12 +91,27 @@ struct Swiss: Design {
 
         pdf.cell("CONTACT", x: sheet.left, boxWidth: labelWidth, size: 6.8,
                  color: sheet.muted, face: sheet.medium, tracking: 1.0)
-        sheet.contactFlow(profile.contactEntries(), x: bodyX, width: bodyWidth, size: 9)
+
+        // Level with the contact details rather than beside the name: this is
+        // where the page is empty, and where somebody looking for how to
+        // reach you is already looking.
+        let code = 62.0
+        let band = pdf.cursor()
+        let coded = sheet.code(profile.qr, x: sheet.right - code,
+                               y: band - code + 10, size: code)
+        let measure = coded ? bodyWidth - code - 18 : bodyWidth
+
+        sheet.contactFlow(profile.contactEntries(), x: bodyX, width: measure, size: 9)
 
         let particulars = profile.particulars()
         if !particulars.isEmpty {
             sheet.contactFlow(particulars.map { "\($0.label): \($0.value)" },
-                              x: bodyX, width: bodyWidth, size: 8.6)
+                              x: bodyX, width: measure, size: 8.6)
         }
+
+        // The code is taller than the two lines beside it, so the next section
+        // starts below whichever ran longer. Without this the summary is drawn
+        // straight through it.
+        if coded { pdf.move(to: min(pdf.cursor(), band - code + 2)) }
     }
 }

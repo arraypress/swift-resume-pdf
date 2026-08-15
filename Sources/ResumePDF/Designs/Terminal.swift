@@ -23,6 +23,8 @@ import TextPDF
 
 struct Terminal: Design {
 
+    var showsCode: Bool { true }
+
     func render(_ resume: Resume, on sheet: Sheet) {
         masthead(resume, on: sheet)
 
@@ -70,6 +72,9 @@ struct Terminal: Design {
         let pdf = sheet.pdf
         let profile = resume.profile
         let top = pdf.height() - sheet.theme.density.margin
+
+        let code = 58.0
+        sheet.code(profile.qr, x: sheet.right - code, y: top - code, size: code)
 
         pdf.textAt(profile.name, x: sheet.left, y: top - 21, size: 23,
                    color: sheet.ink, face: sheet.monoBold, tracking: -0.9)

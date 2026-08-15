@@ -184,6 +184,9 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
     /// Whether the masthead was told to place a portrait.
     public var showsPhoto: Bool { masthead.photo != nil }
 
+    /// Whether the masthead was given room for a code.
+    public var showsCode: Bool { masthead.qr > 0 }
+
     // MARK: Rendering
 
     public func render(_ resume: Resume, on sheet: Sheet) {
@@ -346,6 +349,12 @@ extension Blueprint {
         /// A round portrait. Only drawn when the profile carries one.
         public var photo: Photo?
 
+        /// A scannable code against the right edge, in points. Zero for none.
+        ///
+        /// Only drawn where the profile carries one, and the name is measured
+        /// against what is left rather than against the page.
+        public var qr: Double
+
         /// A rule under the whole thing.
         public var rule: Rule?
 
@@ -369,6 +378,7 @@ extension Blueprint {
             contactSize: Double = 8.7,
             panel: Panel? = nil,
             photo: Photo? = nil,
+            qr: Double = 0,
             rule: Rule? = Rule(),
             monospaced: Bool = false,
             gapAfter: Double = 19
@@ -382,6 +392,7 @@ extension Blueprint {
             self.contactSize = contactSize
             self.panel = panel
             self.photo = photo
+            self.qr = qr
             self.rule = rule
             self.monospaced = monospaced
             self.gapAfter = gapAfter
@@ -407,6 +418,12 @@ extension Blueprint {
 
             var textX = x
             var textWidth = width
+
+            // The code takes the right of the masthead. Drawn first, because
+            // the name is set to whatever is left rather than to the page.
+            if qr > 0, sheet.code(profile.qr, x: x + width - qr, y: top - qr, size: qr) {
+                textWidth -= qr + 20
+            }
 
             // The portrait takes its side of the masthead, and the type takes
             // the rest — otherwise a long headline runs under the face.
@@ -1249,6 +1266,7 @@ extension Blueprint.Masthead {
             contactSize: try container.value(.contactSize, or: defaults.contactSize),
             panel: try container.maybe(.panel),
             photo: try container.maybe(.photo),
+            qr: try container.value(.qr, or: defaults.qr),
             // A rule is on by default, so leaving the key out keeps it and
             // "rule": null is how you say you do not want one.
             rule: container.contains(.rule) ? try container.maybe(.rule) : defaults.rule,
@@ -1274,6 +1292,7 @@ extension Blueprint.Masthead {
         try container.encode(contactSize, forKey: .contactSize)
         try container.encodeIfPresent(panel, forKey: .panel)
         try container.encodeIfPresent(photo, forKey: .photo)
+        try container.encode(qr, forKey: .qr)
         try container.encode(rule, forKey: .rule)
         try container.encode(monospaced, forKey: .monospaced)
         try container.encode(gapAfter, forKey: .gapAfter)
@@ -1281,7 +1300,7 @@ extension Blueprint.Masthead {
 
     enum CodingKeys: String, CodingKey {
         case align, nameSize, uppercase, tracking, headlineSize
-        case headlineColour, contactSize, panel, photo, rule, monospaced, gapAfter
+        case headlineColour, contactSize, panel, photo, qr, rule, monospaced, gapAfter
     }
 }
 

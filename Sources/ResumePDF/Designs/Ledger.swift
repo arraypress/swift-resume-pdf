@@ -21,6 +21,8 @@ import TextPDF
 
 struct Ledger: Design {
 
+    var showsCode: Bool { true }
+
     func render(_ resume: Resume, on sheet: Sheet) {
         masthead(resume, on: sheet)
 
@@ -44,7 +46,14 @@ struct Ledger: Design {
         // Slightly tight tracking. Inter is drawn for text sizes, and at
         // display sizes its default spacing reads loose — closing it up is
         // what makes a name look set rather than typed.
-        pdf.textAt(profile.name, x: sheet.left, y: top - 22, size: 25.5,
+        // A code against the right edge, where the masthead has room and the
+        // name does not reach. Drawn first so the width it takes is known.
+        let code = 58.0
+        let coded = sheet.code(profile.qr, x: sheet.right - code, y: top - code, size: code)
+        let measure = coded ? sheet.width - code - 20 : sheet.width
+
+        pdf.textAt(pdf.fit(profile.name, into: measure, size: 25.5, face: sheet.semibold),
+                   x: sheet.left, y: top - 22, size: 25.5,
                    color: sheet.ink, face: sheet.semibold, tracking: -0.4)
 
         var y = top - 40
@@ -58,6 +67,7 @@ struct Ledger: Design {
         pdf.move(to: y)
         sheet.contactFlow(
             profile.contactEntries(),
+            width: measure,
             size: 8.7
         )
 

@@ -408,6 +408,26 @@ Three shorthands, for the things written most often:
 
 What is *not* defaulted is the identifying field. A position with no role is not a position, and accepting one would turn a mistyped key into a blank line on somebody's résumé.
 
+## A code to scan
+
+```swift
+Profile(name: "Alex Moreau", email: "alex@moreau.dev", qr: "https://moreau.dev/cv")
+```
+
+Worth the square inch on a printed CV, where a link is a thing to be typed by hand and therefore not followed. `ledger`, `swiss` and `terminal` place one; the rest ignore it, and `check` says which. In a blueprint it is `"masthead": { "qr": 58 }`.
+
+Drawn as vector squares in the ink colour, because a scanner wants contrast and a pale brand colour on white is a code that reads on a screen and fails on a photocopy.
+
+**It is not a substitute for the address in writing.** A parser reads text; a code is a picture. `check` reports it when the code is the only place an address appears — a URL no tracking system will ever see is a URL you did not publish.
+
+## Archival copies
+
+```swift
+try resume.render(design: .ledger, archival: true)   // PDF/A-3
+```
+
+Some academic and government applications ask for one by name. Free here: PDF/A requires every font to travel with the document, which these already do.
+
 ## Photographs
 
 `Profile.photo` takes a path to a baseline JPEG or a PNG. `plaque`, `bulletin`, `nocturne` and `sidebar` have somewhere to put one; the rest ignore it, and `check` says which.
