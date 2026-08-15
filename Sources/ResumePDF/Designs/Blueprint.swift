@@ -88,6 +88,22 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
     /// Colours that override the theme's, for a design whose identity is one.
     public var palette: PaletteOverride?
 
+    /// The family this design was drawn for.
+    ///
+    /// A suggestion, not a lock: a theme that names a typeface wins, because
+    /// it is the caller's page. But a design whose identity is a serif should
+    /// be able to say so, or `broadsheet` written as data comes out in the
+    /// default grotesque and is a different document.
+    public var typeface: Face
+
+    /// Settings for one section that differ from the rest.
+    ///
+    /// Because "chips for skills, plain lists everywhere else" is a real
+    /// design decision and the built-ins make it — and a format where the
+    /// only way to say it is to give up and write Swift is a format that
+    /// stops one step short.
+    public var sections: [Section: SectionOverride]
+
     public init(
         name: String,
         masthead: Masthead = Masthead(),
@@ -98,7 +114,9 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
         sectionGap: Double = 17,
         footer: Bool = true,
         skip: [Section] = [],
-        palette: PaletteOverride? = nil
+        palette: PaletteOverride? = nil,
+        typeface: Face = .sans,
+        sections: [Section: SectionOverride] = [:]
     ) {
         self.name = name
         self.masthead = masthead
@@ -110,6 +128,32 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
         self.footer = footer
         self.skip = skip
         self.palette = palette
+        self.typeface = typeface
+        self.sections = sections
+    }
+
+    /// The families a blueprint can ask for, by name.
+    public enum Face: String, Codable, Sendable, CaseIterable {
+
+        /// Inter. The default, and right for almost everything.
+        case sans
+
+        /// Source Serif 4 — academia, law, and anywhere looking current is
+        /// not the point.
+        case serif
+
+        // There is no whole-document monospace here on purpose. Nine-point
+        // monospaced prose is markedly harder work to read along a line, and
+        // `terminal` — the design that looks like this idea — sets its
+        // labels and masthead in mono and its sentences in Inter. That is
+        // `monospaced` on the masthead and the heading, below.
+
+        public var typeface: Typeface {
+            switch self {
+            case .sans: return .inter
+            case .serif: return .sourceSerif
+            }
+        }
     }
 
     // MARK: Reading one
@@ -149,42 +193,131 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
     }
 
     private func draw(_ resume: Resume, on sheet: Sheet) {
-        let bodyX = sheet.left + column.labelWidth + column.gutter
-        let bodyWidth = sheet.width - column.labelWidth - column.gutter
+        let rail = ornament == .rail
+        let labelWidth = rail && column.labelWidth == 0 ? Column.railWidth : column.labelWidth
+        let gutter = rail && column.gutter == 0 ? Column.railGutter : column.gutter
+
+        let bodyX = sheet.left + labelWidth + gutter
+        let bodyWidth = sheet.width - labelWidth - gutter
 
         masthead.draw(resume, on: sheet, x: bodyX, width: bodyWidth)
 
-        var style = entries.style(x: bodyX, width: bodyWidth)
-        if ornament == .cards {
-            // Inset from the panel's edge. The entry gap is left alone: a
-            // panel here holds a whole section, so its entries still need the
-            // air between them that any other design gives them.
-            style.x = bodyX + Ornament.cardPadding
-            style.width = bodyWidth - Ornament.cardPadding * 2
-        }
-
         let shading = ornament.prepare(on: sheet)
-        let sections = resume.populated().filter { !skip.contains($0) }
+        let drawn = resume.populated().filter { !skip.contains($0) }
 
-        for (index, section) in sections.enumerated() {
-            if index > 0 { sheet.gap(sectionGap) }
+        for (index, section) in drawn.enumerated() {
+            let local = sections[section]
+            let sectionHeading = local?.heading?.applied(to: heading) ?? heading
+            let sectionEntries = local?.entries?.applied(to: entries) ?? entries
 
-            heading.draw(
+            var style = sectionEntries.style(x: bodyX, width: bodyWidth)
+            if ornament.insets {
+                // Inset from the panel's edge, so the words are not against it.
+                style.x = bodyX + Ornament.cardPadding
+                style.width = bodyWidth - Ornament.cardPadding * 2
+            }
+            // A rail draws the dates itself. Left to the blocks as well they
+            // would be printed twice, which is the more visible mistake.
+            if rail { style.dates = DatePlacement.external }
+
+            if index > 0 { sheet.gap(local?.sectionGap ?? sectionGap) }
+
+            sectionHeading.draw(
                 resume.heading(for: section),
                 section: section,
                 on: sheet,
                 x: bodyX, width: bodyWidth,
-                labelWidth: column.labelWidth,
+                labelWidth: labelWidth,
                 labelAlign: column.labelAlign
             )
 
+            draw(section, of: resume, on: sheet, style: style, index: index,
+                 shading: shading, bodyX: bodyX, bodyWidth: bodyWidth, labelWidth: labelWidth)
+        }
+
+        if footer { sheet.footer(name: resume.profile.name) }
+    }
+
+    /// One section's entries, however this design treats them.
+    private func draw(
+        _ section: Section, of resume: Resume, on sheet: Sheet, style: Blocks.Style,
+        index: Int, shading: Shading?, bodyX: Double, bodyWidth: Double, labelWidth: Double
+    ) {
+        switch ornament {
+        case .entryCards:
+            // A panel around each entry rather than around the section. The
+            // gap after one has to clear both panels' padding, or the
+            // rectangles overlap and three entries read as one long box.
+            let padding = Ornament.cardPadding
+            for entry in Blocks.entriesOrWhole(of: section, in: resume) {
+                let page = sheet.pdf.pageCount()
+                let top = sheet.cursor + padding
+                sheet.gap(2)
+
+                entry.draw(sheet, style)
+
+                if sheet.pdf.pageCount() == page {
+                    shading?.add(page: page, x: bodyX, width: bodyWidth,
+                                 top: top, bottom: sheet.cursor - padding + 4)
+                }
+                sheet.gap(padding + 6)
+            }
+
+        case .rail:
+            guard let entries = Blocks.entries(of: section, in: resume),
+                  entries.contains(where: { !$0.dates.isEmpty })
+            else {
+                // A skills list given a rail is a hundred points of white down
+                // the left of it.
+                Blocks.render(section, of: resume, on: sheet, style: style)
+                return
+            }
+
+            for (position, entry) in entries.enumerated() {
+                if position > 0 { sheet.gap(style.entryGap) }
+                drawRailed(entry, on: sheet, style: style, labels: resume.labels,
+                           bodyX: bodyX, labelWidth: labelWidth,
+                           gutter: bodyX - sheet.left - labelWidth)
+            }
+
+        case .none, .bands, .cards:
             ornament.wrap(index: index, on: sheet, shading: shading,
                           x: sheet.left, width: sheet.width) {
                 Blocks.render(section, of: resume, on: sheet, style: style)
             }
         }
+    }
 
-        if footer { sheet.footer(name: resume.profile.name) }
+    /// One entry with its dates hung in the rail beside it.
+    private func drawRailed(
+        _ entry: Blocks.Entry, on sheet: Sheet, style: Blocks.Style,
+        labels: Labels, bodyX: Double, labelWidth: Double, gutter: Double
+    ) {
+        let pdf = sheet.pdf
+
+        // The rail is drawn against the entry's own top, so the break has to
+        // happen first — otherwise the dates land at the bottom of one page
+        // and the role at the top of the next.
+        pdf.breakIfNeeded(sheet.leading(style.roleSize) * 3.4)
+        let top = sheet.cursor
+
+        let dates = entry.dates.rendered(present: labels.present, dash: labels.dateSeparator)
+        if !dates.isEmpty {
+            pdf.cell(dates, x: sheet.left, boxWidth: labelWidth, size: style.dateSize,
+                     color: sheet.muted, align: .right, face: sheet.medium)
+
+            // A short tick down the middle of the gutter. Vertical, and a
+            // fixed height, so it cannot be orphaned by a page break part-way
+            // down an entry — and so the eye reads the rail as one column
+            // rather than as a row of dashes.
+            let markerTop = top - 4
+            pdf.line(from: bodyX - gutter / 2, markerTop,
+                     to: bodyX - gutter / 2, markerTop - sheet.leading(style.roleSize) * 1.6,
+                     color: sheet.hairline, thickness: 1.1)
+        }
+
+        pdf.move(to: top)
+        entry.draw(sheet, style)
     }
 }
 
@@ -216,6 +349,13 @@ extension Blueprint {
         /// A rule under the whole thing.
         public var rule: Rule?
 
+        /// Set the name, headline and contact details in the monospace.
+        ///
+        /// Contact details are addresses, which is data — so they are also
+        /// stacked one per line rather than flowed, because a column of them
+        /// is easier to copy from than a paragraph.
+        public var monospaced: Bool
+
         /// Space between the masthead and the first heading.
         public var gapAfter: Double
 
@@ -230,6 +370,7 @@ extension Blueprint {
             panel: Panel? = nil,
             photo: Photo? = nil,
             rule: Rule? = Rule(),
+            monospaced: Bool = false,
             gapAfter: Double = 19
         ) {
             self.align = align
@@ -242,6 +383,7 @@ extension Blueprint {
             self.panel = panel
             self.photo = photo
             self.rule = rule
+            self.monospaced = monospaced
             self.gapAfter = gapAfter
         }
 
@@ -282,10 +424,13 @@ extension Blueprint {
                 }
             }
 
+            let heavy = monospaced ? (sheet.monoBold ?? sheet.semibold) : sheet.semibold
+            let plain = monospaced ? (sheet.mono ?? sheet.regular) : sheet.regular
+
             let label = uppercase ? profile.name.uppercased() : profile.name
             pdf.textAt(label, x: textX, y: top - nameSize * 0.86, size: nameSize,
                        color: ink, align: align.textAlign, boxWidth: textWidth,
-                       face: sheet.semibold, tracking: tracking)
+                       face: heavy, tracking: tracking)
 
             var y = top - nameSize * 0.86 - nameSize * 0.72
 
@@ -295,20 +440,28 @@ extension Blueprint {
                     : headlineColour.colour(on: sheet, fallback: ink)
                 pdf.textAt(profile.headline, x: textX, y: y, size: headlineSize,
                            color: tint, align: align.textAlign, boxWidth: textWidth,
-                           face: sheet.regular)
+                           face: plain)
                 y -= headlineSize * 1.6
             }
 
             pdf.move(to: y)
-            sheet.contactFlow(profile.contactEntries(), x: textX, width: textWidth,
-                              size: contactSize, color: mutedInk, align: align.textAlign)
 
-            // Regional particulars, where they have been set at all.
-            let particulars = profile.particulars()
-            if !particulars.isEmpty {
-                sheet.contactFlow(particulars.map { "\($0.label): \($0.value)" },
-                                  x: textX, width: textWidth, size: contactSize - 0.3,
-                                  color: mutedInk, align: align.textAlign)
+            let particulars = profile.particulars().map { "\($0.label): \($0.value)" }
+
+            if monospaced {
+                Blueprint.stackContacts(profile.contactEntries(), on: sheet, x: textX,
+                                        size: contactSize, face: plain, color: mutedInk)
+                Blueprint.stackContacts(particulars.map { (text: $0, url: "") }, on: sheet,
+                                        x: textX, size: contactSize - 0.3,
+                                        face: plain, color: mutedInk)
+            } else {
+                sheet.contactFlow(profile.contactEntries(), x: textX, width: textWidth,
+                                  size: contactSize, color: mutedInk, align: align.textAlign)
+                if !particulars.isEmpty {
+                    sheet.contactFlow(particulars, x: textX, width: textWidth,
+                                      size: contactSize - 0.3,
+                                      color: mutedInk, align: align.textAlign)
+                }
             }
 
             if let panelHeight {
@@ -320,6 +473,24 @@ extension Blueprint {
             }
 
             sheet.gap(gapAfter)
+        }
+    }
+
+    /// One entry per line, linked where it has somewhere to go.
+    fileprivate static func stackContacts(
+        _ entries: [(text: String, url: String)], on sheet: Sheet,
+        x: Double, size: Double, face: EmbeddedFont?, color: Color
+    ) {
+        let pdf = sheet.pdf
+        for entry in entries where !entry.text.trimmingCharacters(in: .whitespaces).isEmpty {
+            let baseline = pdf.cursor() - size * 0.98
+            if entry.url.isEmpty {
+                pdf.textAt(entry.text, x: x, y: baseline, size: size, color: color, face: face)
+            } else {
+                pdf.linked(entry.text, url: entry.url, x: x, y: baseline,
+                           size: size, color: color, face: face)
+            }
+            pdf.move(to: pdf.cursor() - size * 1.5)
         }
     }
 
@@ -414,6 +585,10 @@ extension Blueprint {
     /// out. It is still one column in reading order.
     public struct Column: Codable, Sendable, Equatable {
 
+        /// What a rail takes when the design did not say.
+        static let railWidth = 96.0
+        static let railGutter = 16.0
+
         public var labelWidth: Double
         public var gutter: Double
         public var labelAlign: Alignment
@@ -476,6 +651,10 @@ extension Blueprint {
             /// Hung in the margin beside the text, which needs a `column`
             /// with room for it.
             case margin
+
+            /// A label with a rule running out from it to the right margin.
+            /// Set in the monospace, which is the point of it.
+            case terminal
         }
 
         func draw(
@@ -502,7 +681,37 @@ extension Blueprint {
             case .margin:
                 drawMargin(title, section: section, on: sheet,
                            x: x, labelWidth: labelWidth, labelAlign: labelAlign)
+
+            case .terminal:
+                drawTerminal(title, on: sheet, x: x, width: width)
             }
+        }
+
+        /// A mono label with a rule running out from it to the margin.
+        private func drawTerminal(_ title: String, on sheet: Sheet, x: Double, width: Double) {
+            let pdf = sheet.pdf
+            let label = title.uppercased()
+            let tracking = size * 0.1
+            let face = sheet.monoMedium ?? sheet.medium
+
+            pdf.breakIfNeeded(sheet.leading(size) + 48)
+            let baseline = pdf.cursor()
+
+            pdf.textAt(label, x: x, y: baseline - size, size: size,
+                       color: colour.colour(on: sheet), face: face, tracking: tracking)
+
+            // The rule starts where the label ends rather than under it, so
+            // the two read as one object. Measured with the face that drew it,
+            // which is the only reason the gap is right.
+            let measured = pdf.width(of: label, size: size, face: face, tracking: tracking)
+            let from = x + measured + 12
+            if from < x + width - 20 {
+                pdf.line(from: from, baseline - size * 0.6, to: x + width, baseline - size * 0.6,
+                         color: sheet.hairline, thickness: 0.7)
+            }
+
+            pdf.move(to: baseline - size * 1.45)
+            sheet.gap(11)
         }
 
         /// A rounded tab, with the mark inside it.
@@ -605,7 +814,7 @@ extension Blueprint.Heading.Style {
         case .plain: return .plain
         case .accentBar: return .accentBar
         case .centred: return .centred
-        case .ruled, .tab, .marker, .margin: return .ruled
+        case .ruled, .tab, .marker, .margin, .terminal: return .ruled
         }
     }
 }
@@ -703,17 +912,30 @@ extension Blueprint {
         /// Every other section on a tinted band.
         case bands
 
-        /// Each section's entries on their own rounded panel.
+        /// The whole section on one rounded panel.
         case cards
+
+        /// Every entry on a panel of its own. Suits several short roles;
+        /// unkind to one long one.
+        case entryCards
+
+        /// Dates hung in a rail down the left, with a tick out to each entry.
+        ///
+        /// Sections that are not lists of dated things fall through to the
+        /// ordinary treatment rather than being given an empty rail.
+        case rail
 
         static let cardPadding = 13.0
 
+        /// Whether the entries sit inside something and need room from its edge.
+        var insets: Bool { self == .cards || self == .entryCards }
+
         func prepare(on sheet: Sheet) -> Shading? {
-            guard self != .none else { return nil }
+            guard self != .none, self != .rail else { return nil }
 
             let shading = Shading()
             let tint = sheet.wash
-            let rounded = self == .cards
+            let rounded = insets
 
             sheet.background { doc, page, _ in
                 for rect in shading.rects(onPage: page) {
@@ -882,7 +1104,8 @@ extension Blueprint {
     /// design from an empty file, and "ledger with a marker heading and chips"
     /// is how one actually gets made.
     public static let starting: [Blueprint] = [
-        .ledger, .broadsheet, .register, .marginal, .marked, .tabbed, .plaqued, .carded,
+        .ledger, .broadsheet, .register, .marginal, .marked,
+        .tabbed, .plaqued, .carded, .railed, .console,
     ]
 
     /// One column, a rule under each heading. Restraint is the design.
@@ -893,7 +1116,8 @@ extension Blueprint {
         name: "broadsheet",
         masthead: Masthead(align: .centre, nameSize: 24, uppercase: true, tracking: 1.6,
                            headlineSize: 10.4, headlineColour: .muted),
-        heading: Heading(style: .centred, size: 7.4)
+        heading: Heading(style: .centred, size: 7.4),
+        typeface: .serif
     )
 
     /// Alternating tinted bands, labels hung in the margin.
@@ -943,6 +1167,29 @@ extension Blueprint {
         sectionGap: 16
     )
 
+    /// Dates in a rail down the left, with a tick out to each entry.
+    public static let railed = Blueprint(
+        name: "railed",
+        masthead: Masthead(nameSize: 24),
+        heading: Heading(style: .accentBar),
+        entries: Entries(entryGap: 15),
+        ornament: .rail,
+        sections: [
+            // Chips read better than a list in a column that has already
+            // given a hundred points to the rail.
+            .skills: SectionOverride(entries: EntriesPatch(skills: .chips))
+        ]
+    )
+
+    /// Monospaced labels and dates, proportional prose.
+    public static let console = Blueprint(
+        name: "console",
+        masthead: Masthead(nameSize: 23, tracking: -0.9,
+                           rule: Rule(colour: .ink, thickness: 1), monospaced: true),
+        heading: Heading(style: .terminal, size: 8.2, colour: .ink),
+        entries: Entries(entryGap: 15)
+    )
+
     /// Every section on its own rounded panel.
     public static let carded = Blueprint(
         name: "carded",
@@ -975,13 +1222,15 @@ extension Blueprint {
             sectionGap: try container.value(.sectionGap, or: 17),
             footer: try container.value(.footer, or: true),
             skip: try container.value(.skip, or: []),
-            palette: try container.maybe(.palette)
+            palette: try container.maybe(.palette),
+            typeface: try container.value(.typeface, or: .sans),
+            sections: try container.value(.sections, or: [:])
         )
     }
 
     enum CodingKeys: String, CodingKey {
         case name, masthead, column, heading, entries
-        case ornament, sectionGap, footer, skip, palette
+        case ornament, sectionGap, footer, skip, palette, typeface, sections
     }
 }
 
@@ -1003,6 +1252,7 @@ extension Blueprint.Masthead {
             // A rule is on by default, so leaving the key out keeps it and
             // "rule": null is how you say you do not want one.
             rule: container.contains(.rule) ? try container.maybe(.rule) : defaults.rule,
+            monospaced: try container.value(.monospaced, or: defaults.monospaced),
             gapAfter: try container.value(.gapAfter, or: defaults.gapAfter)
         )
     }
@@ -1025,12 +1275,13 @@ extension Blueprint.Masthead {
         try container.encodeIfPresent(panel, forKey: .panel)
         try container.encodeIfPresent(photo, forKey: .photo)
         try container.encode(rule, forKey: .rule)
+        try container.encode(monospaced, forKey: .monospaced)
         try container.encode(gapAfter, forKey: .gapAfter)
     }
 
     enum CodingKeys: String, CodingKey {
         case align, nameSize, uppercase, tracking, headlineSize
-        case headlineColour, contactSize, panel, photo, rule, gapAfter
+        case headlineColour, contactSize, panel, photo, rule, monospaced, gapAfter
     }
 }
 
@@ -1190,4 +1441,110 @@ extension Blueprint.Ornament {
 
 extension Blueprint.Alignment {
     public init(from decoder: Decoder) throws { self = try decoder.choice(Self.self, called: "alignment") }
+}
+
+extension Blueprint.Face {
+    public init(from decoder: Decoder) throws { self = try decoder.choice(Self.self, called: "typeface") }
+}
+
+// MARK: - One section, set differently
+
+extension Blueprint {
+
+    /// What a single section does differently from the rest.
+    ///
+    /// Every field is optional and every absent one means "as the design has
+    /// it" — not "as the default has it". That distinction is the whole point:
+    /// a design that sets 11pt roles and then says `{"skills": "chips"}` for
+    /// one section must keep its 11pt roles there, and a patch made of
+    /// defaults would quietly undo them.
+    public struct SectionOverride: Codable, Sendable, Equatable {
+
+        public var heading: HeadingPatch?
+        public var entries: EntriesPatch?
+
+        /// Space after this section, where it wants more or less air than the
+        /// rest — a skills list rarely needs the same gap as an employment
+        /// history.
+        public var sectionGap: Double?
+
+        public init(
+            heading: HeadingPatch? = nil,
+            entries: EntriesPatch? = nil,
+            sectionGap: Double? = nil
+        ) {
+            self.heading = heading
+            self.entries = entries
+            self.sectionGap = sectionGap
+        }
+    }
+
+    /// A heading, changed in part.
+    public struct HeadingPatch: Codable, Sendable, Equatable {
+
+        public var style: Heading.Style?
+        public var size: Double?
+        public var colour: Paint?
+        public var icon: Bool?
+
+        public init(
+            style: Heading.Style? = nil, size: Double? = nil,
+            colour: Paint? = nil, icon: Bool? = nil
+        ) {
+            self.style = style
+            self.size = size
+            self.colour = colour
+            self.icon = icon
+        }
+
+        func applied(to heading: Heading) -> Heading {
+            Heading(
+                style: style ?? heading.style,
+                size: size ?? heading.size,
+                colour: colour ?? heading.colour,
+                icon: icon ?? heading.icon
+            )
+        }
+    }
+
+    /// Entry settings, changed in part.
+    public struct EntriesPatch: Codable, Sendable, Equatable {
+
+        public var dates: Entries.Dates?
+        public var roleSize: Double?
+        public var bodySize: Double?
+        public var detailSize: Double?
+        public var dateSize: Double?
+        public var entryGap: Double?
+        public var accentRoles: Bool?
+        public var skills: Entries.Skills?
+
+        public init(
+            dates: Entries.Dates? = nil, roleSize: Double? = nil, bodySize: Double? = nil,
+            detailSize: Double? = nil, dateSize: Double? = nil, entryGap: Double? = nil,
+            accentRoles: Bool? = nil, skills: Entries.Skills? = nil
+        ) {
+            self.dates = dates
+            self.roleSize = roleSize
+            self.bodySize = bodySize
+            self.detailSize = detailSize
+            self.dateSize = dateSize
+            self.entryGap = entryGap
+            self.accentRoles = accentRoles
+            self.skills = skills
+        }
+
+        func applied(to entries: Entries) -> Entries {
+            Entries(
+                dates: dates ?? entries.dates,
+                roleSize: roleSize ?? entries.roleSize,
+                bodySize: bodySize ?? entries.bodySize,
+                detailSize: detailSize ?? entries.detailSize,
+                dateSize: dateSize ?? entries.dateSize,
+                entryGap: entryGap ?? entries.entryGap,
+                accentRoles: accentRoles ?? entries.accentRoles,
+                skills: skills ?? entries.skills
+            )
+        }
+    }
 }

@@ -487,3 +487,30 @@ extension Array where Element == Section {
     /// Publications and funding carry the weight.
     public static var academic: [Section] { Section.academic }
 }
+
+// MARK: - Sections as keys
+
+extension Section: CodingKeyRepresentable {
+
+    /// So a dictionary keyed by section is a JSON object rather than an array.
+    ///
+    /// Swift encodes `[Key: Value]` as a flat array of alternating keys and
+    /// values unless the key says it can be a coding key — which would make
+    ///
+    ///     "sections": { "skills": { … } }
+    ///
+    /// come out as `["skills", { … }]`, a shape nobody would write by hand and
+    /// nobody would guess from the type.
+    public var codingKey: any CodingKey { Key(stringValue: rawValue) }
+
+    public init?<T: CodingKey>(codingKey: T) {
+        self.init(rawValue: codingKey.stringValue)
+    }
+
+    private struct Key: CodingKey {
+        let stringValue: String
+        var intValue: Int? { nil }
+        init(stringValue: String) { self.stringValue = stringValue }
+        init?(intValue: Int) { nil }
+    }
+}

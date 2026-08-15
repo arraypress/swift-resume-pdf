@@ -336,3 +336,134 @@ final class LetterBlueprintTests: XCTestCase {
         XCTAssertEqual(try decode(#"{"pairsWith": "swiss"}"#).pairsWith, .swiss)
     }
 }
+
+// MARK: - The parts that were not expressible
+
+extension BlueprintTests {
+
+    func testADesignCanAskForTheSerif() throws {
+        // broadsheet's identity is that it is set in a serif. Written as data
+        // it came out in the default grotesque, which is a different document.
+        XCTAssertEqual(Blueprint.broadsheet.typeface, .serif)
+        XCTAssertEqual(Blueprint.broadsheet.typeface.typeface, .sourceSerif)
+        XCTAssertEqual(try decode(#"{"typeface": "serif"}"#).typeface, .serif)
+        XCTAssertEqual(try decode("{}").typeface, .sans, "the default should be the sans")
+    }
+
+    func testAMisspelledTypefaceNamesTheOnesThereAre() {
+        XCTAssertThrowsError(try decode(#"{"typeface": "helvetica"}"#)) {
+            XCTAssertTrue("\($0)".contains("serif"), "\($0)")
+        }
+    }
+
+    func testTheMonospacedMastheadUsesTheMono() throws {
+        var blueprint = Blueprint.ledger
+        blueprint.masthead.monospaced = true
+
+        let mono = try Resume.sample.render(design: blueprint)
+        let proportional = try Resume.sample.render(design: .ledger)
+
+        XCTAssertNotEqual(mono, proportional, "monospaced changed nothing")
+        XCTAssertTrue(try text(of: mono).contains("Alex Moreau"))
+        XCTAssertTrue(try text(of: mono).contains("alex@moreau.dev"), "the contacts went missing")
+    }
+
+    func testTheTerminalHeadingIsMonoAndStillReads() throws {
+        var blueprint = Blueprint.ledger
+        blueprint.heading.style = .terminal
+
+        let written = try text(of: try Resume.sample.render(design: blueprint))
+        XCTAssertTrue(written.contains("EXPERIENCE"), "the heading went missing")
+        XCTAssertTrue(written.contains("Stripe"))
+    }
+
+    func testTheRailDrawsDatesOnceAndOnlyWhereTheyBelong() throws {
+        let written = try text(of: try Resume.sample.render(design: Blueprint.railed))
+
+        // Drawn by the rail, so the blocks must not print them as well.
+        let dates = written.components(separatedBy: "Mar 2022 – Present").count - 1
+        XCTAssertEqual(dates, 1, "the dates were printed twice")
+
+        XCTAssertTrue(written.contains("Stripe"))
+        XCTAssertTrue(written.contains("Kubernetes"), "the skills section fell out of the rail")
+    }
+
+    func testASectionWithNoDatesFallsOutOfTheRail() throws {
+        // A skills list given a rail is a hundred points of white down its left.
+        let resume = Resume(
+            profile: Profile(name: "A", email: "a@b.co"),
+            skills: [SkillGroup("Systems", ["Go", "Rust"])]
+        )
+        XCTAssertNoThrow(try resume.render(design: Blueprint.railed))
+        XCTAssertTrue(try text(of: try resume.render(design: Blueprint.railed)).contains("Rust"))
+    }
+
+    func testEveryEntryGetsItsOwnPanel() throws {
+        var blueprint = Blueprint.carded
+        blueprint.ornament = .entryCards
+
+        let data = try Resume.sample.render(design: blueprint)
+        let raw = try XCTUnwrap(String(data: data, encoding: .isoLatin1))
+
+        // One rounded rectangle per entry. Three roles, one degree, one
+        // project and the blocks that do not break up.
+        let curves = raw.components(separatedBy: " c\n").count - 1
+        XCTAssertGreaterThan(curves, 16, "there are not enough panels for one per entry")
+        XCTAssertTrue(try text(of: data).contains("Backend Engineer"))
+    }
+
+    // MARK: Per-section settings
+
+    func testOneSectionCanBeSetDifferently() throws {
+        let blueprint = try decode("""
+            { "name": "mine",
+              "entries": { "skills": "list", "roleSize": 11 },
+              "sections": { "skills": { "entries": { "skills": "chips" } } } }
+            """)
+
+        XCTAssertEqual(blueprint.entries.skills, .list)
+        XCTAssertEqual(blueprint.sections[.skills]?.entries?.skills, .chips)
+    }
+
+    func testAnOverrideChangesOnlyWhatItNames() throws {
+        // The trap this avoids: a patch made of defaults. A design that sets
+        // 11pt roles and then overrides one section's skill style must keep
+        // its 11pt roles there.
+        let blueprint = try decode("""
+            { "entries": { "roleSize": 11, "entryGap": 19 },
+              "sections": { "skills": { "entries": { "skills": "chips" } } } }
+            """)
+
+        let patched = try XCTUnwrap(blueprint.sections[.skills]?.entries).applied(to: blueprint.entries)
+
+        XCTAssertEqual(patched.skills, .chips)
+        XCTAssertEqual(patched.roleSize, 11, "the override reset a size it never mentioned")
+        XCTAssertEqual(patched.entryGap, 19)
+    }
+
+    func testAHeadingCanBeOverriddenForOneSection() throws {
+        let blueprint = try decode("""
+            { "heading": { "style": "ruled" },
+              "sections": { "summary": { "heading": { "style": "plain" }, "sectionGap": 24 } } }
+            """)
+
+        XCTAssertEqual(blueprint.sections[.summary]?.heading?.style, .plain)
+        XCTAssertEqual(blueprint.sections[.summary]?.sectionGap, 24)
+        XCTAssertNoThrow(try Resume.sample.render(design: blueprint))
+    }
+
+    func testACustomSectionCanBeOverriddenToo() throws {
+        let blueprint = try decode("""
+            { "sections": { "custom:Patents": { "entries": { "skills": "chips" } } } }
+            """)
+        XCTAssertEqual(blueprint.sections[.custom("Patents")]?.entries?.skills, .chips)
+    }
+
+    func testTheNewStartingPointsRenderAndAreReadable() throws {
+        for blueprint in [Blueprint.railed, .console] {
+            let theme = Theme(typeface: blueprint.typeface.typeface)
+            let report = try Resume.sample.check(design: blueprint, theme: theme)
+            XCTAssertTrue(report.isClean, "\(blueprint.name): \(report.findings.map(\.message))")
+        }
+    }
+}

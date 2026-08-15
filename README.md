@@ -177,14 +177,30 @@ Name only what you want changed — everything else takes the default, so two ke
 
 | | |
 |---|---|
-| `masthead` | align, nameSize, uppercase, tracking, headline, contacts, `panel`, `photo`, `rule` |
+| `typeface` | `sans` or `serif` — a design whose identity is a serif can say so |
+| `masthead` | align, nameSize, uppercase, tracking, headline, contacts, `panel`, `photo`, `rule`, `monospaced` |
 | `column` | full width, or inset with labels hung in the margin |
-| `heading` | `ruled`, `plain`, `accentBar`, `centred`, `tab`, `marker`, `margin` — size, colour, icon |
+| `heading` | `ruled`, `plain`, `accentBar`, `centred`, `tab`, `marker`, `margin`, `terminal` — size, colour, icon |
 | `entries` | date placement, four sizes, entry gap, accent roles, `list`/`chips`/`bars`/`dots` skills |
-| `ornament` | `none`, `bands`, `cards` |
+| `ornament` | `none`, `bands`, `cards`, `entryCards`, `rail` |
+| `sections` | any of the above, for one section only |
 | `palette` | theme colours this design overrides |
 
+A section can be set differently from the rest, which is a decision the built-in designs make and a format that could not express it would stop one step short:
+
+```json
+{ "entries": { "skills": "list", "roleSize": 11 },
+  "sections": {
+    "skills": { "entries": { "skills": "chips" }, "sectionGap": 22 },
+    "summary": { "heading": { "style": "plain" } }
+  } }
+```
+
+An override changes only what it names — the 11pt roles above survive into the skills section, because a patch of defaults would quietly undo the design.
+
 Colours are named (`accent`, `ink`, `muted`, `wash`, `hairline`, `page`) or given as hex. Named ones follow the theme, so a blueprint works under whatever accent somebody sets rather than pinning one into it.
+
+What is still not expressible, and why: `sidebar`'s two columns (deliberately — see above), and `slate`'s twin masthead panels. Everything else the fourteen do can be written as data.
 
 **There is no layout language here** — no boxes, no coordinates, no expressions. A general one lets somebody build a résumé that overlaps itself, and its failure mode is a document that renders looking wrong rather than an error saying what is wrong. Composition of known-good parts fails differently: every combination of these choices produces a page that reads, and none of them can produce a two-column document that a parser reads out of order. That is what makes the format safe to hand somebody.
 

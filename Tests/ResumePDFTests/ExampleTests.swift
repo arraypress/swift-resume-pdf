@@ -74,7 +74,9 @@ final class ExampleTests: XCTestCase {
 
     func testEveryBlueprint() throws {
         for blueprint in Blueprint.starting {
-            let document = try Resume.sample.document(design: blueprint)
+            let document = try Resume.sample.document(
+                design: blueprint, theme: Theme(typeface: blueprint.typeface.typeface)
+            )
             try put(document.render(creationDate: Self.stamped), "blueprints/\(blueprint.name).pdf")
         }
 
@@ -83,6 +85,14 @@ final class ExampleTests: XCTestCase {
             try put(document.render(creationDate: Self.stamped),
                     "blueprints/letter-\(blueprint.name).pdf")
         }
+
+        // The one treatment no starting point uses, because it is a choice
+        // about the document rather than a look: several short roles suit it,
+        // one long one does not.
+        var perEntry = Blueprint.carded
+        perEntry.ornament = .entryCards
+        try put(try Resume.sample.document(design: perEntry).render(creationDate: Self.stamped),
+                "blueprints/entry-cards.pdf")
     }
 
     func testTheThemesEveryDesignGets() throws {

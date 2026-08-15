@@ -573,3 +573,109 @@ public enum Blocks {
                         face: resolved, color: color ?? sheet.ink)
     }
 }
+
+// MARK: - Section by entry
+
+extension Blocks {
+
+    /// One drawable entry, and the dates it carries.
+    ///
+    /// A design that wants to do something *per entry* — a panel around each,
+    /// a date in a rail beside each — needs the section broken up rather than
+    /// rendered whole. `Card` and `Timeline` each kept a private copy of this
+    /// mapping, which is two places for a new section to be forgotten.
+    public struct Entry {
+
+        /// Empty where the thing has no dates, which is most of a skills list.
+        public let dates: DateRange
+
+        /// Draws this one entry, at whatever the cursor is when it is called.
+        public let draw: (Sheet, Style) -> Void
+    }
+
+    /// A section's entries, one at a time.
+    ///
+    /// `nil` where the section is not a list of dated things — skills,
+    /// interests, references — because giving those a rail leaves a hundred
+    /// points of white down the left of a skills list, and a panel each turns
+    /// three words into three boxes.
+    public static func entries(of section: Section, in resume: Resume) -> [Entry]? {
+        let labels = resume.labels
+
+        switch section {
+        case .experience, .volunteering, .teaching, .service:
+            let items: [Position]
+            switch section {
+            case .experience: items = resume.experience
+            case .volunteering: items = resume.volunteering
+            case .teaching: items = resume.teaching
+            default: items = resume.service
+            }
+            return items.map { item in
+                Entry(dates: item.dates) { sheet, style in
+                    Blocks.position(item, on: sheet, style: style, labels: labels)
+                }
+            }
+
+        case .education:
+            return resume.education.map { item in
+                Entry(dates: item.dates) { sheet, style in
+                    Blocks.education([item], on: sheet, style: style, labels: labels)
+                }
+            }
+
+        case .projects:
+            return resume.projects.map { item in
+                Entry(dates: item.dates) { sheet, style in
+                    Blocks.projects([item], on: sheet, style: style, labels: labels)
+                }
+            }
+
+        case .grants:
+            return resume.grants.map { item in
+                Entry(dates: item.dates) { sheet, style in
+                    Blocks.grants([item], on: sheet, style: style, labels: labels)
+                }
+            }
+
+        case .publications, .talks:
+            let items = section == .publications ? resume.publications : resume.talks
+            return items.map { item in
+                Entry(dates: DateRange(item.date)) { sheet, style in
+                    Blocks.publications([item], on: sheet, style: style)
+                }
+            }
+
+        case .certifications, .memberships:
+            let items = section == .certifications ? resume.certifications : resume.memberships
+            return items.map { item in
+                Entry(dates: DateRange(item.date)) { sheet, style in
+                    Blocks.credentials([item], on: sheet, style: style)
+                }
+            }
+
+        case .awards:
+            return resume.awards.map { item in
+                Entry(dates: DateRange(item.date)) { sheet, style in
+                    Blocks.awards([item], on: sheet, style: style)
+                }
+            }
+
+        default:
+            return nil
+        }
+    }
+
+    /// The same, as one entry covering the whole section.
+    ///
+    /// So a design can treat every section the same way without asking which
+    /// kind it is: the ones that break up do, and the ones that do not come
+    /// back as a single block.
+    public static func entriesOrWhole(of section: Section, in resume: Resume) -> [Entry] {
+        entries(of: section, in: resume) ?? [
+            Entry(dates: DateRange("")) { sheet, style in
+                Blocks.render(section, of: resume, on: sheet, style: style)
+            }
+        ]
+    }
+}
