@@ -99,7 +99,7 @@ Resume(profile: profile, grants: funding, order: .academic)         // a CV
 
 A CV has sections a résumé does not, and those are real:
 
-| | |
+| Section | What it holds |
 |---|---|
 | `grants` | Funding, with the funder, the amount, the period and whether you led it |
 | `teaching` | Courses taught |
@@ -175,7 +175,7 @@ try resume.save(to: out, design: mine)
 
 Name only what you want changed — everything else takes the default, so two keys is a design. `Blueprint.starting` holds eight to begin from, because nobody writes one from an empty file.
 
-| | |
+| Key | What it sets |
 |---|---|
 | `typeface` | `sans` or `serif` — a design whose identity is a serif can say so |
 | `masthead` | align, nameSize, uppercase, tracking, headline, contacts, `panel`, `photo`, `rule`, `monospaced` |
@@ -342,7 +342,7 @@ A tracking system works out which block is the employment history by matching th
 
 The same four fields, opposite advice, and nobody tells you which side of the line you are on.
 
-| | Date of birth, nationality, marital status |
+| Where you are applying | Date of birth, nationality, marital status |
 |---|---|
 | US, UK, Canada, Australia | Leave off. An employer may not consider them, and the cheapest way to prove they did not is never to have seen them — so recruiters at larger firms are routinely told to reject a document carrying them unread. |
 | Germany | Conventional on a Lebenslauf, though receding since the AGG. |
