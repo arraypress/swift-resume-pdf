@@ -21,6 +21,7 @@
 //
 
 import Foundation
+import ImageIO
 import TextPDF
 
 /// How badly something matters.
@@ -145,6 +146,7 @@ public enum ATS {
 
         findings += columnLayout(design)
         findings += contactDetails(resume)
+        findings += portrait(resume)
         findings += scannableCode(resume, design: design)
         findings += headings(resume)
         findings += dates(resume)
@@ -185,6 +187,48 @@ public enum ATS {
         }
 
         return findings
+    }
+
+    // MARK: The photograph
+
+    /// Whether the photograph named can actually reach the page.
+    ///
+    /// ``Sheet/photo(at:)`` is deliberately silent at render time — a résumé
+    /// that refuses to render because a JPEG moved is worse than one with a
+    /// gap where a face was — so this is where the reason surfaces: a file
+    /// that cannot be read, a format the writer refuses, or an EXIF
+    /// orientation that will not be applied. The writer hands JPEG bytes to
+    /// the reader exactly as they arrived, so a phone portrait shot the
+    /// natural way round carries a rotation flag nothing will honour, and it
+    /// renders on its side.
+    static func portrait(_ resume: Resume) -> [Finding] {
+        let path = resume.profile.photo.trimmingCharacters(in: .whitespaces)
+        guard !path.isEmpty else { return [] }
+
+        let expanded = (path as NSString).expandingTildeInPath
+        let url = URL(fileURLWithPath: expanded)
+
+        do {
+            _ = try EmbeddedImage.load(url)
+        } catch {
+            return [Finding(
+                .warning,
+                "The photograph cannot be used, so the page will have a gap where it was meant to go.",
+                (error as? LocalizedError)?.errorDescription ?? String(describing: error)
+            )]
+        }
+
+        if let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+           let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+           let orientation = properties[kCGImagePropertyOrientation] as? UInt32,
+           orientation != 1 {
+            return [Finding(
+                .warning,
+                "The photograph will render rotated.",
+                "The file carries an EXIF orientation the writer does not apply — the bytes go into the document exactly as they arrived, so the picture comes out the way the camera sensor saw it. Open it in Preview and export it, which bakes the rotation into the pixels."
+            )]
+        }
+        return []
     }
 
     // MARK: Layout
@@ -439,8 +483,8 @@ public enum ATS {
         if !design.isSingleColumn, pages > 1 {
             findings.append(Finding(
                 .warning,
-                "The sidebar has run past one page.",
-                "The rail is laid out once and only page one has it; the pages after this one carry the main column against an empty panel. Cut the rail's content, or use a single-column design."
+                "The document has run past the rail.",
+                "The rail lives on page one; the pages after it carry the main column beside an empty band of tint. Rail sections that did not fit page one were flowed into the main column rather than dropped. Cut content, or use a single-column design."
             ))
         }
 

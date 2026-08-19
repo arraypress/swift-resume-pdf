@@ -21,6 +21,10 @@ import TextPDF
 
 struct Broadsheet: Design {
 
+    /// The serif is doing the work, so the design says so — a theme with no
+    /// preference loads it, and a theme that names a face still wins.
+    var intendedTypeface: Typeface? { .sourceSerif }
+
     func render(_ resume: Resume, on sheet: Sheet) {
         masthead(resume, on: sheet)
 

@@ -37,6 +37,7 @@ public enum LetterDesign: String, Sendable, CaseIterable, Codable {
     /// `bulletin`.
     case monogram
 
+    /// What the design is called, in a report or a listing.
     public var displayName: String {
         switch self {
         case .memo: return "Memo"
@@ -63,8 +64,12 @@ public enum LetterDesign: String, Sendable, CaseIterable, Codable {
         }
     }
 
+    /// The typeface the design was drawn for.
+    ///
+    /// Asked of the layout itself, like ``Design`` asks its designs, so the
+    /// declaration cannot drift from the thing that draws.
     public var intendedTypeface: Typeface {
-        self == .letterhead ? .sourceSerif : .inter
+        layout.intendedTypeface ?? .inter
     }
 
     var design: any LetterLayout {
@@ -92,10 +97,21 @@ public protocol LetterLayout: Sendable {
 
     /// What this design is called, in a report or a listing.
     var displayName: String { get }
+
+    /// The typeface the design was drawn for, where it declares one.
+    ///
+    /// Same contract as ``Design/intendedTypeface``: honoured wherever the
+    /// theme states no preference, and any face the theme names wins.
+    var intendedTypeface: Typeface? { get }
 }
 
 extension LetterLayout {
+
+    /// The type's own name, for a layout that does not choose one.
     public var displayName: String { String(describing: type(of: self)) }
+
+    /// No opinion, which is what a layout that never says gets.
+    public var intendedTypeface: Typeface? { nil }
 }
 
 // MARK: - Rendering
@@ -109,7 +125,7 @@ extension CoverLetter {
 
     /// The same, with a masthead of your own.
     public func document(design: any LetterLayout, theme: Theme = .plain) throws -> Document {
-        let family = try Typography.family(theme.typeface)
+        let family = try Typography.family(theme.typeface(declared: design.intendedTypeface))
         let sheet = Sheet(theme: theme, family: family, labels: .english)
         sheet.pdf.language = "en"
 
@@ -136,6 +152,7 @@ extension CoverLetter {
         return data.count
     }
 
+    /// The finished PDF bytes.
     public func render(design: LetterDesign = .memo, theme: Theme = .plain) throws -> Data {
         try document(design: design, theme: theme).render(metadata: [
             "Title": profile.name.isEmpty ? "Cover letter" : "\(profile.name) — cover letter",
@@ -240,11 +257,13 @@ public enum Letters {
 
 // MARK: - Memo
 
+/// A small ruled head and one column. Pairs with `ledger`.
 public struct MemoLetter: LetterLayout {
 
+    /// Makes the layout; it carries no settings.
     public init() {}
 
-
+    /// The name, the claim and the contact line over a rule.
     public func masthead(_ letter: CoverLetter, on sheet: Sheet) {
         let pdf = sheet.pdf
         let profile = letter.profile
@@ -271,11 +290,17 @@ public struct MemoLetter: LetterLayout {
 
 // MARK: - Letterhead
 
+/// Serif stationery: name at the left, contact ranged right against it.
+/// Pairs with `broadsheet`.
 public struct LetterheadLetter: LetterLayout {
 
+    /// Makes the layout; it carries no settings.
     public init() {}
 
+    /// Serif stationery — the face is the design, so it declares it.
+    public var intendedTypeface: Typeface? { .sourceSerif }
 
+    /// The name at the left, the contact details ranged right against it.
     public func masthead(_ letter: CoverLetter, on sheet: Sheet) {
         let pdf = sheet.pdf
         let profile = letter.profile
@@ -313,11 +338,13 @@ public struct LetterheadLetter: LetterLayout {
 
 // MARK: - Panel
 
+/// Contact details in a filled panel under the name. Pairs with `plaque`.
 public struct PanelLetter: LetterLayout {
 
+    /// Makes the layout; it carries no settings.
     public init() {}
 
-
+    /// The name, a portrait where there is one, and the contact panel.
     public func masthead(_ letter: CoverLetter, on sheet: Sheet) {
         let pdf = sheet.pdf
         let profile = letter.profile
@@ -388,11 +415,13 @@ public struct PanelLetter: LetterLayout {
 
 // MARK: - Monogram
 
+/// A centred name over a capped rule. Pairs with `bulletin`.
 public struct MonogramLetter: LetterLayout {
 
+    /// Makes the layout; it carries no settings.
     public init() {}
 
-
+    /// The name and contact line centred, closed off by the capped rule.
     public func masthead(_ letter: CoverLetter, on sheet: Sheet) {
         let pdf = sheet.pdf
         let profile = letter.profile

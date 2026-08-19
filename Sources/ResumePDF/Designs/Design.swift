@@ -128,8 +128,10 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     ///
     /// A theme may override it. Broadsheet in a grotesque is a different
     /// document and not an improvement, but it is the caller's page.
+    /// Asked of the design itself, like ``showsPhoto``, so the declaration
+    /// cannot drift from the thing that draws.
     public var intendedTypeface: Typeface {
-        self == .broadsheet ? .sourceSerif : .inter
+        design.intendedTypeface ?? .inter
     }
 
     /// Whether the design has somewhere to put a photograph.
@@ -203,6 +205,14 @@ public protocol Design: Sendable {
     /// Same contract as the photograph: a code that is set and not drawn is
     /// reported, because it was meant.
     var showsCode: Bool { get }
+
+    /// The typeface the design was drawn for, where it declares one.
+    ///
+    /// `nil` means no opinion. A declared face is honoured when the theme
+    /// states no preference of its own — which is how `broadsheet` written
+    /// as data comes out in its serif — and a theme that names any face
+    /// wins, because it is the caller's page.
+    var intendedTypeface: Typeface? { get }
 }
 
 extension Design {
@@ -211,6 +221,21 @@ extension Design {
     public var isSingleColumn: Bool { true }
     public var showsPhoto: Bool { false }
     public var showsCode: Bool { false }
+    public var intendedTypeface: Typeface? { nil }
+}
+
+extension Theme {
+
+    /// The typeface to load for a design that declares one.
+    ///
+    /// A face the theme names wins outright — it is the caller's page, and
+    /// that includes naming Inter at a serif design on purpose. With no
+    /// preference stated, the design's own declaration decides, which is how
+    /// `broadsheet` comes out in its serif under a bare theme; a design with
+    /// no opinion either gets Inter, the family's default.
+    func typeface(declared intended: Typeface?) -> Typeface {
+        typeface ?? intended ?? .inter
+    }
 }
 
 // MARK: - Rendering
@@ -249,7 +274,7 @@ extension Resume {
     /// more. Everything below that — ``Sheet``'s type, palette, rhythm and
     /// components — is the same furniture the fourteen are built from.
     public func document(design: any Design, theme: Theme = .plain) throws -> Document {
-        let family = try Typography.family(theme.typeface)
+        let family = try Typography.family(theme.typeface(declared: design.intendedTypeface))
         let sheet = Sheet(theme: theme, family: family, labels: labels)
         sheet.pdf.language = labels.language
         design.render(self, on: sheet)
@@ -261,9 +286,35 @@ extension Resume {
         design: any Design, theme: Theme = .plain, archival: Bool = false,
         password: String = "", creationDate: Date = Date()
     ) throws -> Data {
-        try document(design: design, theme: theme)
-            .render(metadata: metadata(design: .ledger), creationDate: creationDate,
-                    standard: archival ? .pdfA3b : .none, password: password)
+        let laid = try document(design: design, theme: theme)
+        let data = laid.render(
+            metadata: metadata(designName: design.displayName), creationDate: creationDate,
+            standard: archival ? .pdfA3b : .none, password: password
+        )
+        if archival { try assertArchival(laid) }
+        return data
+    }
+
+    /// Refuses to hand back a file claiming a standard it fails.
+    ///
+    /// The writer reports rather than refuses — ``TextPDF/Document`` has no
+    /// idea whether anybody will read ``TextPDF/Document/conformanceIssues(for:)``
+    /// — so the refusal has to happen here, where `archival:` was asked for
+    /// by name. The only issue this library can actually produce is a fall
+    /// back to a base-14 font, which happens when the family cannot draw a
+    /// run of text, so the runs are named: the fix is almost always
+    /// rewording one of them.
+    private func assertArchival(_ document: Document) throws {
+        var issues = document.conformanceIssues(for: .pdfA3b)
+        guard !issues.isEmpty else { return }
+
+        if !document.fallbacks.isEmpty {
+            issues.append(
+                "The family could not draw: "
+                    + document.fallbacks.map { "\"\($0)\"" }.joined(separator: ", ")
+            )
+        }
+        throw ResumeError.notArchival(issues)
     }
 
     /// Renders a design of your own and writes it, returning the byte count.
@@ -328,9 +379,8 @@ extension Resume {
         design: DesignKind = .ledger, theme: Theme = .plain,
         archival: Bool = false, password: String = "", creationDate: Date = Date()
     ) throws -> Data {
-        try document(design: design, theme: theme)
-            .render(metadata: metadata(design: design), creationDate: creationDate,
-                    standard: archival ? .pdfA3b : .none, password: password)
+        try render(design: design.design, theme: theme, archival: archival,
+                   password: password, creationDate: creationDate)
     }
 
     /// Renders and writes to a file, returning the byte count.
@@ -348,7 +398,11 @@ extension Resume {
     /// The title is what a browser tab and a recruiter's file list will show,
     /// so it carries the name — an attachment called "Document1" is a small
     /// own goal, and the default title is whatever the writer put there.
-    func metadata(design: DesignKind) -> [String: String] {
+    ///
+    /// The design arrives as its name rather than as a ``DesignKind``, for
+    /// the same reason ``Report/design`` is a string: a blueprint from a
+    /// file has a name and no case, and it used to be filed as "Ledger".
+    func metadata(designName: String) -> [String: String] {
         var fields = [
             "Title": profile.name.isEmpty ? "Résumé" : "\(profile.name) — \(profile.headline.isEmpty ? "CV" : profile.headline)",
             "Author": profile.name,
@@ -358,7 +412,7 @@ extension Resume {
         // being matched against.
         let terms = skills.flatMap(\.names)
         if !terms.isEmpty { fields["Keywords"] = terms.joined(separator: ", ") }
-        fields["Subject"] = design.displayName
+        fields["Subject"] = designName
         return fields
     }
 }

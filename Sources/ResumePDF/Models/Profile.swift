@@ -142,7 +142,12 @@ public struct Profile: Sendable, Equatable, Codable {
         }
         if !phone.trimmingCharacters(in: .whitespaces).isEmpty {
             // tel: wants the number and nothing else — no spaces, no brackets.
-            let dialable = phone.filter { $0.isNumber || $0 == "+" }
+            // The "(0)" written inside an international number is the national
+            // trunk digit: dialled after a country code it reaches a wrong
+            // number, so it comes out of the dial string and stays in the text.
+            let dialable = phone
+                .replacingOccurrences(of: "(0)", with: "")
+                .filter { $0.isNumber || $0 == "+" }
             entries.append((phone, dialable.count > 5 ? "tel:\(dialable)" : ""))
         }
         if !location.trimmingCharacters(in: .whitespaces).isEmpty {

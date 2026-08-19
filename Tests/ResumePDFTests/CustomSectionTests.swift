@@ -208,7 +208,9 @@ final class CustomSectionTests: XCTestCase {
 
         let decoded = try JSONDecoder().decode(Theme.self, from: JSONEncoder().encode(theme))
         XCTAssertEqual(decoded, theme)
-        XCTAssertEqual(decoded.typeface.displayName, "Arial")
+        // Optional access: Theme.typeface is a preference now, and this
+        // theme states one.
+        XCTAssertEqual(decoded.typeface?.displayName, "Arial")
     }
 
     func testAMissingWeightFallsBackRatherThanFailing() throws {

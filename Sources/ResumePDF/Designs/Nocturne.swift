@@ -76,7 +76,7 @@ struct Nocturne: Design {
             }
         }
 
-        footer(resume.profile.name, on: sheet, palette: body)
+        sheet.footer(name: resume.profile.name, palette: body)
     }
 
     /// The light band. Returns its height.
@@ -113,16 +113,4 @@ struct Nocturne: Design {
         return pdf.height() - pdf.cursor() + 14
     }
 
-    private func footer(_ name: String, on sheet: Sheet, palette: Sheet.Palette) {
-        let tint = palette.muted
-        let rule = palette.hairline
-
-        sheet.pdf.onEachPage { doc, page, total in
-            guard total > 1 else { return }
-            doc.line(from: doc.left(), 46, to: doc.right(), 46, color: rule, thickness: 0.5)
-            doc.textAt(name, x: doc.left(), y: 34, size: 7.6, color: tint)
-            doc.textAt("\(page) / \(total)", x: doc.left(), y: 34, size: 7.6,
-                       color: tint, align: .right, boxWidth: doc.contentWidth())
-        }
-    }
 }

@@ -321,12 +321,17 @@ public enum Blocks {
             // Anything unrated falls back to being listed rather than being
             // drawn as an empty bar, which reads as a score of zero.
             for group in groups {
+                // The label and its first bar, kept together — and then a
+                // break per row, because these rows are placed with `cell`
+                // and `move`, which never look at the margin on their own.
+                sheet.pdf.breakIfNeeded(sheet.leading(style.dateSize) + sheet.leading(style.detailSize))
                 sheet.line(group.name.uppercased(), x: style.x, width: style.width,
                            size: style.dateSize, face: sheet.medium, color: sheet.muted,
                            tracking: style.dateSize * 0.1)
 
                 let rated = group.items.filter { $0.level != nil }
                 for skill in rated {
+                    sheet.pdf.breakIfNeeded(sheet.leading(style.detailSize))
                     sheet.gauge(skill.name, skill.level ?? 0, x: style.x,
                                 width: style.width, labelWidth: style.width * 0.52,
                                 size: style.detailSize)
@@ -341,11 +346,15 @@ public enum Blocks {
 
         case .dots:
             for group in groups {
+                // Kept together with the first row, then broken per row —
+                // same reason as the bars above.
+                sheet.pdf.breakIfNeeded(sheet.leading(style.dateSize) + sheet.leading(style.detailSize))
                 sheet.line(group.name.uppercased(), x: style.x, width: style.width,
                            size: style.dateSize, face: sheet.medium, color: sheet.muted,
                            tracking: style.dateSize * 0.1)
 
                 for skill in group.items {
+                    sheet.pdf.breakIfNeeded(sheet.leading(style.detailSize))
                     let top = sheet.cursor
                     sheet.pdf.cell(skill.name, x: style.x, boxWidth: style.width * 0.62,
                                    size: style.detailSize, color: sheet.ink, face: sheet.regular)
@@ -516,6 +525,9 @@ public enum Blocks {
         let column = min(longest + 22, style.width * 0.5)
 
         for item in items {
+            // Placed with `cell` and `move`, which never look at the margin —
+            // so without a break per row a long list runs off the page.
+            sheet.pdf.breakIfNeeded(sheet.leading(style.detailSize))
             let top = sheet.cursor
             sheet.pdf.cell(item.name, x: style.x, boxWidth: column, size: style.detailSize,
                            color: sheet.ink, face: sheet.regular)
@@ -546,31 +558,49 @@ public enum Blocks {
     ) {
         let pointSize = size ?? style.roleSize
         let resolved = face ?? sheet.semibold
-        let besideTitle = style.dates == .besideTitle && !dates.isEmpty
+        let wanted = style.dates == .besideTitle && !dates.isEmpty
 
-        // Broken before the dates go down, so a break cannot land between them
-        // and the title they belong to.
-        sheet.pdf.breakIfNeeded(sheet.leading(pointSize) * 1.8)
+        // A column too narrow to hold the dates and anything else has no
+        // business trying: the title takes the width and the dates drop to a
+        // line of their own beneath it. They used to share the line anyway —
+        // the title reset to the full width and drawn straight through them.
+        var besideTitle = wanted
+        var available = style.width
+        if wanted {
+            let dateWidth = sheet.pdf.width(of: dates, size: style.dateSize, face: sheet.regular)
+            if style.width - dateWidth - 12 < style.width * 0.4 {
+                besideTitle = false
+            } else {
+                available = style.width - dateWidth - 12
+            }
+        }
+        let beneath = wanted && !besideTitle
+
+        // The whole heading is measured and broken before the dates go down.
+        // Left to `paragraph`, the break lands after them — the title at the
+        // top of the next page and the dates stranded at the foot of this one.
+        let step = sheet.leading(pointSize)
+        let titleHeight = sheet.pdf.blockHeight(
+            title.trimmingCharacters(in: .whitespacesAndNewlines),
+            size: pointSize, width: available, leading: step, face: resolved
+        )
+        let datesBelow = beneath ? sheet.leading(style.dateSize) : 0
+        sheet.pdf.breakIfNeeded(max(titleHeight + datesBelow, step * 1.8))
         let top = sheet.cursor
 
-        var available = style.width
         if besideTitle {
-            let dateWidth = sheet.pdf.width(of: dates, size: style.dateSize, face: sheet.regular)
-            available = style.width - dateWidth - 12
-
             sheet.pdf.cell(dates, x: style.x, boxWidth: style.width, size: style.dateSize,
                            color: sheet.muted, align: .right, face: sheet.regular)
             sheet.pdf.move(to: top)
         }
 
-        // A column too narrow to hold the dates and anything else has no
-        // business trying: the title takes the width and the dates go under.
-        if besideTitle, available < style.width * 0.4 {
-            available = style.width
-        }
-
         sheet.paragraph(title, x: style.x, width: available, size: pointSize,
                         face: resolved, color: color ?? sheet.ink)
+
+        if beneath {
+            sheet.line(dates, x: style.x, width: style.width,
+                       size: style.dateSize, face: sheet.regular, color: sheet.muted)
+        }
     }
 }
 
@@ -677,5 +707,46 @@ extension Blocks {
                 Blocks.render(section, of: resume, on: sheet, style: style)
             }
         ]
+    }
+
+    /// Draws one entry with its dates hung in a rail to its left.
+    ///
+    /// Shared by everything that hangs a rail. `Timeline` and the `rail`
+    /// ornament each kept a private copy of this, which was two places for
+    /// the break rules to drift apart — and drift is the one failure a rail
+    /// cannot hide, because the dates and the entry they belong to visibly
+    /// stop lining up.
+    public static func railed(
+        _ entry: Entry, on sheet: Sheet, style: Style, labels: Labels,
+        railX: Double, railWidth: Double, gutter: Double
+    ) {
+        let pdf = sheet.pdf
+
+        // The rail is drawn against the entry's own top, so the break has to
+        // happen first — otherwise the dates land at the bottom of one page
+        // and the role at the top of the next.
+        pdf.breakIfNeeded(sheet.leading(style.roleSize) * 3.4)
+        let top = sheet.cursor
+
+        let dates = entry.dates.rendered(present: labels.present, dash: labels.dateSeparator)
+        if !dates.isEmpty {
+            // Right-aligned against the gutter, so the dates form a clean
+            // edge facing the content rather than a ragged one.
+            pdf.cell(dates, x: railX, boxWidth: railWidth, size: style.dateSize,
+                     color: sheet.muted, align: .right, face: sheet.medium)
+
+            // A short tick down the middle of the gutter. Vertical, and a
+            // fixed height, so it cannot be orphaned by a page break part-way
+            // down an entry — and so the eye reads the rail as one column
+            // rather than as a row of dashes.
+            let markerX = railX + railWidth + gutter / 2
+            let markerTop = top - 4
+            pdf.line(from: markerX, markerTop,
+                     to: markerX, markerTop - sheet.leading(style.roleSize) * 1.6,
+                     color: sheet.hairline, thickness: 1.1)
+        }
+
+        pdf.move(to: top)
+        entry.draw(sheet, style)
     }
 }

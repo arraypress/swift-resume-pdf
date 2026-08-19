@@ -40,11 +40,25 @@ struct Timeline: Design {
         style.dates = .external
         style.entryGap = 15
 
+        // A section whose entries carry dates gets the rail; the rest —
+        // skills, interests — fall through to the ordinary renderer rather
+        // than being given an empty rail, which would leave a hundred points
+        // of white down the left of a skills list. This used to be a private
+        // copy of the mapping and the drawing both; ``Blocks/entries(of:in:)``
+        // and ``Blocks/railed(_:on:style:labels:railX:railWidth:gutter:)``
+        // are the shared versions, which also means the dated sections the
+        // copy did not know — certifications, publications, grants — now get
+        // their dates in the rail instead of losing them entirely.
         for section in resume.populated() {
             sheet.sectionHeading(resume.heading(for: section), style: .accentBar)
 
-            if let railed = railedEntries(section, of: resume) {
-                render(railed, on: sheet, style: style, bodyX: bodyX, labels: resume.labels)
+            if let entries = Blocks.entries(of: section, in: resume),
+               entries.contains(where: { !$0.dates.isEmpty }) {
+                for (index, entry) in entries.enumerated() {
+                    if index > 0 { sheet.gap(style.entryGap) }
+                    Blocks.railed(entry, on: sheet, style: style, labels: resume.labels,
+                                  railX: sheet.left, railWidth: railWidth, gutter: gutter)
+                }
             } else {
                 Blocks.render(section, of: resume, on: sheet, style: style)
             }
@@ -52,84 +66,6 @@ struct Timeline: Design {
         }
 
         sheet.footer(name: resume.profile.name)
-    }
-
-    // MARK: The rail
-
-    /// A section's entries as date-and-body pairs, where it has any.
-    ///
-    /// Sections without dates — skills, interests — fall through to the
-    /// ordinary renderer rather than being given an empty rail, which would
-    /// leave a hundred points of white down the left of a skills list.
-    private func railedEntries(_ section: Section, of resume: Resume) -> [(dates: DateRange, draw: (Sheet, Blocks.Style) -> Void)]? {
-        let labels = resume.labels
-
-        switch section {
-        case .experience, .volunteering:
-            let items = section == .experience ? resume.experience : resume.volunteering
-            return items.map { item in
-                (item.dates, { sheet, style in
-                    Blocks.position(item, on: sheet, style: style, labels: labels)
-                })
-            }
-
-        case .education:
-            return resume.education.map { item in
-                (item.dates, { sheet, style in
-                    Blocks.education([item], on: sheet, style: style, labels: labels)
-                })
-            }
-
-        case .projects:
-            let items = resume.projects.filter { !$0.dates.isEmpty }
-            guard items.count == resume.projects.count, !items.isEmpty else { return nil }
-            return items.map { item in
-                (item.dates, { sheet, style in
-                    Blocks.projects([item], on: sheet, style: style, labels: labels)
-                })
-            }
-
-        default:
-            return nil
-        }
-    }
-
-    private func render(
-        _ entries: [(dates: DateRange, draw: (Sheet, Blocks.Style) -> Void)],
-        on sheet: Sheet,
-        style: Blocks.Style,
-        bodyX: Double,
-        labels: Labels
-    ) {
-        for (index, entry) in entries.enumerated() {
-            if index > 0 { sheet.gap(style.entryGap) }
-
-            // The rail is drawn against the entry's own top, so the break has
-            // to happen first — otherwise the dates land at the bottom of one
-            // page and the role at the top of the next.
-            sheet.pdf.breakIfNeeded(sheet.leading(style.roleSize) * 3.4)
-            let top = sheet.cursor
-
-            let dates = entry.dates.rendered(present: labels.present, dash: labels.dateSeparator)
-            if !dates.isEmpty {
-                // Right-aligned against the gutter, so the dates form a clean
-                // edge facing the content rather than a ragged one.
-                sheet.pdf.cell(dates, x: sheet.left, boxWidth: railWidth, size: 8.6,
-                               color: sheet.muted, align: .right, face: sheet.medium)
-
-                // A short tick between the two columns. Fixed height, so it
-                // cannot be orphaned by a page break part-way down an entry.
-                let markerTop = top - 4
-                sheet.pdf.line(
-                    from: bodyX - gutter / 2, markerTop,
-                    to: bodyX - gutter / 2, markerTop - sheet.leading(style.roleSize) * 1.6,
-                    color: sheet.hairline, thickness: 1.1
-                )
-            }
-
-            sheet.pdf.move(to: top)
-            entry.draw(sheet, style)
-        }
     }
 
     // MARK: Masthead

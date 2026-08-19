@@ -58,6 +58,21 @@ struct Swiss: Design {
         sheet.footer(name: resume.profile.name)
     }
 
+    /// The largest size, up to the ideal, at which the name fits the measure.
+    ///
+    /// Measured with the face that will draw it rather than estimated from a
+    /// character count. The old estimate's calibration meant it only began to
+    /// shrink past about a hundred and seventy characters — which is to say
+    /// never — and a twenty-seven-character name sailed two hundred points
+    /// past the edge of the page. Width is linear in size, so scaling by the
+    /// overshoot lands the name exactly on the measure.
+    static func nameSize(for name: String, fitting measure: Double, on sheet: Sheet) -> Double {
+        let ideal = 52.0
+        let drawn = sheet.pdf.width(of: name, size: ideal, face: sheet.semibold)
+        guard drawn > measure, drawn > 0 else { return ideal }
+        return max(20, ideal * measure / drawn)
+    }
+
     private func masthead(_ resume: Resume, on sheet: Sheet, bodyX: Double, bodyWidth: Double) {
         let pdf = sheet.pdf
         let profile = resume.profile
@@ -67,13 +82,15 @@ struct Swiss: Design {
         // to a floor. A name is the one thing on a résumé that is allowed to
         // be big, and sizing it to the measure rather than to a constant means
         // a short name fills the line and a long one still fits.
-        let size = min(52.0, max(30.0, sheet.width * 62 / max(1, Double(profile.name.count)) / 3.4))
+        let size = Swiss.nameSize(for: profile.name, fitting: sheet.width, on: sheet)
 
         // The name keeps the whole measure. This design is an oversized name
         // and a lot of air; taking sixty points off it for a code would make
         // a long name shrink or truncate, and a truncated name is the one
-        // thing on a résumé that cannot be allowed.
-        pdf.textAt(profile.name, x: sheet.left, y: top - size * 0.82, size: size,
+        // thing on a résumé that cannot be allowed. `fit` is the last resort
+        // behind the floor, for a name too long to fit even at twenty points.
+        pdf.textAt(pdf.fit(profile.name, into: sheet.width, size: size, face: sheet.semibold),
+                   x: sheet.left, y: top - size * 0.82, size: size,
                    color: sheet.ink, face: sheet.semibold, tracking: -size * 0.028)
 
         var y = top - size * 0.82 - 24

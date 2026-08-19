@@ -731,7 +731,15 @@ public final class Sheet {
             words.removeFirst()
         }
 
-        pdf.breakIfNeeded(step * 2)
+        // Measured whole before anything goes down, the same contract as
+        // `paragraph`: `block` does not break pages on its own, so a detail
+        // that runs long near the foot of a page would otherwise carry on
+        // past the margin and off the sheet.
+        let remainder = words.joined(separator: " ")
+        let tail = remainder.isEmpty
+            ? 0
+            : pdf.blockHeight(remainder, size: size, width: boxWidth, leading: step, face: regular)
+        pdf.breakIfNeeded(step + tail)
         let top = cursor
 
         pdf.cell(trimmedLead, x: originX, boxWidth: boxWidth, size: size, color: tint, face: heavy)
@@ -741,7 +749,6 @@ public final class Sheet {
         }
         pdf.move(to: top - step)
 
-        let remainder = words.joined(separator: " ")
         guard !remainder.isEmpty else { return }
         pdf.block(remainder, x: originX, width: boxWidth, size: size,
                   color: tint, leading: step, face: regular)
@@ -761,18 +768,34 @@ public final class Sheet {
     /// document was produced by something that could not tell. The name goes
     /// with it because printed pages get separated, and page two of a résumé
     /// with no name on it belongs to nobody.
-    public func footer(name: String) {
-        let tint = muted
-        let rule = hairline
+    ///
+    /// - Parameter palette: The colours to set it in, for a design whose
+    ///   pages are not the page colour. Nocturne kept a private copy of this
+    ///   whole method for the sake of two colours.
+    public func footer(name: String, palette: Palette? = nil) {
+        let tint = palette?.muted ?? muted
+        let rule = palette?.hairline ?? hairline
+        let band = Sheet.footerBand(margin: theme.density.margin)
 
         pdf.onEachPage { doc, page, total in
             guard total > 1 else { return }
 
-            doc.line(from: doc.left(), 46, to: doc.right(), 46, color: rule, thickness: 0.5)
-            doc.textAt(name, x: doc.left(), y: 34, size: 7.6, color: tint)
-            doc.textAt("\(page) / \(total)", x: doc.left(), y: 34, size: 7.6,
+            doc.line(from: doc.left(), band.rule, to: doc.right(), band.rule,
+                     color: rule, thickness: 0.5)
+            doc.textAt(name, x: doc.left(), y: band.text, size: 7.6, color: tint)
+            doc.textAt("\(page) / \(total)", x: doc.left(), y: band.text, size: 7.6,
                        color: tint, align: .right, boxWidth: doc.contentWidth())
         }
+    }
+
+    /// Where the running foot sits, below the content's bottom margin.
+    ///
+    /// Anchored to the margin rather than at a fixed height. The rule used
+    /// to be fixed at 46 points, and the compact margin is 44 — so on a full
+    /// compact page the last line of text printed across the footer rule.
+    /// The offsets keep the normal density's old positions exactly.
+    static func footerBand(margin: Double) -> (rule: Double, text: Double) {
+        (rule: margin - 8, text: margin - 20)
     }
 }
 

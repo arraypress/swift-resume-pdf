@@ -24,7 +24,14 @@ import TextPDF
 /// The look applied to a design.
 public struct Theme: Sendable, Equatable, Codable {
 
-    public let typeface: Typeface
+    /// The typeface, where somebody chose one.
+    ///
+    /// `nil` is not a look — it means *no preference*, and the design's own
+    /// ``Design/intendedTypeface`` decides. A value always wins, including
+    /// Inter named explicitly at a serif design: it is the caller's page,
+    /// and choosing the default face on purpose has to be sayable, which is
+    /// the whole reason this is optional rather than defaulted.
+    public let typeface: Typeface?
 
     /// Brand colour as hex.
     ///
@@ -60,7 +67,7 @@ public struct Theme: Sendable, Equatable, Codable {
     public let tint: String?
 
     public init(
-        typeface: Typeface = .inter,
+        typeface: Typeface? = nil,
         accent: String = "#111111",
         pageSize: PageSize = .a4,
         density: Density = .normal,

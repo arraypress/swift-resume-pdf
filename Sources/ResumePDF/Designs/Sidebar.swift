@@ -20,10 +20,11 @@
 //
 //  The rail is laid out first and the main column afterwards, because a
 //  document has one cursor and cannot flow two columns at once. The main
-//  column runs onto further pages perfectly well — the rail does not, and
-//  content past the first page simply has no rail beside it. ``Quality``
-//  reports a rail that has overrun rather than letting it push the main
-//  column down the page.
+//  column runs onto further pages perfectly well — the rail does not: it
+//  lives on page one, and a rail section that will not fit what is left of
+//  it moves to the main column instead. Letting it page-break was the old
+//  behaviour, and the break stranded the entire main column on page two
+//  beside an empty band of tint.
 //
 
 import Foundation
@@ -62,16 +63,17 @@ struct Sidebar: Design {
 
         let top = pdf.height() - sheet.theme.density.margin
 
-        rail(resume, on: sheet, top: top)
+        let moved = rail(resume, on: sheet, top: top)
         pdf.move(to: top)
-        main(resume, on: sheet)
+        main(resume, on: sheet, including: moved)
 
         sheet.footer(name: resume.profile.name)
     }
 
     // MARK: Rail
 
-    private func rail(_ resume: Resume, on sheet: Sheet, top: Double) {
+    /// Lays the rail out, returning the sections that did not fit it.
+    private func rail(_ resume: Resume, on sheet: Sheet, top: Double) -> [Section] {
         let pdf = sheet.pdf
         let profile = resume.profile
         let x = railInset
@@ -136,11 +138,30 @@ struct Sidebar: Design {
         style.dateSize = 8.0
         style.entryGap = 10
 
+        // The rail lives on page one. Each section is rehearsed on a scratch
+        // sheet from the same cursor before it is drawn for real — an exact
+        // replay, so if the rehearsal page-breaks, the real run would have —
+        // and one that does not fit moves to the main column, where flowing
+        // onto another page is normal. Page-breaking here instead is what
+        // used to strand the whole main column on page two.
+        var moved: [Section] = []
+
         for section in resume.populated() where railSections.contains(section) {
+            let scratch = Sheet(theme: sheet.theme, family: sheet.family, labels: sheet.labels)
+            scratch.pdf.move(to: sheet.cursor)
+            railHeading(resume.heading(for: section), on: scratch, x: x, width: width)
+            Blocks.render(section, of: resume, on: scratch, style: style)
+
+            guard scratch.pdf.pageCount() <= 1 else {
+                moved.append(section)
+                continue
+            }
+
             railHeading(resume.heading(for: section), on: sheet, x: x, width: width)
             Blocks.render(section, of: resume, on: sheet, style: style)
             sheet.gap(13)
         }
+        return moved
     }
 
     private func railHeading(_ title: String, on sheet: Sheet, x: Double, width: Double) {
@@ -153,14 +174,16 @@ struct Sidebar: Design {
 
     // MARK: Main column
 
-    private func main(_ resume: Resume, on sheet: Sheet) {
+    /// Draws everything that is not the rail's, plus what the rail declined.
+    private func main(_ resume: Resume, on sheet: Sheet, including moved: [Section]) {
         let x = railWidth + columnGap
         let width = sheet.pdf.width() - x - sheet.theme.density.margin
 
         var style = Blocks.Style(x: x, width: width)
         style.entryGap = 14
 
-        for section in resume.populated() where !railSections.contains(section) {
+        for section in resume.populated()
+        where !railSections.contains(section) || moved.contains(section) {
             sheet.sectionHeading(resume.heading(for: section), x: x, width: width, style: .ruled)
             Blocks.render(section, of: resume, on: sheet, style: style)
             sheet.gap(16)

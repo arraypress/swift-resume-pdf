@@ -91,9 +91,10 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
     /// The family this design was drawn for.
     ///
     /// A suggestion, not a lock: a theme that names a typeface wins, because
-    /// it is the caller's page. But a design whose identity is a serif should
-    /// be able to say so, or `broadsheet` written as data comes out in the
-    /// default grotesque and is a different document.
+    /// it is the caller's page. But a design whose identity is a serif gets
+    /// to say so — under a theme with no preference, `broadsheet` written as
+    /// data comes out in its serif rather than in the grotesque, which would
+    /// be a different document.
     public var typeface: Face
 
     /// Settings for one section that differ from the rest.
@@ -187,6 +188,10 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
     /// Whether the masthead was given room for a code.
     public var showsCode: Bool { masthead.qr > 0 }
 
+    /// The family the blueprint names for itself, honoured wherever the
+    /// theme states no preference.
+    public var intendedTypeface: Typeface? { typeface.typeface }
+
     // MARK: Rendering
 
     public func render(_ resume: Resume, on sheet: Sheet) {
@@ -278,9 +283,9 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
 
             for (position, entry) in entries.enumerated() {
                 if position > 0 { sheet.gap(style.entryGap) }
-                drawRailed(entry, on: sheet, style: style, labels: resume.labels,
-                           bodyX: bodyX, labelWidth: labelWidth,
-                           gutter: bodyX - sheet.left - labelWidth)
+                Blocks.railed(entry, on: sheet, style: style, labels: resume.labels,
+                              railX: sheet.left, railWidth: labelWidth,
+                              gutter: bodyX - sheet.left - labelWidth)
             }
 
         case .none, .bands, .cards:
@@ -291,37 +296,6 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
         }
     }
 
-    /// One entry with its dates hung in the rail beside it.
-    private func drawRailed(
-        _ entry: Blocks.Entry, on sheet: Sheet, style: Blocks.Style,
-        labels: Labels, bodyX: Double, labelWidth: Double, gutter: Double
-    ) {
-        let pdf = sheet.pdf
-
-        // The rail is drawn against the entry's own top, so the break has to
-        // happen first — otherwise the dates land at the bottom of one page
-        // and the role at the top of the next.
-        pdf.breakIfNeeded(sheet.leading(style.roleSize) * 3.4)
-        let top = sheet.cursor
-
-        let dates = entry.dates.rendered(present: labels.present, dash: labels.dateSeparator)
-        if !dates.isEmpty {
-            pdf.cell(dates, x: sheet.left, boxWidth: labelWidth, size: style.dateSize,
-                     color: sheet.muted, align: .right, face: sheet.medium)
-
-            // A short tick down the middle of the gutter. Vertical, and a
-            // fixed height, so it cannot be orphaned by a page break part-way
-            // down an entry — and so the eye reads the rail as one column
-            // rather than as a row of dashes.
-            let markerTop = top - 4
-            pdf.line(from: bodyX - gutter / 2, markerTop,
-                     to: bodyX - gutter / 2, markerTop - sheet.leading(style.roleSize) * 1.6,
-                     color: sheet.hairline, thickness: 1.1)
-        }
-
-        pdf.move(to: top)
-        entry.draw(sheet, style)
-    }
 }
 
 // MARK: - The name at the top
@@ -413,7 +387,7 @@ extension Blueprint {
             // Inside a panel the name sits about a third of the way down,
             // which leaves room for the contact line under it and keeps the
             // band from reading as an empty stripe with a name at the bottom.
-            let top = panelHeight.map { pdf.height() - $0 * 0.30 + nameSize * 0.86 }
+            var top = panelHeight.map { pdf.height() - $0 * 0.30 + nameSize * 0.86 }
                 ?? (pdf.height() - sheet.theme.density.margin)
 
             var textX = x
@@ -421,21 +395,36 @@ extension Blueprint {
 
             // The code takes the right of the masthead. Drawn first, because
             // the name is set to whatever is left rather than to the page.
-            if qr > 0, sheet.code(profile.qr, x: x + width - qr, y: top - qr, size: qr) {
-                textWidth -= qr + 20
-            }
+            let coded = qr > 0 && sheet.code(profile.qr, x: x + width - qr, y: top - qr, size: qr)
+            if coded { textWidth -= qr + 20 }
 
             // The portrait takes its side of the masthead, and the type takes
             // the rest — otherwise a long headline runs under the face.
             if let photo, carriesPhoto {
                 let diameter = photo.diameter
-                let photoX = photo.align == .right ? x + width - diameter : x
-                _ = sheet.portrait(profile.photo, x: photoX,
-                                   y: top - diameter + nameSize * 0.4, diameter: diameter)
 
-                if photo.align == .right {
+                // A right-aligned portrait and a code both claim the right
+                // edge, and the code got there first — so the portrait
+                // crosses to the left rather than being drawn through it.
+                let align = photo.align == .right && coded ? Alignment.left : photo.align
+
+                switch align {
+                case .centre:
+                    // Centred above the name, the way a centred masthead
+                    // carries one — everything under it moves down to make
+                    // the room, and the type keeps the whole measure.
+                    _ = sheet.portrait(profile.photo, x: x + (width - diameter) / 2,
+                                       y: top - diameter + nameSize * 0.4, diameter: diameter)
+                    top -= diameter + 14
+
+                case .right:
+                    _ = sheet.portrait(profile.photo, x: x + width - diameter,
+                                       y: top - diameter + nameSize * 0.4, diameter: diameter)
                     textWidth -= diameter + 18
-                } else {
+
+                case .left:
+                    _ = sheet.portrait(profile.photo, x: x,
+                                       y: top - diameter + nameSize * 0.4, diameter: diameter)
                     textX += diameter + 18
                     textWidth -= diameter + 18
                 }

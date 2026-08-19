@@ -432,14 +432,54 @@ extension Highlight {
     enum CodingKeys: String, CodingKey { case title, detail }
 }
 
+extension Theme {
+
+    /// Decodes a theme the way somebody writes one: name what you want
+    /// changed, and leave the rest out.
+    ///
+    /// An absent `typeface` matters most — it decodes as *no preference*,
+    /// which is what lets the design's own face through. Only a theme that
+    /// names one has made a choice.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            typeface: try container.maybe(.typeface),
+            accent: try container.value(.accent, or: "#111111"),
+            pageSize: try container.value(.pageSize, or: .a4),
+            density: try container.value(.density, or: .normal),
+            scheme: try container.value(.scheme, or: .light),
+            tint: try container.maybe(.tint),
+            justified: try container.value(.justified, or: false)
+        )
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case typeface, accent, pageSize, density, scheme, tint, justified
+    }
+}
+
 extension Labels {
 
     public init(from decoder: Decoder) throws {
         // "de" alone is what somebody means by a language, and spelling out
-        // every heading to get German ones is not a thing to ask.
+        // every heading to get German ones is not a thing to ask. A code
+        // there is no label set for throws rather than quietly becoming
+        // English — "fr" used to do that, and a Lebenslauf's neighbour
+        // rendered with the wrong headings and no error is exactly the
+        // silent failure this library exists to prevent.
         if let single = try? decoder.singleValueContainer(),
            let code = try? single.decode(String.self) {
-            self = code.lowercased() == "de" ? .german : .english
+            switch code.lowercased() {
+            case "en": self = .english
+            case "de": self = .german
+            default:
+                throw DecodingError.dataCorrupted(DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "There is no label set for \"\(code)\" — one of: en, de. "
+                        + "For another language, spell the labels out: "
+                        + "{\"present\": …, \"overrides\": {\"experience\": …}}."
+                ))
+            }
             return
         }
         let container = try decoder.container(keyedBy: CodingKeys.self)
