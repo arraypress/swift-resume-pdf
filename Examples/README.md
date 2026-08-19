@@ -33,7 +33,9 @@ Each pairs with a résumé design, because the two arrive in the same email.
 
 A `Blueprint` is a design as data — no Swift, no recompile. These are the starting points `Blueprint.starting` ships, rendered:
 
-[ledger](blueprints/ledger.pdf) · [broadsheet](blueprints/broadsheet.pdf) · [register](blueprints/register.pdf) · [marginal](blueprints/marginal.pdf) · [marked](blueprints/marked.pdf) · [tabbed](blueprints/tabbed.pdf) · [plaqued](blueprints/plaqued.pdf) · [carded](blueprints/carded.pdf) · [railed](blueprints/railed.pdf) · [console](blueprints/console.pdf) · [entry-cards](blueprints/entry-cards.pdf)
+[ledger](blueprints/ledger.pdf) · [broadsheet](blueprints/broadsheet.pdf) · [register](blueprints/register.pdf) · [marginal](blueprints/marginal.pdf) · [marked](blueprints/marked.pdf) · [tabbed](blueprints/tabbed.pdf) · [plaqued](blueprints/plaqued.pdf) · [carded](blueprints/carded.pdf) · [railed](blueprints/railed.pdf) · [console](blueprints/console.pdf)
+
+Plus [entry-cards](blueprints/entry-cards.pdf) — the one ornament no starting point uses, because a panel per entry is a choice about the document rather than a look.
 
 And for letters: [memo](blueprints/letter-memo.pdf) · [letterheaded](blueprints/letter-letterheaded.pdf) · [panelled](blueprints/letter-panelled.pdf) · [monogrammed](blueprints/letter-monogrammed.pdf)
 

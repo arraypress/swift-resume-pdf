@@ -131,6 +131,8 @@ try resume.save(to: url, theme: Theme(typeface: mine))
 
 Only the weights you supply exist; a design asking for one you left out gets the nearest you did, so a family of two files renders everything.
 
+A theme that names a face wins; one that names none takes the design's own — which is how `broadsheet` gets its serif without being asked.
+
 **Designs.** `Design`, `Sheet` and `Blocks` are public, so a layout of your own is a masthead and a loop:
 
 ```swift
@@ -173,7 +175,7 @@ let mine = try Blueprint(contentsOf: url)
 try resume.save(to: out, design: mine)
 ```
 
-Name only what you want changed — everything else takes the default, so two keys is a design. `Blueprint.starting` holds eight to begin from, because nobody writes one from an empty file.
+Name only what you want changed — everything else takes the default, so two keys is a design. `Blueprint.starting` holds ten to begin from, because nobody writes one from an empty file.
 
 | Key | What it sets |
 |---|---|
@@ -428,11 +430,13 @@ try resume.render(design: .ledger, archival: true)   // PDF/A-3
 
 Some academic and government applications ask for one by name. Free here: PDF/A requires every font to travel with the document, which these already do.
 
+The one thing that can break the claim is a run of text no bundled face covers, which falls back to a font the reader supplies. Asked for `archival:` anyway, the render throws `ResumeError.notArchival` — naming the runs — rather than writing a file that claims a standard it fails.
+
 ## Photographs
 
 `Profile.photo` takes a path to a baseline JPEG or a PNG. `plaque`, `bulletin`, `nocturne` and `sidebar` have somewhere to put one; the rest ignore it, and `check` says which.
 
-A PNG's transparency is kept — it becomes a soft mask rather than being flattened onto white, so a cut-out portrait does not arrive on a square. A missing or unreadable file leaves a gap rather than failing the render: a résumé that refuses to build because a photograph moved is worse than one with a space where a face was.
+A PNG's transparency is kept — it becomes a soft mask rather than being flattened onto white, so a cut-out portrait does not arrive on a square. A missing or unreadable file leaves a gap rather than failing the render: a résumé that refuses to build because a photograph moved is worse than one with a space where a face was. `check` says why — a file that cannot be read, a progressive JPEG, or an EXIF rotation the writer will not apply, which prints a phone portrait on its side.
 
 Conventional on a Lebenslauf and across much of the résumé world outside the English-speaking part of it — and a liability in the US and UK, where an employer may not consider what a photograph reveals and the cheapest way to prove they did not is never to have seen it. `Region` reports which situation you are in.
 
