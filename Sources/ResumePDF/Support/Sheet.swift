@@ -213,7 +213,12 @@ public final class Sheet {
         let label = title.uppercased()
         let tint = color ?? muted
 
-        pdf.breakIfNeeded(leading(size) + 46)
+        // Kept with the first entry of what follows, not merely with some
+        // room: an entry's own break asks for about three and a half lines,
+        // so a lookahead smaller than that lets the label through and then
+        // breaks anyway — a section name alone at the foot of a page,
+        // labelling nothing.
+        pdf.breakIfNeeded(leading(size) + 64)
 
         switch style {
         case .accentBar:

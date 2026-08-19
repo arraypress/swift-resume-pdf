@@ -48,7 +48,7 @@ struct Terminal: Design {
         let label = title.uppercased()
         let tracking = size * 0.1
 
-        pdf.breakIfNeeded(sheet.leading(size) + 48)
+        pdf.breakIfNeeded(sheet.leading(size) + 62)
         let baseline = pdf.cursor()
 
         pdf.textAt(label, x: sheet.left, y: baseline - 8, size: size,

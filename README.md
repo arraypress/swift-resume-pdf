@@ -1,6 +1,6 @@
 # Swift Resume PDF
 
-Résumés, CVs and cover letters as PDFs. Fourteen designs, real typography, and the checks that decide whether the thing gets read.
+Résumés, CVs and cover letters as PDFs. Sixteen designs, real typography, and the checks that decide whether the thing gets read.
 
 ```swift
 let resume = Resume(
@@ -37,7 +37,7 @@ This writes the PDF directly, in designs that are honest about which side of tha
 ## Features
 
 - ✒️ **Real typography** — Inter, Source Serif 4 and JetBrains Mono travel with the package, in several weights and italic
-- 🎨 **Fourteen designs** — genuinely different arrangements, not one with the colours changed
+- 🎨 **Sixteen designs** — genuinely different arrangements, not one with the colours changed
 - 🧩 **Designs as JSON** — `Blueprint` and `LetterBlueprint` compose the same parts the built-ins are made of, no recompile
 - ✉️ **Cover letters** — four letter designs, each paired with a résumé one
 - 🌗 **Light, dark and tinted** — a property of the theme, so every design gets all three
@@ -68,9 +68,11 @@ This writes the PDF directly, in designs that are honest about which side of tha
 | `swiss` | An oversized name and a great deal of air. | ✅ |
 | `card` | Every entry on a panel of its own. | ✅ |
 | `terminal` | Monospaced labels and dates, proportional prose. | ✅ |
+| `banner` | A near-black masthead band, name reversed out of it. | ✅ |
 | `sidebar` | Tinted rail carrying contact and skills. | ❌ |
+| `gazette` | Serif two columns behind a hairline. Academic, executive. | ❌ |
 
-`sidebar` is the best-looking of the fourteen and the only one a tracking system cannot read. That is not a bug to be fixed later — two columns and machine-readability are the same trade-off seen from either end. Send it where a person will open it, and use one of the others for anything that goes through a form. `check` says so rather than leaving it to be discovered.
+`sidebar` and `gazette` are the two a tracking system cannot read. That is not a bug to be fixed later — two columns and machine-readability are the same trade-off seen from either end. Send them where a person will open them, and use one of the others for anything that goes through a form. `check` says so rather than leaving it to be discovered.
 
 ## Themes, not templates
 
@@ -111,7 +113,7 @@ A cover letter *is* a different document, so it is a different type. See below.
 
 ## Building your own
 
-Two ways: describe one as JSON, or write one in Swift. The first covers the range the fourteen cover; the second covers anything.
+Two ways: describe one as JSON, or write one in Swift. The first covers the range the built-ins cover; the second covers anything.
 
 Three things are open, and they are the three that matter:
 
@@ -158,7 +160,7 @@ A design of your own gets light, dark and tinted for free: the page is painted b
 
 ### A design written as JSON
 
-A design does not have to be Swift. All fourteen are the same skeleton — masthead, then heading + entries + gap per section, then footer — and what separates them is a bounded set of choices about it. That vocabulary is a `Blueprint`, and a blueprint is data:
+A design does not have to be Swift. The single-column designs are all the same skeleton — masthead, then heading + entries + gap per section, then footer — and what separates them is a bounded set of choices about it. That vocabulary is a `Blueprint`, and a blueprint is data:
 
 ```json
 {
@@ -202,7 +204,7 @@ An override changes only what it names — the 11pt roles above survive into the
 
 Colours are named (`accent`, `ink`, `muted`, `wash`, `hairline`, `page`) or given as hex. Named ones follow the theme, so a blueprint works under whatever accent somebody sets rather than pinning one into it.
 
-What is still not expressible, and why: `sidebar`'s two columns (deliberately — see above), and `slate`'s twin masthead panels. Everything else the fourteen do can be written as data.
+What is still not expressible, and why: `sidebar`'s and `gazette`'s second columns (deliberately — see above), and `slate`'s twin masthead panels. Everything else the built-ins do can be written as data.
 
 **There is no layout language here** — no boxes, no coordinates, no expressions. A general one lets somebody build a résumé that overlaps itself, and its failure mode is a document that renders looking wrong rather than an error saying what is wrong. Composition of known-good parts fails differently: every combination of these choices produces a page that reads, and none of them can produce a two-column document that a parser reads out of order. That is what makes the format safe to hand somebody.
 
@@ -434,7 +436,7 @@ The one thing that can break the claim is a run of text no bundled face covers, 
 
 ## Photographs
 
-`Profile.photo` takes a path to a baseline JPEG or a PNG. `plaque`, `bulletin`, `nocturne` and `sidebar` have somewhere to put one; the rest ignore it, and `check` says which.
+`Profile.photo` takes a path to a baseline JPEG or a PNG. `plaque`, `bulletin`, `nocturne`, `banner` and `sidebar` have somewhere to put one; the rest ignore it, and `check` says which.
 
 A PNG's transparency is kept — it becomes a soft mask rather than being flattened onto white, so a cut-out portrait does not arrive on a square. A missing or unreadable file leaves a gap rather than failing the render: a résumé that refuses to build because a photograph moved is worse than one with a space where a face was. `check` says why — a file that cannot be read, a progressive JPEG, or an EXIF rotation the writer will not apply, which prints a phone portrait on its side.
 

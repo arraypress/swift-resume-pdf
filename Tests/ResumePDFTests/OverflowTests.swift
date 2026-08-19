@@ -109,6 +109,40 @@ final class OverflowTests: XCTestCase {
                       "a rail section that fits should not be moved")
     }
 
+    // MARK: The gazette aside
+
+    func testAnOverflowingAsideLeavesTheWideColumnOnPageOne() {
+        let sheet = plainSheet()
+        Gazette().render(Resume.long, on: sheet)
+        let streams = Fixtures.pageStreams(sheet.pdf.render())
+
+        XCTAssertGreaterThan(streams.count, 1, "the long résumé should cross pages")
+        XCTAssertTrue(streams[0].contains("Carried the pager"),
+                      "the wide column should start on page one")
+    }
+
+    func testAnAsideSectionThatMovesIsDrawnExactlyOnce() {
+        let sheet = plainSheet()
+        Gazette().render(Resume.long, on: sheet)
+        let text = String(data: sheet.pdf.render(), encoding: .isoLatin1) ?? ""
+
+        for needle in ["cohort 12", "cohort 7"] {
+            XCTAssertEqual(text.components(separatedBy: needle).count - 1, 1,
+                           "\(needle) should appear exactly once")
+        }
+    }
+
+    // MARK: The banner body
+
+    func testBannerKeepsLongContentInsideTheMargins() throws {
+        let document = try Resume.long.document(design: .banner)
+        _ = document.render()
+
+        XCTAssertGreaterThanOrEqual(document.pageCount(), 2)
+        XCTAssertGreaterThanOrEqual(document.remaining(), 0,
+                                    "nothing should be drawn past the bottom margin")
+    }
+
     // MARK: Lead-ins
 
     func testALongLeadInDetailBreaksThePageInsteadOfRunningOffIt() {

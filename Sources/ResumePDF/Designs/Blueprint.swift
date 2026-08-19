@@ -262,13 +262,18 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
                 let top = sheet.cursor + padding
                 sheet.gap(2)
 
-                entry.draw(sheet, style)
+                sheet.drawing(on: .against(sheet.wash, accent: sheet.theme.accentColor)) {
+                    entry.draw(sheet, style)
+                }
 
                 if sheet.pdf.pageCount() == page {
                     shading?.add(page: page, x: bodyX, width: bodyWidth,
                                  top: top, bottom: sheet.cursor - padding + 4)
                 }
-                sheet.gap(padding + 6)
+                // Clears both panels' padding with daylight to spare — any
+                // less and neighbouring cards touch, which a drawn edge
+                // turns into one long smear of boxes.
+                sheet.gap(padding + 15)
             }
 
         case .rail:
@@ -700,7 +705,7 @@ extension Blueprint {
             let tracking = size * 0.1
             let face = sheet.monoMedium ?? sheet.medium
 
-            pdf.breakIfNeeded(sheet.leading(size) + 48)
+            pdf.breakIfNeeded(sheet.leading(size) + 62)
             let baseline = pdf.cursor()
 
             pdf.textAt(label, x: x, y: baseline - size, size: size,
@@ -728,7 +733,7 @@ extension Blueprint {
             let label = title.uppercased()
             let tracking = size * 0.14
 
-            pdf.breakIfNeeded(height + 54)
+            pdf.breakIfNeeded(height + 66)
 
             let top = pdf.cursor()
             let bottom = top - height
@@ -769,7 +774,7 @@ extension Blueprint {
             let label = title.uppercased()
             let tracking = size * 0.05
 
-            pdf.breakIfNeeded(size * 3 + 44)
+            pdf.breakIfNeeded(size * 3 + 52)
 
             let top = pdf.cursor()
             let measured = pdf.width(of: label, size: size, face: sheet.semibold, tracking: tracking)
@@ -943,11 +948,24 @@ extension Blueprint {
             let tint = sheet.wash
             let rounded = insets
 
+            // A card gets a hairline edge — a larger panel under an inset
+            // one, because the writer has no stroked rounded rectangle.
+            // Without it the wash reads as page smudge rather than as an
+            // object with a boundary. A band stays edgeless: it runs the
+            // full bleed, and a boundary is exactly what it does not want.
+            let edge = sheet.theme.scheme == .dark
+                ? tint.lightened(by: 0.18)
+                : Color.grey(225)
+
             sheet.background { doc, page, _ in
                 for rect in shading.rects(onPage: page) {
                     if rounded {
                         doc.roundedRect(x: rect.x, y: rect.bottom, width: rect.width,
-                                        height: rect.top - rect.bottom, radius: 7, color: tint)
+                                        height: rect.top - rect.bottom, radius: 7, color: edge)
+                        doc.roundedRect(x: rect.x + 0.8, y: rect.bottom + 0.8,
+                                        width: rect.width - 1.6,
+                                        height: rect.top - rect.bottom - 1.6,
+                                        radius: 6.2, color: tint)
                     } else {
                         doc.rect(x: 0, y: rect.bottom, width: doc.width(),
                                  height: rect.top - rect.bottom, color: tint)
@@ -971,7 +989,12 @@ extension Blueprint {
             let page = pdf.pageCount()
             let top = pdf.cursor() + 13
 
-            body()
+            // Drawn with a palette derived from the shading, so a chip's own
+            // wash steps away from the wash it sits on rather than vanishing
+            // into it.
+            sheet.drawing(on: .against(sheet.wash, accent: sheet.theme.accentColor)) {
+                body()
+            }
 
             // Only shaded when the section stayed on one page: a rectangle
             // whose corners are on different sheets of paper is not a shape.

@@ -93,12 +93,16 @@ struct Sidebar: Design {
         // name on two.
         sheet.paragraph(profile.name, x: x, width: width, size: 18.5, face: sheet.semibold)
 
+        // A step down from the name and a size clearly below it: a role at
+        // body size three points under an eighteen-point name read as a
+        // caption jammed against it, and it wraps in a rail this narrow, so
+        // the air matters twice.
         if !profile.headline.isEmpty {
-            sheet.rigidGap(3)
-            sheet.paragraph(profile.headline, x: x, width: width, size: 9.6, color: sheet.muted)
+            sheet.rigidGap(6)
+            sheet.paragraph(profile.headline, x: x, width: width, size: 8.8, color: sheet.muted)
         }
 
-        sheet.gap(15)
+        sheet.gap(16)
 
         let contact = profile.contactEntries()
         if !contact.isEmpty {

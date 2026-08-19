@@ -75,6 +75,19 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     /// proportional type for the prose. Technical without being a costume.
     case terminal
 
+    /// A near-black band across the head with the name reversed out of it,
+    /// and a light page under it. The modern product-company résumé; pairs
+    /// with the `panel` letter. Not ``nocturne``, which darkens the page —
+    /// this is one stripe, and the rest prints like any other résumé.
+    case banner
+
+    /// The serif two-column: centred masthead, the argument in a wide
+    /// column and the credentials in a narrow one behind a hairline. The
+    /// academic and executive look; pairs with the `letterhead` letter, and
+    /// carries ``sidebar``'s warning — a tracking system reads two columns
+    /// interleaved.
+    case gazette
+
     public var displayName: String {
         switch self {
         case .ledger: return "Ledger"
@@ -91,6 +104,8 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .swiss: return "Swiss"
         case .card: return "Card"
         case .terminal: return "Terminal"
+        case .banner: return "Banner"
+        case .gazette: return "Gazette"
         }
     }
 
@@ -111,6 +126,8 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .swiss: return "An oversized name and a lot of air."
         case .card: return "Every entry on its own panel."
         case .terminal: return "Monospaced labels and dates, proportional prose."
+        case .banner: return "A dark masthead band on a light page."
+        case .gazette: return "Serif two columns behind a hairline. Not machine-readable."
         }
     }
 
@@ -168,6 +185,8 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .swiss: return Swiss()
         case .card: return Card()
         case .terminal: return Terminal()
+        case .banner: return Banner()
+        case .gazette: return Gazette()
         }
     }
 }

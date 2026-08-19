@@ -44,7 +44,7 @@ struct Bulletin: Design {
         let height = 21.0
         let badge = 20.0
 
-        pdf.breakIfNeeded(height + 54)
+        pdf.breakIfNeeded(height + 66)
         let top = pdf.cursor()
         let bottom = top - height
 

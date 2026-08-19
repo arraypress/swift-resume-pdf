@@ -42,8 +42,13 @@ final class RenderTests: XCTestCase {
         for design in DesignKind.allCases {
             let text = try read(.sample, design: design, theme: Theme(typeface: design.intendedTypeface))
 
+            // Case-insensitive, like `position(of:)` and for its reason: a
+            // capitals masthead is a design decision. `contains` only looked
+            // case-blind because every capitals design so far happened to
+            // run two pages, whose footer supplied the name in mixed case.
             for expected in ["Alex Moreau", "Senior Infrastructure Engineer", "Stripe", "alex@moreau.dev"] {
-                XCTAssertTrue(text.contains(expected), "\(design.rawValue) lost \"\(expected)\"")
+                XCTAssertNotNil(position(of: expected, in: text),
+                                "\(design.rawValue) lost \"\(expected)\"")
             }
         }
     }

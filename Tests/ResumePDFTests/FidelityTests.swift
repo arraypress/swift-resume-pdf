@@ -49,6 +49,34 @@ final class FidelityTests: XCTestCase {
         XCTAssertEqual(document.family?.name, "Source Serif 4")
     }
 
+    func testGazetteDeclaresItsSerifAndItsColumns() throws {
+        let document = try Resume.sample.document(design: .gazette)
+        XCTAssertEqual(document.family?.name, "Source Serif 4",
+                       "the gazette's identity is the serif")
+
+        let report = try Resume.sample.check(design: .gazette)
+        XCTAssertTrue(
+            report.findings(.blocker).contains { $0.message.contains("two columns") },
+            "two columns must carry the same warning sidebar carries"
+        )
+    }
+
+    func testBannerPlacesAPortraitInTheBand() throws {
+        XCTAssertFalse(Fixtures.photoPath.isEmpty, "the fixture failed to write")
+
+        let sample = Resume.sample
+        let resume = Resume(
+            profile: Profile(name: sample.profile.name, email: sample.profile.email,
+                             photo: Fixtures.photoPath),
+            summary: sample.summary,
+            experience: sample.experience
+        )
+
+        let document = try resume.document(design: .banner)
+        _ = document.render()
+        XCTAssertTrue(document.drawnText.contains(sample.profile.name))
+    }
+
     func testExplicitInterBeatsASerifDesign() throws {
         // Naming the family's default face is still naming a face. This is
         // the case an "Inter means unset" rule could not express, and the

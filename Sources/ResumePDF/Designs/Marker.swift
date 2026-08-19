@@ -44,7 +44,7 @@ struct Marker: Design {
         let label = title.uppercased()
         let tracking = size * 0.05
 
-        pdf.breakIfNeeded(size * 3 + 44)
+        pdf.breakIfNeeded(size * 3 + 52)
         let top = pdf.cursor()
         let measured = pdf.width(of: label, size: size, face: sheet.semibold, tracking: tracking)
 

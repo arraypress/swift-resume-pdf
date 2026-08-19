@@ -32,10 +32,21 @@ struct Card: Design {
         let panels = Panels()
         let fill = sheet.wash
         let radius = 7.0
+
+        // A hairline edge, drawn as a larger panel under an inset one — the
+        // writer has no stroked rounded rectangle, and two fills are the
+        // same picture. Without it the wash is faint enough that the cards
+        // read as page smudge rather than as objects, which was the point
+        // of the design.
+        let edge = sheet.theme.scheme == .dark ? fill.lightened(by: 0.18) : Color.grey(225)
         sheet.background { doc, page, _ in
             for panel in panels.rects(onPage: page) {
                 doc.roundedRect(x: panel.x, y: panel.bottom, width: panel.width,
-                                height: panel.top - panel.bottom, radius: radius, color: fill)
+                                height: panel.top - panel.bottom, radius: radius, color: edge)
+                doc.roundedRect(x: panel.x + 0.8, y: panel.bottom + 0.8,
+                                width: panel.width - 1.6,
+                                height: panel.top - panel.bottom - 1.6,
+                                radius: radius - 0.8, color: fill)
             }
         }
 
@@ -52,19 +63,28 @@ struct Card: Design {
             )
 
             // Sections made of repeated entries get one panel each; the rest
-            // get a single panel around the whole block.
+            // get a single panel around the whole block. Drawn with a
+            // palette derived from the panel, so a chip's own wash steps
+            // away from the wash it sits on — the same fill twice deep is a
+            // pill nobody can see.
             for entry in Cards.entries(of: section, in: resume) {
                 let page = pdf.pageCount()
                 let top = pdf.cursor() + padding
                 pdf.gap(2)
 
-                entry(sheet, style)
+                sheet.drawing(on: .against(fill, accent: sheet.theme.accentColor)) {
+                    entry(sheet, style)
+                }
 
                 if pdf.pageCount() == page {
                     panels.add(page: page, x: sheet.left, width: sheet.width,
                                top: top, bottom: pdf.cursor() - padding + 4)
                 }
-                sheet.gap(padding + 6)
+                // The gap has to clear both panels' padding and leave daylight
+                // between the edges: at padding + 6 consecutive cards actually
+                // overlapped by three points, which the old faint wash hid and
+                // a drawn edge turns into one long smear of boxes.
+                sheet.gap(padding + 15)
             }
             sheet.gap(8)
         }
