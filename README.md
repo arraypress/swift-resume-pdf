@@ -68,7 +68,7 @@ This writes the PDF directly, in designs that are honest about which side of tha
 | `marker` | Headings struck through with a highlighter. Informal. | ✅ |
 | `slate` | Twin masthead panels and a tab beside every section. | ✅ |
 | `card` | Every entry on a panel of its own. | ✅ |
-| `terminal` | Monospaced labels and dates, proportional prose. | ✅ |
+| `terminal` | A prompt before every heading, monospaced labels and dates, proportional prose. | ✅ |
 | `banner` | A near-black masthead band, name reversed out of it. | ✅ |
 | `sidebar` | Tinted rail carrying contact and skills. | ❌ |
 | `gazette` | Serif two columns behind a hairline. Academic, executive. | ❌ |
@@ -271,6 +271,8 @@ Eleven kinds: `prose`, `list`, `positions`, `education`, `projects`, `publicatio
 ### Monospace
 
 `terminal` sets the labels, dates and contact details in JetBrains Mono and the prose in Inter. The mixture is the design and not decoration: dates are read by comparing them down a column, where a monospace lines the digits up, and sentences are read along a line, where nine-point monospaced prose is markedly harder work.
+
+The identity comes from the chrome. Every heading is preceded by a prompt — drawn as two strokes rather than typed, so the word a parser matches on is still the word — and the contact details run along one mono line with a pipe between them, the way a shell prints a status line.
 
 The mono family is available to any design and loaded only when one asks, so the other thirteen do not carry it.
 

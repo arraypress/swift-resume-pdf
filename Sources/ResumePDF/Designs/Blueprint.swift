@@ -459,20 +459,15 @@ extension Blueprint {
 
             let particulars = profile.particulars().map { "\($0.label): \($0.value)" }
 
-            if monospaced {
-                Blueprint.stackContacts(profile.contactEntries(), on: sheet, x: textX,
-                                        size: contactSize, face: plain, color: mutedInk)
-                Blueprint.stackContacts(particulars.map { (text: $0, url: "") }, on: sheet,
-                                        x: textX, size: contactSize - 0.3,
-                                        face: plain, color: mutedInk)
-            } else {
-                sheet.contactFlow(profile.contactEntries(), x: textX, width: textWidth,
-                                  size: contactSize, color: mutedInk, align: align.textAlign)
-                if !particulars.isEmpty {
-                    sheet.contactFlow(particulars, x: textX, width: textWidth,
-                                      size: contactSize - 0.3,
-                                      color: mutedInk, align: align.textAlign)
-                }
+            // Flowed either way; a mono masthead sets them in mono with a
+            // pipe between, the way a status line is printed.
+            sheet.contactFlow(profile.contactEntries(), x: textX, width: textWidth,
+                              size: contactSize, color: mutedInk, align: align.textAlign,
+                              separator: monospaced ? "|" : "·", face: plain)
+            if !particulars.isEmpty {
+                sheet.contactFlow(particulars, x: textX, width: textWidth,
+                                  size: contactSize - 0.3, color: mutedInk, align: align.textAlign,
+                                  separator: monospaced ? "|" : "·", face: plain)
             }
 
             if let panelHeight {
@@ -488,23 +483,6 @@ extension Blueprint {
     }
 
     /// One entry per line, linked where it has somewhere to go.
-    fileprivate static func stackContacts(
-        _ entries: [(text: String, url: String)], on sheet: Sheet,
-        x: Double, size: Double, face: EmbeddedFont?, color: Color
-    ) {
-        let pdf = sheet.pdf
-        for entry in entries where !entry.text.trimmingCharacters(in: .whitespaces).isEmpty {
-            let baseline = pdf.cursor() - size * 0.98
-            if entry.url.isEmpty {
-                pdf.textAt(entry.text, x: x, y: baseline, size: size, color: color, face: face)
-            } else {
-                pdf.linked(entry.text, url: entry.url, x: x, y: baseline,
-                           size: size, color: color, face: face)
-            }
-            pdf.move(to: pdf.cursor() - size * 1.5)
-        }
-    }
-
     /// A filled band behind the masthead.
     ///
     /// The type on it is *not* a setting. Reversing white out of a pale accent
@@ -698,7 +676,7 @@ extension Blueprint {
             }
         }
 
-        /// A mono label with a rule running out from it to the margin.
+        /// A prompt, a mono label, and a rule running out from it to the margin.
         private func drawTerminal(_ title: String, on sheet: Sheet, x: Double, width: Double) {
             let pdf = sheet.pdf
             let label = title.uppercased()
@@ -708,14 +686,19 @@ extension Blueprint {
             pdf.breakIfNeeded(sheet.leading(size) + 62)
             let baseline = pdf.cursor()
 
-            pdf.textAt(label, x: x, y: baseline - size, size: size,
+            // Drawn, not typed — see `Sheet.prompt`.
+            sheet.prompt(x: x, y: baseline - size * 0.62, size: size,
+                         color: sheet.theme.isMonochrome ? sheet.ink : sheet.accent)
+            let labelX = x + size * 1.3
+
+            pdf.textAt(label, x: labelX, y: baseline - size, size: size,
                        color: colour.colour(on: sheet), face: face, tracking: tracking)
 
             // The rule starts where the label ends rather than under it, so
             // the two read as one object. Measured with the face that drew it,
             // which is the only reason the gap is right.
             let measured = pdf.width(of: label, size: size, face: face, tracking: tracking)
-            let from = x + measured + 12
+            let from = labelX + measured + 12
             if from < x + width - 20 {
                 pdf.line(from: from, baseline - size * 0.6, to: x + width, baseline - size * 0.6,
                          color: sheet.hairline, thickness: 0.7)

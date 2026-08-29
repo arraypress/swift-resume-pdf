@@ -398,10 +398,11 @@ public final class Sheet {
         size: Double = 8.6,
         color: Color? = nil,
         align: Align = .left,
-        separator: String = "·"
+        separator: String = "·",
+        face: EmbeddedFont? = nil
     ) -> Double {
         contactFlow(items.map { (text: $0, url: "") }, x: x, width: columnWidth,
-                    size: size, color: color, align: align, separator: separator)
+                    size: size, color: color, align: align, separator: separator, face: face)
     }
 
     /// The same, with each entry linked where it has somewhere to go.
@@ -417,22 +418,26 @@ public final class Sheet {
         size: Double = 8.6,
         color: Color? = nil,
         align: Align = .left,
-        separator: String = "·"
+        separator: String = "·",
+        face: EmbeddedFont? = nil
     ) -> Double {
+        // Set in the face asked for, or the body face — a mono masthead
+        // wants its addresses in mono, and everything else does not.
+        let type = face ?? regular
         let entries = items.filter { !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }
         guard !entries.isEmpty else { return 0 }
 
         let originX = x ?? left
         let boxWidth = columnWidth ?? width
         let joiner = "  \(separator)  "
-        let joinerWidth = pdf.width(of: joiner, size: size, face: regular)
+        let joinerWidth = pdf.width(of: joiner, size: size, face: type)
 
         var rows: [[(text: String, url: String, width: Double)]] = []
         var row: [(text: String, url: String, width: Double)] = []
         var used = 0.0
 
         for entry in entries {
-            let entryWidth = pdf.width(of: entry.text, size: size, face: regular)
+            let entryWidth = pdf.width(of: entry.text, size: size, face: type)
             let needed = row.isEmpty ? entryWidth : used + joinerWidth + entryWidth
 
             if !row.isEmpty, needed > boxWidth {
@@ -463,27 +468,44 @@ public final class Sheet {
             case .left, .justified: break
             }
 
-            let baseline = cursor - (regular?.ascender(size) ?? size * 0.78)
+            let baseline = cursor - (type?.ascender(size) ?? size * 0.78)
 
             for (index, entry) in line.enumerated() {
                 if index > 0 {
                     pdf.textAt(joiner, x: cursorX, y: baseline, size: size,
-                               color: tint, face: regular)
+                               color: tint, face: type)
                     cursorX += joinerWidth
                 }
 
                 if entry.url.isEmpty {
                     pdf.textAt(entry.text, x: cursorX, y: baseline, size: size,
-                               color: tint, face: regular)
+                               color: tint, face: type)
                 } else {
                     pdf.linked(entry.text, url: entry.url, x: cursorX, y: baseline,
-                               size: size, color: tint, face: regular)
+                               size: size, color: tint, face: type)
                 }
                 cursorX += entry.width
             }
             pdf.move(to: cursor - step)
         }
         return Double(rows.count) * step
+    }
+
+    /// A prompt's chevron, drawn rather than typed.
+    ///
+    /// A `>` set as text would come out of the file in front of the heading,
+    /// and a parser matching on "Experience" would be handed "> Experience".
+    /// Two strokes carry the idea and leave the words alone.
+    /// - Parameters:
+    ///   - x: The left edge.
+    ///   - y: The vertical centre.
+    ///   - size: The type size it sits beside; the mark is scaled to it.
+    public func prompt(x: Double, y: Double, size: Double, color: Color) {
+        let reach = size * 0.28
+        let depth = size * 0.26
+        let thickness = size * 0.13
+        pdf.line(from: x, y + reach, to: x + depth, y, color: color, thickness: thickness)
+        pdf.line(from: x + depth, y, to: x, y - reach, color: color, thickness: thickness)
     }
 
     /// Two runs on one baseline, the second in a quieter style — "Stripe ·

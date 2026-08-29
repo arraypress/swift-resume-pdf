@@ -116,7 +116,7 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .marker: return "Highlighter headings. Informal."
         case .slate: return "Twin panels and section tabs."
         case .card: return "Every entry on its own panel."
-        case .terminal: return "Monospaced labels and dates, proportional prose."
+        case .terminal: return "Prompt-marked headings, monospaced labels and dates, proportional prose."
         case .banner: return "A dark masthead band on a light page."
         case .gazette: return "Serif two columns behind a hairline. Not machine-readable."
         }

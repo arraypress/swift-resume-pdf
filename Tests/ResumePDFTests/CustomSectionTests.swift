@@ -238,6 +238,19 @@ final class CustomSectionTests: XCTestCase {
         XCTAssertTrue(raw.contains("Inter"), "the body face is missing")
     }
 
+    func testTheTerminalPromptIsDrawnNotTyped() throws {
+        let text = try XCTUnwrap(PDFDocument(data: try Resume.sample.render(design: .terminal))?.string)
+        XCTAssertTrue(text.contains("EXPERIENCE"))
+        XCTAssertFalse(text.contains(">"), "a typed prompt would be handed to the parser in front of the heading")
+    }
+
+    func testTheTerminalContactsShareALine() throws {
+        let text = try XCTUnwrap(PDFDocument(data: try Resume.sample.render(design: .terminal))?.string)
+        let line = text.components(separatedBy: .newlines).first { $0.contains("alex@moreau.dev") }
+        XCTAssertTrue(line?.contains("+44 7700 900123") ?? false,
+                      "the addresses should run along one line: \(line ?? "(no contact line)")")
+    }
+
     func testTheMonoFamilyLoads() throws {
         let mono = try Typography.mono()
         XCTAssertFalse(mono.isEmpty)

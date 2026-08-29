@@ -17,6 +17,12 @@
 //  obvious version of this idea and the wrong one — it looks like a terminal,
 //  which is the joke, and then it has to be read.
 //
+//  The identity has to come from the chrome, then. Every heading is preceded
+//  by a prompt — drawn as two strokes, not typed, so the words a parser
+//  matches on are still the words — and the contact details run along one
+//  mono line, the way a shell prints a status line, rather than down the
+//  page one address at a time.
+//
 
 import Foundation
 import TextPDF
@@ -41,7 +47,7 @@ struct Terminal: Design {
         sheet.footer(name: resume.profile.name)
     }
 
-    /// A mono label with a rule running out from it to the margin.
+    /// A prompt, a mono label, and a rule running out from it to the margin.
     private func heading(_ title: String, on sheet: Sheet) {
         let pdf = sheet.pdf
         let size = 8.2
@@ -51,14 +57,20 @@ struct Terminal: Design {
         pdf.breakIfNeeded(sheet.leading(size) + 62)
         let baseline = pdf.cursor()
 
-        pdf.textAt(label, x: sheet.left, y: baseline - 8, size: size,
+        // The prompt sits on the label's x-height centre, in the accent where
+        // there is one — the one place colour belongs on this page.
+        sheet.prompt(x: sheet.left, y: baseline - 5, size: size,
+                     color: sheet.theme.isMonochrome ? sheet.ink : sheet.accent)
+        let labelX = sheet.left + size * 1.3
+
+        pdf.textAt(label, x: labelX, y: baseline - 8, size: size,
                    color: sheet.ink, face: sheet.monoMedium, tracking: tracking)
 
         // The rule starts where the label ends rather than under it, so the
         // two read as one object. Measured with the mono face, which is the
         // only reason the gap is right.
         let measured = pdf.width(of: label, size: size, face: sheet.monoMedium, tracking: tracking)
-        let from = sheet.left + measured + 12
+        let from = labelX + measured + 12
         if from < sheet.right - 20 {
             pdf.line(from: from, baseline - 5, to: sheet.right, baseline - 5,
                      color: sheet.hairline, thickness: 0.7)
@@ -91,27 +103,18 @@ struct Terminal: Design {
             y -= 18
         }
 
-        // Contact details are addresses, which is data — so mono, and set one
-        // per line rather than flowed, because a column of them is easier to
-        // copy from than a paragraph.
+        // Contact details are addresses, which is data — so mono. Flowed
+        // along one line like a status line, and kept clear of the code: a
+        // column of five addresses cost a quarter of the masthead and said
+        // nothing a line does not.
         pdf.move(to: y - 2)
-        for entry in profile.contactEntries() {
-            let baseline = pdf.cursor() - 8.4
-            if entry.url.isEmpty {
-                pdf.textAt(entry.text, x: sheet.left, y: baseline, size: 8.6,
-                           color: sheet.muted, face: sheet.mono)
-            } else {
-                pdf.linked(entry.text, url: entry.url, x: sheet.left, y: baseline,
-                           size: 8.6, color: sheet.muted, face: sheet.mono)
-            }
-            pdf.move(to: pdf.cursor() - 13)
-        }
+        sheet.contactFlow(profile.contactEntries(), width: measure,
+                          size: 8.6, separator: "|", face: sheet.mono)
 
         let particulars = profile.particulars()
-        for item in particulars {
-            pdf.textAt("\(item.label): \(item.value)", x: sheet.left, y: pdf.cursor() - 8.2,
-                       size: 8.4, color: sheet.muted, face: sheet.mono)
-            pdf.move(to: pdf.cursor() - 12.5)
+        if !particulars.isEmpty {
+            sheet.contactFlow(particulars.map { "\($0.label): \($0.value)" }, width: measure,
+                              size: 8.4, separator: "|", face: sheet.mono)
         }
 
         sheet.rigidGap(6)
