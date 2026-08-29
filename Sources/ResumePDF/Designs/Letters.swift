@@ -52,7 +52,17 @@ public enum LetterDesign: String, Sendable, CaseIterable, Codable {
     /// Public for the same reason ``DesignKind/design`` is: a tool wants to
     /// treat "one of the four" and "a blueprint from a file" as one kind of
     /// thing.
-    public var layout: any LetterLayout { design }
+    public var layout: any LetterLayout { blueprint }
+
+    /// The design as data: the JSON file it would be handed back as.
+    public var blueprint: LetterBlueprint {
+        switch self {
+        case .memo: return .memo
+        case .letterhead: return .letterhead
+        case .panel: return .panel
+        case .monogram: return .monogram
+        }
+    }
 
     /// The résumé design this was drawn to sit beside.
     public var pairsWith: DesignKind {
@@ -72,14 +82,6 @@ public enum LetterDesign: String, Sendable, CaseIterable, Codable {
         layout.intendedTypeface ?? .inter
     }
 
-    var design: any LetterLayout {
-        switch self {
-        case .memo: return MemoLetter()
-        case .letterhead: return LetterheadLetter()
-        case .panel: return PanelLetter()
-        case .monogram: return MonogramLetter()
-        }
-    }
 }
 
 /// An arrangement of a letter on a page.
@@ -120,7 +122,7 @@ extension CoverLetter {
 
     /// Lays the letter out.
     public func document(design: LetterDesign = .memo, theme: Theme = .plain) throws -> Document {
-        try document(design: design.design, theme: theme)
+        try document(design: design.blueprint, theme: theme)
     }
 
     /// The same, with a masthead of your own.
@@ -252,214 +254,5 @@ public enum Letters {
     /// The contact line every letter head carries, linked where it can be.
     public static func contact(_ profile: Profile) -> [(text: String, url: String)] {
         profile.contactEntries()
-    }
-}
-
-// MARK: - Memo
-
-/// A small ruled head and one column. Pairs with `ledger`.
-public struct MemoLetter: LetterLayout {
-
-    /// Makes the layout; it carries no settings.
-    public init() {}
-
-    /// The name, the claim and the contact line over a rule.
-    public func masthead(_ letter: CoverLetter, on sheet: Sheet) {
-        let pdf = sheet.pdf
-        let profile = letter.profile
-        let top = pdf.height() - sheet.theme.density.margin
-
-        pdf.textAt(profile.name, x: sheet.left, y: top - 20, size: 22,
-                   color: sheet.ink, face: sheet.semibold, tracking: -0.3)
-
-        var y = top - 38
-        if !profile.headline.isEmpty {
-            pdf.textAt(profile.headline, x: sheet.left, y: y, size: 10.2,
-                       color: sheet.theme.isMonochrome ? sheet.muted : sheet.accent,
-                       face: sheet.regular)
-            y -= 16
-        }
-
-        pdf.move(to: y - 2)
-        sheet.contactFlow(Letters.contact(profile), size: 8.7)
-        sheet.rigidGap(5)
-        sheet.rule(color: sheet.ink, thickness: 0.9)
-        sheet.gap(22)
-    }
-}
-
-// MARK: - Letterhead
-
-/// Serif stationery: name at the left, contact ranged right against it.
-/// Pairs with `broadsheet`.
-public struct LetterheadLetter: LetterLayout {
-
-    /// Makes the layout; it carries no settings.
-    public init() {}
-
-    /// Serif stationery — the face is the design, so it declares it.
-    public var intendedTypeface: Typeface? { .sourceSerif }
-
-    /// The name at the left, the contact details ranged right against it.
-    public func masthead(_ letter: CoverLetter, on sheet: Sheet) {
-        let pdf = sheet.pdf
-        let profile = letter.profile
-        let top = pdf.height() - sheet.theme.density.margin
-
-        pdf.textAt(profile.name, x: sheet.left, y: top - 22, size: 24,
-                   color: sheet.ink, face: sheet.regular, tracking: 0.2)
-
-        if !profile.headline.isEmpty {
-            pdf.textAt(profile.headline, x: sheet.left, y: top - 40, size: 11,
-                       color: sheet.muted, face: sheet.italic)
-        }
-
-        // Contact ranged right against the name, the way a printed letterhead
-        // sets it — the two together make the head, and neither is a list.
-        var y = top - 14
-        for entry in Letters.contact(profile) {
-            let measured = pdf.width(of: entry.text, size: 8.8, face: sheet.regular)
-            let originX = sheet.right - measured
-            if entry.url.isEmpty {
-                pdf.textAt(entry.text, x: originX, y: y, size: 8.8,
-                           color: sheet.muted, face: sheet.regular)
-            } else {
-                pdf.linked(entry.text, url: entry.url, x: originX, y: y, size: 8.8,
-                           color: sheet.muted, face: sheet.regular)
-            }
-            y -= 13
-        }
-
-        pdf.move(to: min(top - 56, y - 6))
-        sheet.rule(color: sheet.ink, thickness: 0.7)
-        sheet.gap(24)
-    }
-}
-
-// MARK: - Panel
-
-/// Contact details in a filled panel under the name. Pairs with `banner`.
-public struct PanelLetter: LetterLayout {
-
-    /// Makes the layout; it carries no settings.
-    public init() {}
-
-    /// The name, a portrait where there is one, and the contact panel.
-    public func masthead(_ letter: CoverLetter, on sheet: Sheet) {
-        let pdf = sheet.pdf
-        let profile = letter.profile
-        let top = pdf.height() - sheet.theme.density.margin
-
-        // A portrait against the right edge, where it does not push the name
-        // about. Conventional on a letter of application across much of
-        // Europe, and a liability in the US and UK — Region reports which.
-        let diameter = 74.0
-        let hasPhoto = Sheet.photo(at: profile.photo) != nil
-        if hasPhoto {
-            sheet.portrait(profile.photo, x: sheet.right - diameter,
-                           y: top - diameter + 6, diameter: diameter)
-        }
-
-        let nameWidth = hasPhoto ? sheet.width - diameter - 20 : sheet.width
-        pdf.textAt(pdf.fit(profile.name, into: nameWidth, size: 25, face: sheet.semibold),
-                   x: sheet.left, y: top - 22, size: 25,
-                   color: sheet.ink, face: sheet.semibold, tracking: -0.4)
-
-        if !profile.headline.isEmpty {
-            pdf.textAt(pdf.fit(profile.headline, into: nameWidth, size: 11, face: sheet.regular),
-                       x: sheet.left, y: top - 42, size: 11,
-                       color: sheet.theme.isMonochrome ? sheet.muted : sheet.accent,
-                       face: sheet.regular)
-        }
-
-        let entries: [(Icon, String)] = [
-            (.email, profile.email),
-            (.phone, profile.phone),
-            (.location, profile.location),
-        ].filter { !$0.1.trimmingCharacters(in: .whitespaces).isEmpty }
-            + profile.links.map { (Icon.link, $0.label) }
-
-        guard !entries.isEmpty else {
-            pdf.move(to: top - 66)
-            sheet.gap(20)
-            return
-        }
-
-        let columns = entries.count > 2 ? 2 : 1
-        let rows = (entries.count + columns - 1) / columns
-        let rowStep = 19.0
-        let padding = 15.0
-        let height = Double(rows) * rowStep + padding * 2 - 4
-
-        let fill = sheet.theme.accentIsDark && !sheet.theme.isMonochrome ? sheet.accent : sheet.wash
-        let palette = Sheet.Palette.against(fill, accent: sheet.theme.accentColor)
-
-        let panelTop = top - 58
-        pdf.roundedRect(x: sheet.left, y: panelTop - height, width: sheet.width,
-                        height: height, radius: 9, color: fill)
-
-        let columnWidth = (sheet.width - padding * 2) / Double(columns)
-        for (index, entry) in entries.enumerated() {
-            let originX = sheet.left + padding + Double(index % columns) * columnWidth
-            let baseline = panelTop - padding - Double(index / columns) * rowStep
-
-            sheet.icon(entry.0, x: originX, y: baseline - 11.5, size: 12, color: palette.accent)
-            pdf.textAt(entry.1, x: originX + 18, y: baseline - 9.6, size: 8.9,
-                       color: palette.ink, face: sheet.regular)
-        }
-
-        pdf.move(to: panelTop - height)
-        sheet.gap(22)
-    }
-}
-
-// MARK: - Monogram
-
-/// A centred name over a capped rule. Pairs with `bulletin`.
-public struct MonogramLetter: LetterLayout {
-
-    /// Makes the layout; it carries no settings.
-    public init() {}
-
-    /// The name and contact line centred, closed off by the capped rule.
-    public func masthead(_ letter: CoverLetter, on sheet: Sheet) {
-        let pdf = sheet.pdf
-        let profile = letter.profile
-        let top = pdf.height() - sheet.theme.density.margin
-
-        pdf.textAt(profile.name, x: sheet.left, y: top - 22, size: 25,
-                   color: sheet.ink, align: .center, boxWidth: sheet.width,
-                   face: sheet.semibold, tracking: -0.3)
-
-        var y = top - 42
-        if !profile.headline.isEmpty {
-            pdf.textAt(profile.headline, x: sheet.left, y: y, size: 10.6,
-                       color: sheet.theme.isMonochrome ? sheet.muted : sheet.accent,
-                       align: .center, boxWidth: sheet.width, face: sheet.regular)
-            y -= 18
-        }
-
-        pdf.move(to: y)
-        sheet.contactFlow(Letters.contact(profile), size: 8.7, align: .center)
-        sheet.gap(12)
-        capped(on: sheet)
-        sheet.gap(20)
-    }
-
-    /// A rule with a mark at each end.
-    ///
-    /// Inset well short of the margins: a full-width rule reads as a division
-    /// of the page, and this is meant to read as a flourish under a name.
-    private func capped(on sheet: Sheet) {
-        let pdf = sheet.pdf
-        let inset = sheet.width * 0.28
-        let y = pdf.cursor()
-        let from = sheet.left + inset
-        let to = sheet.right - inset
-
-        pdf.line(from: from, y, to: to, y, color: sheet.ink, thickness: 0.8)
-        pdf.circle(x: from, y: y, radius: 2.6, color: sheet.accent)
-        pdf.circle(x: to, y: y, radius: 2.6, color: sheet.accent)
-        pdf.move(to: y - 4)
     }
 }

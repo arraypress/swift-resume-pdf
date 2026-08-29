@@ -247,6 +247,20 @@ final class BlueprintTests: XCTestCase {
         }
     }
 
+    func testTheLetterDesignsAreTheFilesInTheBundle() throws {
+        let folder = try XCTUnwrap(Bundle.module.url(forResource: "Letters", withExtension: nil))
+        let files = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "json" }
+        XCTAssertEqual(files.count, LetterBlueprint.starting.count)
+        XCTAssertEqual(files.count, LetterDesign.allCases.count, "every letter design is a file, and nothing else is")
+
+        for file in files {
+            let blueprint = try LetterBlueprint(contentsOf: file)
+            XCTAssertEqual(blueprint.name, file.deletingPathExtension().lastPathComponent)
+            XCTAssertNotNil(LetterDesign(rawValue: blueprint.name), "\(blueprint.name).json is not a letter design")
+        }
+    }
+
     func testTheSideColumnAndThePaintedBodySurviveJSON() throws {
         let written = try JSONDecoder().decode(Blueprint.self, from: Data("""
             { "masthead": { "twin": true, "body": "inverse", "band": "darkest" },
@@ -381,8 +395,10 @@ final class LetterBlueprintTests: XCTestCase {
         // The shape of a letter is not a setting: the recipient, the argument
         // and the sign-off are the same in every design, and a blueprint that
         // could move them would be a way of writing a letter that is not one.
+        // Set in one face for all of them: a serif wraps a paragraph on a
+        // different word, and the test is about the words, not the wrapping.
         let bodies = try LetterBlueprint.starting.map { blueprint -> String in
-            let written = try text(of: try CoverLetter.sample.render(design: blueprint))
+            let written = try text(of: try CoverLetter.sample.render(design: blueprint, theme: Theme(typeface: .inter)))
             guard let start = written.range(of: "Dear") else { return written }
             return String(written[start.lowerBound...])
         }
@@ -412,7 +428,7 @@ final class LetterBlueprintTests: XCTestCase {
     func testALetterBlueprintIsCheckedLikeAnyOther() throws {
         for blueprint in LetterBlueprint.starting {
             let report = try CoverLetter.sample.check(design: blueprint)
-            XCTAssertEqual(report.design, blueprint.name)
+            XCTAssertEqual(report.design, blueprint.displayName)
             XCTAssertTrue(report.isClean, "\(blueprint.name): \(report.findings.map(\.message))")
         }
     }
@@ -428,7 +444,7 @@ final class LetterBlueprintTests: XCTestCase {
 
     func testItSaysWhichResumeDesignItSitsBeside() throws {
         // The two documents arrive in the same email.
-        XCTAssertEqual(LetterBlueprint.letterheaded.pairsWith, .broadsheet)
+        XCTAssertEqual(LetterBlueprint.letterhead.pairsWith, .broadsheet)
         XCTAssertEqual(try decode(#"{"pairsWith": "marker"}"#).pairsWith, .marker)
     }
 }

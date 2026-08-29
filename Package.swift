@@ -28,6 +28,7 @@ let package = Package(
                 // The designs themselves. A design is a JSON file; the Swift
                 // only names it.
                 .copy("Resources/Designs"),
+                .copy("Resources/Letters"),
             ]
         ),
         .testTarget(name: "ResumePDFTests", dependencies: ["ResumePDF"]),

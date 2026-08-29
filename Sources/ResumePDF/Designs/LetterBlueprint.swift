@@ -42,14 +42,20 @@ public struct LetterBlueprint: LetterLayout, Codable, Sendable, Equatable {
     /// nobody asked.
     public var pairsWith: DesignKind
 
+    /// The face the letter is drawn for — `serif` for the one that sits
+    /// beside a serif résumé. A theme that names a face still wins.
+    public var typeface: Blueprint.Face
+
     public init(
         name: String,
         masthead: Masthead = Masthead(),
-        pairsWith: DesignKind = .ledger
+        pairsWith: DesignKind = .ledger,
+        typeface: Blueprint.Face = .sans
     ) {
         self.name = name
         self.masthead = masthead
         self.pairsWith = pairsWith
+        self.typeface = typeface
     }
 
     // MARK: Reading one
@@ -64,7 +70,9 @@ public struct LetterBlueprint: LetterLayout, Codable, Sendable, Equatable {
         return try encoder.encode(self)
     }
 
-    public var displayName: String { name }
+    public var displayName: String { name.prefix(1).uppercased() + name.dropFirst() }
+
+    public var intendedTypeface: Typeface? { typeface.typeface }
 
     // MARK: Drawing
 
@@ -278,7 +286,9 @@ extension LetterBlueprint {
                 : sheet.wash
             let palette = Sheet.Palette.against(fill, accent: sheet.theme.accentColor)
 
-            let panelTop = pdf.cursor() - 6
+            // Under the headline with room to breathe: the panel is the
+            // masthead's second half, not a caption on its first.
+            let panelTop = pdf.cursor() - 17
             pdf.roundedRect(x: sheet.left, y: panelTop - height, width: sheet.width,
                             height: height, radius: 9, color: fill)
 
@@ -328,43 +338,40 @@ extension LetterBlueprint {
 extension LetterBlueprint {
 
     /// The built-in letter designs, as blueprints to start from.
-    public static let starting: [LetterBlueprint] = [.memo, .letterheaded, .panelled, .monogrammed]
+    /// The four letter designs, read from the JSON files in the package's
+    /// resources — a letter design is a JSON file, and the Swift only names
+    /// it.
+    public static let starting: [LetterBlueprint] = bundledNames.map { bundled($0) }
 
-    /// A small ruled head and one column.
-    public static let memo = LetterBlueprint(name: "memo")
+    static let bundledNames = ["memo", "letterhead", "panel", "monogram"]
 
-    /// Serif stationery: name at the left, contact ranged right against it.
-    public static let letterheaded = LetterBlueprint(
-        name: "letterheaded",
-        masthead: Masthead(
-            nameSize: 24, tracking: 0.2, nameBold: false,
-            headlineSize: 11, headlineColour: .muted, headlineItalic: true,
-            contacts: .ranged, contactSize: 8.8,
-            rule: Blueprint.Rule(colour: .ink, thickness: 0.7), gapAfter: 24
-        ),
-        pairsWith: .broadsheet
-    )
+    /// A small ruled head and one column. Pairs with `ledger`.
+    public static let memo = bundled("memo")
 
-    /// Contact details in a filled panel under the name.
-    public static let panelled = LetterBlueprint(
-        name: "panelled",
-        masthead: Masthead(
-            nameSize: 25, tracking: -0.4, headlineSize: 11,
-            contacts: .panel, photo: Blueprint.Photo(diameter: 74),
-            finish: .none, gapAfter: 22
-        ),
-        pairsWith: .banner
-    )
+    /// Serif, name at the left and contact ranged right. Pairs with
+    /// `broadsheet`, and the right choice for law and academia.
+    public static let letterhead = bundled("letterhead")
 
-    /// A centred name over a capped rule.
-    public static let monogrammed = LetterBlueprint(
-        name: "monogrammed",
-        masthead: Masthead(
-            align: .centre, nameSize: 25, headlineSize: 10.6,
-            finish: .capped, rule: Blueprint.Rule(colour: .ink, thickness: 0.8), gapAfter: 20
-        ),
-        pairsWith: .bulletin
-    )
+    /// Contact details in a filled panel under the name, each with its
+    /// mark, and room for a portrait. Pairs with `banner`.
+    public static let panel = bundled("panel")
+
+    /// Centred name, with the body between two rules. Pairs with `bulletin`.
+    public static let monogram = bundled("monogram")
+
+    /// A letter design from the package's resources. The files are part of
+    /// the package, so one that is missing or will not read is a build
+    /// fault — and there is a test that reads every one of them.
+    static func bundled(_ name: String) -> LetterBlueprint {
+        guard let url = Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Letters") else {
+            preconditionFailure("The bundled letter design \(name).json is not in the package")
+        }
+        do {
+            return try LetterBlueprint(contentsOf: url)
+        } catch {
+            preconditionFailure("The bundled letter design \(name).json does not read: \(error)")
+        }
+    }
 }
 
 // MARK: - Reading a partial one
@@ -376,11 +383,12 @@ extension LetterBlueprint {
         self.init(
             name: try container.value(.name, or: "custom"),
             masthead: try container.value(.masthead, or: Masthead()),
-            pairsWith: try container.value(.pairsWith, or: .ledger)
+            pairsWith: try container.value(.pairsWith, or: .ledger),
+            typeface: try container.value(.typeface, or: .sans)
         )
     }
 
-    enum CodingKeys: String, CodingKey { case name, masthead, pairsWith }
+    enum CodingKeys: String, CodingKey { case name, masthead, pairsWith, typeface }
 }
 
 extension LetterBlueprint.Masthead {

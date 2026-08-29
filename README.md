@@ -233,7 +233,7 @@ Letters take the same treatment, with a smaller vocabulary — because `LetterLa
 
 **The body is not yours to move.** Recipient, greeting, argument, sign-off are set the same way by every design, built-in or written. That is not an omission: the shape of a letter is older and less negotiable than a résumé's, and rearranging those parts does not make it look modern — it makes it look like it was written by somebody who has not read one.
 
-`pairsWith` names the résumé design it sits beside, which is what a tool reads to set both halves of an application in the same face.
+`pairsWith` names the résumé design it sits beside, which is what a tool reads to set both halves of an application in the same face. The four letter designs are themselves files in `Resources/Letters/`, the way the résumé designs are in `Resources/Designs/`.
 
 ### Sections of your own
 

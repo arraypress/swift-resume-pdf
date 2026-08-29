@@ -37,7 +37,7 @@ A `Blueprint` is a design as data — no Swift, no recompile. Every design above
 
 Plus [entry-cards](blueprints/entry-cards.pdf) — the one ornament no starting point uses, because a panel per entry is a choice about the document rather than a look.
 
-And for letters: [memo](blueprints/letter-memo.pdf) · [letterheaded](blueprints/letter-letterheaded.pdf) · [panelled](blueprints/letter-panelled.pdf) · [monogrammed](blueprints/letter-monogrammed.pdf)
+The four letter designs are JSON files too (`Resources/Letters/`), rendered under letters/ above.
 
 ## A code to scan
 

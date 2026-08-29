@@ -214,10 +214,18 @@ extension LetterTests {
     func testTheBuiltInMastheadsAreConstructible() {
         // Public types with public inits, so one can be subclassed in spirit —
         // reused inside a layout of your own rather than reimplemented.
-        XCTAssertNotNil(MemoLetter())
-        XCTAssertNotNil(LetterheadLetter())
-        XCTAssertNotNil(PanelLetter())
-        XCTAssertNotNil(MonogramLetter())
+        // Every letter design is its blueprint, read from the package's
+        // resources and drawn to the same bytes by either name.
+        let stamped = Date(timeIntervalSince1970: 1_776_000_000)
+        for design in LetterDesign.allCases {
+            XCTAssertEqual(design.blueprint.name, design.rawValue)
+            XCTAssertTrue(LetterBlueprint.starting.contains(design.blueprint), design.rawValue)
+            let theme = Theme(typeface: design.intendedTypeface)
+            XCTAssertEqual(try CoverLetter.sample.document(design: design, theme: theme).render(creationDate: stamped),
+                           try CoverLetter.sample.document(design: design.blueprint, theme: theme).render(creationDate: stamped),
+                           "\(design.rawValue) drawn by name differs from its blueprint")
+        }
+        XCTAssertEqual(LetterDesign.letterhead.intendedTypeface, .sourceSerif, "the serif letter says so in its file")
     }
 
     func testAPanelLetterCarriesAPortrait() throws {

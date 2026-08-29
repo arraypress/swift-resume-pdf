@@ -82,7 +82,8 @@ final class ExampleTests: XCTestCase {
             try put(document.render(creationDate: Self.stamped), "blueprints/\(blueprint.name).pdf")
         }
 
-        for blueprint in LetterBlueprint.starting {
+        // Every letter design is a blueprint, written once under letters/.
+        for blueprint in LetterBlueprint.starting where LetterDesign(rawValue: blueprint.name) == nil {
             let document = try CoverLetter.sample.document(design: blueprint)
             try put(document.render(creationDate: Self.stamped),
                     "blueprints/letter-\(blueprint.name).pdf")

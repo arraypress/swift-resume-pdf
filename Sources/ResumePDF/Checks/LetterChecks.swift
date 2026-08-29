@@ -23,7 +23,7 @@ extension CoverLetter {
         theme: Theme = .plain,
         region: Region = .international
     ) throws -> Report {
-        try check(design: design.design, theme: theme, region: region)
+        try check(design: design.blueprint, theme: theme, region: region)
     }
 
     /// The same, for a letter design of your own.
