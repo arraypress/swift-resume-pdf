@@ -193,10 +193,68 @@ final class BlueprintTests: XCTestCase {
     func testABlueprintReadsFromAFile() throws {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("\(UUID().uuidString).json")
-        try Blueprint.marked.encoded().write(to: url)
+        try Blueprint.marker.encoded().write(to: url)
         defer { try? FileManager.default.removeItem(at: url) }
 
-        XCTAssertEqual(try Blueprint(contentsOf: url), Blueprint.marked)
+        XCTAssertEqual(try Blueprint(contentsOf: url), Blueprint.marker)
+    }
+
+    // MARK: A design is a blueprint unless it cannot be
+
+    func testNineDesignsAreTheirBlueprints() throws {
+        // Not cousins: the design and its blueprint are the same bytes, so
+        // what `--blueprint ledger` hands back is what `--design ledger` draws.
+        let written = DesignKind.allCases.filter { !$0.isCompiled }
+        XCTAssertEqual(written.map(\.rawValue),
+                       ["ledger", "broadsheet", "timeline", "margin", "bulletin", "marker", "card", "terminal", "banner"])
+
+        for kind in written {
+            let blueprint = try XCTUnwrap(kind.blueprint, kind.rawValue)
+            XCTAssertEqual(blueprint.name, kind.rawValue)
+            XCTAssertTrue(Blueprint.starting.contains(blueprint), "\(kind.rawValue) is not a starting point")
+            // Pinned to one creation date, or a second boundary between the
+            // two renders would be the only difference.
+            let stamped = Date(timeIntervalSince1970: 1_776_000_000)
+            let theme = Theme(typeface: kind.intendedTypeface)
+            XCTAssertEqual(try Resume.sample.document(design: kind, theme: theme).render(creationDate: stamped),
+                           try Resume.sample.document(design: blueprint, theme: theme).render(creationDate: stamped),
+                           "\(kind.rawValue) drawn by name differs from its blueprint")
+        }
+    }
+
+    func testFiveDesignsCannotBeWrittenAsData() {
+        // Two columns, twin panels, an inverted body: the vocabulary says
+        // none of them on purpose, so these stay Swift.
+        let compiled = DesignKind.allCases.filter(\.isCompiled).map(\.rawValue)
+        XCTAssertEqual(compiled, ["sidebar", "nocturne", "eclipse", "slate", "gazette"])
+        for kind in DesignKind.allCases where kind.isCompiled {
+            XCTAssertNil(kind.blueprint)
+        }
+    }
+
+    func testTheNewKeysSurviveJSON() throws {
+        // The touches the compiled designs had, now data: every one of them
+        // must read back as it was written, or a design edited by hand
+        // loses them silently.
+        let written = try JSONDecoder().decode(Blueprint.self, from: Data("""
+            { "masthead": { "nameWeight": "regular", "nameColour": "accent", "headlineItalic": true,
+                            "separator": "▪", "contacts": "labelled",
+                            "rule": { "double": true, "width": 96, "underName": true } },
+              "column": { "headAtMargin": true, "ruled": true },
+              "heading": { "style": "underlined" } }
+            """.utf8))
+        XCTAssertEqual(written.masthead.nameWeight, .regular)
+        XCTAssertEqual(written.masthead.nameColour, .accent)
+        XCTAssertTrue(written.masthead.headlineItalic)
+        XCTAssertEqual(written.masthead.separator, "▪")
+        XCTAssertEqual(written.masthead.contacts, .labelled)
+        XCTAssertEqual(written.masthead.rule?.double, true)
+        XCTAssertEqual(written.masthead.rule?.width, 96)
+        XCTAssertEqual(written.masthead.rule?.underName, true)
+        XCTAssertTrue(written.column.headAtMargin)
+        XCTAssertTrue(written.column.ruled)
+        XCTAssertEqual(written.heading.style, .underlined)
+        XCTAssertEqual(try JSONDecoder().decode(Blueprint.self, from: try written.encoded()), written)
     }
 
     // MARK: The starting points
@@ -378,7 +436,7 @@ extension BlueprintTests {
     }
 
     func testTheRailDrawsDatesOnceAndOnlyWhereTheyBelong() throws {
-        let written = try text(of: try Resume.sample.render(design: Blueprint.railed))
+        let written = try text(of: try Resume.sample.render(design: Blueprint.timeline))
 
         // Drawn by the rail, so the blocks must not print them as well.
         let dates = written.components(separatedBy: "Mar 2022 – Present").count - 1
@@ -394,8 +452,8 @@ extension BlueprintTests {
             profile: Profile(name: "A", email: "a@b.co"),
             skills: [SkillGroup("Systems", ["Go", "Rust"])]
         )
-        XCTAssertNoThrow(try resume.render(design: Blueprint.railed))
-        XCTAssertTrue(try text(of: try resume.render(design: Blueprint.railed)).contains("Rust"))
+        XCTAssertNoThrow(try resume.render(design: Blueprint.timeline))
+        XCTAssertTrue(try text(of: try resume.render(design: Blueprint.timeline)).contains("Rust"))
     }
 
     func testEveryEntryGetsItsOwnPanel() throws {
@@ -460,7 +518,7 @@ extension BlueprintTests {
     }
 
     func testTheNewStartingPointsRenderAndAreReadable() throws {
-        for blueprint in [Blueprint.railed, .console] {
+        for blueprint in [Blueprint.timeline, .terminal] {
             let theme = Theme(typeface: blueprint.typeface.typeface)
             let report = try Resume.sample.check(design: blueprint, theme: theme)
             XCTAssertTrue(report.isClean, "\(blueprint.name): \(report.findings.map(\.message))")

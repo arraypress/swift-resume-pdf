@@ -73,7 +73,9 @@ final class ExampleTests: XCTestCase {
     }
 
     func testEveryBlueprint() throws {
-        for blueprint in Blueprint.starting {
+        // The starting points that are not designs. Nine of the designs are
+        // blueprints, and those are written once, under designs/.
+        for blueprint in Blueprint.starting where DesignKind(rawValue: blueprint.name) == nil {
             let document = try Resume.sample.document(
                 design: blueprint, theme: Theme(typeface: blueprint.typeface.typeface)
             )

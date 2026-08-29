@@ -175,7 +175,7 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
     // MARK: What it declares
 
     /// Its own name, as given.
-    public var displayName: String { name }
+    public var displayName: String { name.prefix(1).uppercased() + name.dropFirst() }
 
     /// Always. There is no way to say "two columns" in this format, which is
     /// what makes it safe to hand somebody: a design written as data cannot
@@ -208,7 +208,13 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
         let bodyX = sheet.left + labelWidth + gutter
         let bodyWidth = sheet.width - labelWidth - gutter
 
-        masthead.draw(resume, on: sheet, x: bodyX, width: bodyWidth)
+        // Where the head and the headings sit: past the margin like the
+        // entries, or at the page's edge with only the entries inset.
+        let headX = column.headAtMargin ? sheet.left : bodyX
+        let headWidth = column.headAtMargin ? sheet.width : bodyWidth
+
+        masthead.draw(resume, on: sheet, x: headX, width: headWidth,
+                      labelWidth: labelWidth, labelAlign: column.labelAlign)
 
         let shading = ornament.prepare(on: sheet)
         let drawn = resume.populated().filter { !skip.contains($0) }
@@ -230,11 +236,19 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
 
             if index > 0 { sheet.gap(local?.sectionGap ?? sectionGap) }
 
+            if column.ruled {
+                // Kept with what follows: a rule alone at the foot of a page
+                // underlines nothing.
+                sheet.pdf.breakIfNeeded(sheet.leading(style.roleSize) * 4)
+                sheet.rule(x: bodyX, width: bodyWidth, thickness: 0.6)
+                sheet.gap(11)
+            }
+
             sectionHeading.draw(
                 resume.heading(for: section),
                 section: section,
                 on: sheet,
-                x: bodyX, width: bodyWidth,
+                x: headX, width: headWidth,
                 labelWidth: labelWidth,
                 labelAlign: column.labelAlign
             )
@@ -347,6 +361,34 @@ extension Blueprint {
         /// Space between the masthead and the first heading.
         public var gapAfter: Double
 
+        /// The weight the name is set in. Regular with tracking is how a
+        /// serif masthead reads as considered rather than loud.
+        public var nameWeight: Weight
+
+        /// The name's colour. `accent` is the one place a colour can carry a
+        /// whole page; on a monochrome theme it falls back to the ink.
+        public var nameColour: Paint
+
+        /// The headline in the italic, where the family has one.
+        public var headlineItalic: Bool
+
+        /// What sits between the contact details. A mono masthead uses a
+        /// pipe whatever this says, because that is what a status line uses.
+        public var separator: String
+
+        /// How the contact details are set: flowed under the headline, or as
+        /// a ruled row with "Contact" hung in the margin — which wants a
+        /// column with a margin to hang it in, and flows without one.
+        public var contacts: Contacts
+
+        public enum Weight: String, Codable, Sendable, CaseIterable {
+            case regular, semibold
+        }
+
+        public enum Contacts: String, Codable, Sendable, CaseIterable {
+            case flow, labelled
+        }
+
         public init(
             align: Alignment = .left,
             nameSize: Double = 25.5,
@@ -360,7 +402,12 @@ extension Blueprint {
             qr: Double = 0,
             rule: Rule? = Rule(),
             monospaced: Bool = false,
-            gapAfter: Double = 19
+            gapAfter: Double = 19,
+            nameWeight: Weight = .semibold,
+            nameColour: Paint = .ink,
+            headlineItalic: Bool = false,
+            separator: String = "·",
+            contacts: Contacts = .flow
         ) {
             self.align = align
             self.nameSize = nameSize
@@ -375,9 +422,19 @@ extension Blueprint {
             self.rule = rule
             self.monospaced = monospaced
             self.gapAfter = gapAfter
+            self.nameWeight = nameWeight
+            self.nameColour = nameColour
+            self.headlineItalic = headlineItalic
+            self.separator = separator
+            self.contacts = contacts
         }
 
-        func draw(_ resume: Resume, on sheet: Sheet, x: Double, width: Double) {
+        /// - Parameter labelWidth: The margin column's width, for a labelled
+        ///   contact row to hang its label in. Zero when there is no margin.
+        func draw(
+            _ resume: Resume, on sheet: Sheet, x: Double, width: Double,
+            labelWidth: Double = 0, labelAlign: Alignment = .right
+        ) {
             let pdf = sheet.pdf
             let profile = resume.profile
             let carriesPhoto = photo != nil && Sheet.photo(at: profile.photo) != nil
@@ -435,13 +492,36 @@ extension Blueprint {
                 }
             }
 
-            let heavy = monospaced ? (sheet.monoBold ?? sheet.semibold) : sheet.semibold
+            let regular = nameWeight == .regular ? sheet.regular : sheet.semibold
+            let heavy = monospaced ? (sheet.monoBold ?? sheet.semibold) : regular
             let plain = monospaced ? (sheet.mono ?? sheet.regular) : sheet.regular
 
+            // The accent is only a colour for the name where there is one;
+            // on a monochrome theme it is the ink under another name.
+            let nameTint = nameColour == .ink || (sheet.theme.isMonochrome && nameColour == .accent)
+                ? ink
+                : nameColour.colour(on: sheet, fallback: ink)
+
             let label = uppercase ? profile.name.uppercased() : profile.name
-            pdf.textAt(label, x: textX, y: top - nameSize * 0.86, size: nameSize,
-                       color: ink, align: align.textAlign, boxWidth: textWidth,
+            // Beside a code the name is set to what is left, not to the page.
+            let fitted = coded ? pdf.fit(label, into: textWidth, size: nameSize, face: heavy) : label
+            pdf.textAt(fitted, x: textX, y: top - nameSize * 0.86, size: nameSize,
+                       color: nameTint, align: align.textAlign, boxWidth: textWidth,
                        face: heavy, tracking: tracking)
+
+            // A signature rule: as wide as the name and right under it, the
+            // way a name is ruled on printed stationery.
+            if let rule, rule.underName {
+                let measured = pdf.width(of: fitted, size: nameSize, face: heavy, tracking: tracking)
+                let startX: Double
+                switch align {
+                case .left: startX = textX
+                case .centre: startX = textX + (textWidth - measured) / 2
+                case .right: startX = textX + textWidth - measured
+                }
+                pdf.rect(x: startX, y: top - nameSize * 0.86 - nameSize * 0.3,
+                         width: measured, height: rule.thickness, color: rule.colour.colour(on: sheet))
+            }
 
             var y = top - nameSize * 0.86 - nameSize * 0.72
 
@@ -449,36 +529,79 @@ extension Blueprint {
                 let tint = sheet.theme.isMonochrome && headlineColour == .accent
                     ? mutedInk
                     : headlineColour.colour(on: sheet, fallback: ink)
+                let face = headlineItalic ? (sheet.italic ?? plain) : plain
                 pdf.textAt(profile.headline, x: textX, y: y, size: headlineSize,
                            color: tint, align: align.textAlign, boxWidth: textWidth,
-                           face: plain)
+                           face: face)
                 y -= headlineSize * 1.6
             }
 
             pdf.move(to: y)
 
             let particulars = profile.particulars().map { "\($0.label): \($0.value)" }
+            let between = monospaced ? "|" : separator
 
-            // Flowed either way; a mono masthead sets them in mono with a
-            // pipe between, the way a status line is printed.
-            sheet.contactFlow(profile.contactEntries(), x: textX, width: textWidth,
-                              size: contactSize, color: mutedInk, align: align.textAlign,
-                              separator: monospaced ? "|" : "·", face: plain)
-            if !particulars.isEmpty {
-                sheet.contactFlow(particulars, x: textX, width: textWidth,
-                                  size: contactSize - 0.3, color: mutedInk, align: align.textAlign,
-                                  separator: monospaced ? "|" : "·", face: plain)
+            if contacts == .labelled, labelWidth > 0 {
+                // A ruled row each, with the word hung in the margin the way
+                // the section names are — so the contact details read as the
+                // first section rather than as part of the name.
+                pdf.move(to: y - 8)
+                let entries = profile.contactEntries()
+                if !entries.isEmpty {
+                    sheet.rule(x: textX, width: textWidth, thickness: 0.6)
+                    sheet.gap(11)
+                    hang("Contact", on: sheet, labelWidth: labelWidth, align: labelAlign, color: mutedInk)
+                    sheet.contactFlow(entries, x: textX, width: textWidth,
+                                      size: contactSize, color: mutedInk, separator: between, face: plain)
+                }
+                if !particulars.isEmpty {
+                    sheet.gap(13)
+                    sheet.rule(x: textX, width: textWidth, thickness: 0.6)
+                    sheet.gap(11)
+                    hang("Details", on: sheet, labelWidth: labelWidth, align: labelAlign, color: mutedInk)
+                    sheet.contactFlow(particulars, x: textX, width: textWidth,
+                                      size: contactSize - 0.3, color: mutedInk, separator: between, face: plain)
+                }
+            } else {
+                // Flowed either way; a mono masthead sets them in mono with a
+                // pipe between, the way a status line is printed.
+                sheet.contactFlow(profile.contactEntries(), x: textX, width: textWidth,
+                                  size: contactSize, color: mutedInk, align: align.textAlign,
+                                  separator: between, face: plain)
+                if !particulars.isEmpty {
+                    sheet.contactFlow(particulars, x: textX, width: textWidth,
+                                      size: contactSize - 0.3, color: mutedInk, align: align.textAlign,
+                                      separator: between, face: plain)
+                }
             }
 
             if let panelHeight {
                 pdf.move(to: pdf.height() - panelHeight - 30)
-            } else if let rule {
+            } else if let rule, !rule.underName {
                 sheet.rigidGap(5)
-                sheet.rule(x: x, width: width, color: rule.colour.colour(on: sheet),
+                let span = rule.width > 0 ? rule.width : width
+                sheet.rule(x: x, width: span, color: rule.colour.colour(on: sheet),
                            thickness: rule.thickness)
+                if rule.double {
+                    // A heavy rule and a hairline under it: the pair a
+                    // broadsheet's masthead is cut off with.
+                    sheet.rigidGap(2.6)
+                    sheet.rule(x: x, width: span, color: sheet.hairline, thickness: 0.5)
+                }
             }
 
             sheet.gap(gapAfter)
+        }
+
+        /// A word in the margin, level with what follows it.
+        private func hang(
+            _ word: String, on sheet: Sheet, labelWidth: Double, align: Alignment, color: Color
+        ) {
+            let pdf = sheet.pdf
+            let top = pdf.cursor()
+            pdf.cell(word, x: sheet.left, boxWidth: labelWidth, size: 8.6,
+                     color: color, align: align.textAlign, face: sheet.medium)
+            pdf.move(to: top)
         }
     }
 
@@ -555,9 +678,26 @@ extension Blueprint {
         public var colour: Paint
         public var thickness: Double
 
-        public init(colour: Paint = .ink, thickness: Double = 0.9) {
+        /// A hairline under the rule as well, the way a broadsheet cuts its
+        /// masthead off.
+        public var double: Bool
+
+        /// How far it runs, in points. Zero is the whole column.
+        public var width: Double
+
+        /// Under the name and as wide as it, rather than across the column
+        /// under the contact details.
+        public var underName: Bool
+
+        public init(
+            colour: Paint = .ink, thickness: Double = 0.9,
+            double: Bool = false, width: Double = 0, underName: Bool = false
+        ) {
             self.colour = colour
             self.thickness = thickness
+            self.double = double
+            self.width = width
+            self.underName = underName
         }
     }
 }
@@ -582,10 +722,23 @@ extension Blueprint {
         public var gutter: Double
         public var labelAlign: Alignment
 
-        public init(labelWidth: Double = 0, gutter: Double = 0, labelAlign: Alignment = .right) {
+        /// The masthead and the headings start at the page margin, and only
+        /// the entries sit past the rail — the shape of a timeline, where
+        /// the rail belongs to the entries and not to the page.
+        public var headAtMargin: Bool
+
+        /// A hairline across the body above every section.
+        public var ruled: Bool
+
+        public init(
+            labelWidth: Double = 0, gutter: Double = 0, labelAlign: Alignment = .right,
+            headAtMargin: Bool = false, ruled: Bool = false
+        ) {
             self.labelWidth = labelWidth
             self.gutter = gutter
             self.labelAlign = labelAlign
+            self.headAtMargin = headAtMargin
+            self.ruled = ruled
         }
     }
 }
@@ -644,6 +797,10 @@ extension Blueprint {
             /// A label with a rule running out from it to the right margin.
             /// Set in the monospace, which is the point of it.
             case terminal
+
+            /// The label with a short accent stub under it: the band's echo,
+            /// for a page whose one strong horizontal is a masthead band.
+            case underlined
         }
 
         func draw(
@@ -673,7 +830,31 @@ extension Blueprint {
 
             case .terminal:
                 drawTerminal(title, on: sheet, x: x, width: width)
+
+            case .underlined:
+                drawUnderlined(title, on: sheet, x: x)
             }
+        }
+
+        /// A section label with a short accent underline.
+        ///
+        /// A stub of ink under the label, not a rule across the column: a
+        /// masthead band has already drawn the page's one strong horizontal,
+        /// and a second full-width line would compete with it.
+        private func drawUnderlined(_ title: String, on sheet: Sheet, x: Double) {
+            let pdf = sheet.pdf
+            let label = title.uppercased()
+
+            // Kept with the first entry of what follows — see `sectionHeading`.
+            pdf.breakIfNeeded(sheet.leading(size) + 64)
+            let top = pdf.cursor()
+
+            pdf.textAt(label, x: x, y: top - 8, size: size,
+                       color: colour.colour(on: sheet), face: sheet.semibold, tracking: size * 0.14)
+            pdf.rect(x: x, y: top - 14.6, width: 22, height: 2.2, color: sheet.accent)
+
+            pdf.move(to: top - 16)
+            sheet.gap(11)
         }
 
         /// A prompt, a mono label, and a rule running out from it to the margin.
@@ -811,7 +992,7 @@ extension Blueprint.Heading.Style {
         case .plain: return .plain
         case .accentBar: return .accentBar
         case .centred: return .centred
-        case .ruled, .tab, .marker, .margin, .terminal: return .ruled
+        case .ruled, .tab, .marker, .margin, .terminal, .underlined: return .ruled
         }
     }
 }
@@ -1122,20 +1303,116 @@ extension Blueprint {
     /// design from an empty file, and "ledger with a marker heading and chips"
     /// is how one actually gets made.
     public static let starting: [Blueprint] = [
-        .ledger, .broadsheet, .plain, .register, .marginal, .marked,
-        .tabbed, .plaqued, .carded, .railed, .console,
+        .ledger, .broadsheet, .timeline, .margin, .marker, .bulletin, .card, .terminal, .banner,
+        .plain, .register, .plaqued, .carded,
     ]
 
-    /// One column, a rule under each heading. Restraint is the design.
-    public static let ledger = Blueprint(name: "ledger")
+    /// One column, a rule under each heading, a code beside the name where
+    /// there is one. Restraint is the design.
+    public static let ledger = Blueprint(
+        name: "ledger",
+        masthead: Masthead(qr: 58)
+    )
 
-    /// Serif, centred masthead. Academic and formal.
+    /// Serif, centred masthead: the name in light tracked capitals, the
+    /// headline in the italic, a heavy rule and a hairline under the head.
+    /// Academic and formal.
     public static let broadsheet = Blueprint(
         name: "broadsheet",
-        masthead: Masthead(align: .centre, nameSize: 24, uppercase: true, tracking: 1.6,
-                           headlineSize: 10.4, headlineColour: .muted),
-        heading: Heading(style: .centred, size: 7.4),
+        masthead: Masthead(align: .centre, nameSize: 19, uppercase: true, tracking: 2.2,
+                           headlineSize: 10.6, headlineColour: .muted, contactSize: 8.8,
+                           rule: Rule(colour: .ink, thickness: 0.7, double: true), gapAfter: 20,
+                           nameWeight: .regular, headlineItalic: true),
+        heading: Heading(style: .centred, size: 8),
+        entries: Entries(roleSize: 10.6, bodySize: 9.7, detailSize: 9.5, entryGap: 14),
+        sectionGap: 18,
         typeface: .serif
+    )
+
+    /// Dates in a rail down the left, with a tick out to each entry. The head
+    /// and the headings sit at the margin; only the entries are past the
+    /// rail, so the employment history is the shape of the page.
+    public static let timeline = Blueprint(
+        name: "timeline",
+        masthead: Masthead(nameSize: 24, tracking: -0.35, headlineSize: 10.5, headlineColour: .muted,
+                           contactSize: 8.6, rule: Rule(colour: .accent, thickness: 2, width: 96)),
+        column: Column(headAtMargin: true),
+        heading: Heading(style: .accentBar),
+        entries: Entries(entryGap: 15),
+        ornament: .rail
+    )
+
+    /// Section names hung in the left margin, a hairline above every
+    /// section, and the contact details as the first ruled row. Book
+    /// typography, and the calmest page here.
+    public static let margin = Blueprint(
+        name: "margin",
+        masthead: Masthead(nameSize: 23, tracking: -0.3, headlineSize: 10.4, headlineColour: .muted,
+                           rule: nil, gapAfter: 6, nameColour: .accent, contacts: .labelled),
+        column: Column(labelWidth: 104, gutter: 22, ruled: true),
+        heading: Heading(style: .margin, size: 8.6),
+        entries: Entries(entryGap: 14),
+        sectionGap: 15
+    )
+
+    /// Headings struck through with a highlighter, a name ruled like a
+    /// signature. The least formal of them.
+    public static let marker = Blueprint(
+        name: "marker",
+        masthead: Masthead(align: .centre, nameSize: 28, tracking: -0.5, headlineSize: 10.8,
+                           headlineColour: .muted,
+                           rule: Rule(colour: .accent, thickness: 2.6, underName: true),
+                           gapAfter: 14, separator: "▪"),
+        heading: Heading(style: .marker, size: 12, colour: .ink),
+        entries: Entries(entryGap: 15, skills: .bars),
+        sectionGap: 18
+    )
+
+    /// Headings as rounded tabs, each with a mark, and room for a portrait.
+    /// Navigable at a glance, which suits a long CV.
+    public static let bulletin = Blueprint(
+        name: "bulletin",
+        masthead: Masthead(nameSize: 25, headlineSize: 11, photo: Photo(diameter: 78, align: .right),
+                           rule: nil, gapAfter: 16),
+        heading: Heading(style: .tab, size: 8.2, colour: .ink, icon: true),
+        entries: Entries(entryGap: 14, skills: .chips),
+        sectionGap: 16
+    )
+
+    /// Every entry on a panel of its own — a section that is a list of
+    /// entries gets one each, the rest get one around the block. Suits
+    /// several short roles; unkind to one long one.
+    public static let card = Blueprint(
+        name: "card",
+        masthead: Masthead(nameSize: 26, headlineSize: 11, rule: nil, gapAfter: 14),
+        heading: Heading(style: .plain, size: 8.2, colour: .accent),
+        entries: Entries(entryGap: 12, skills: .chips),
+        ornament: .entryCards,
+        sectionGap: 8
+    )
+
+    /// A prompt before every heading, monospaced labels and dates,
+    /// proportional prose, and a code beside the name where there is one.
+    /// Technical without being a costume.
+    public static let terminal = Blueprint(
+        name: "terminal",
+        masthead: Masthead(nameSize: 23, tracking: -0.9, headlineSize: 10.4, contactSize: 8.6, qr: 58,
+                           rule: Rule(colour: .ink, thickness: 1), monospaced: true, gapAfter: 18),
+        heading: Heading(style: .terminal, size: 8.2, colour: .ink),
+        entries: Entries(entryGap: 15)
+    )
+
+    /// A near-black band across the head with the name reversed out of it,
+    /// the role in the accent and the portrait inside the band; a light page
+    /// under it. The modern product-company résumé.
+    public static let banner = Blueprint(
+        name: "banner",
+        masthead: Masthead(nameSize: 27, headlineSize: 11.2,
+                           panel: Panel(fill: .ink, height: 150, dip: 0),
+                           photo: Photo(diameter: 84, align: .right), rule: nil, gapAfter: 10),
+        heading: Heading(style: .underlined, size: 7.8, colour: .ink),
+        entries: Entries(entryGap: 14, skills: .chips),
+        sectionGap: 16
     )
 
     /// Centred name, ruled headings, no ornament, and a scale that gets a
@@ -1161,63 +1438,13 @@ extension Blueprint {
         sectionGap: 15
     )
 
-    /// Section names hung in the left margin, and nothing else.
-    public static let marginal = Blueprint(
-        name: "marginal",
-        masthead: Masthead(nameSize: 24),
-        column: Column(labelWidth: 104, gutter: 18),
-        heading: Heading(style: .margin, size: 8.6),
-        entries: Entries(dates: .beneath, entryGap: 14),
-        sectionGap: 16
-    )
-
-    /// Highlighter headings. Informal.
-    public static let marked = Blueprint(
-        name: "marked",
-        heading: Heading(style: .marker, size: 12, colour: .ink),
-        entries: Entries(entryGap: 15, skills: .bars),
-        sectionGap: 18
-    )
-
-    /// Headings as rounded tabs, each with a mark.
-    public static let tabbed = Blueprint(
-        name: "tabbed",
-        masthead: Masthead(nameSize: 24, rule: nil),
-        heading: Heading(style: .tab, size: 8.2, colour: .ink, icon: true),
-        entries: Entries(entryGap: 14, skills: .chips),
-        sectionGap: 16
-    )
-
-    /// A coloured panel across the top.
+    /// A coloured panel across the top, dipped, with a portrait.
     public static let plaqued = Blueprint(
         name: "plaqued",
         masthead: Masthead(nameSize: 27, panel: Panel(), photo: Photo(), rule: nil, gapAfter: 10),
         heading: Heading(style: .accentBar, colour: .accent),
         entries: Entries(entryGap: 14, skills: .chips),
         sectionGap: 16
-    )
-
-    /// Dates in a rail down the left, with a tick out to each entry.
-    public static let railed = Blueprint(
-        name: "railed",
-        masthead: Masthead(nameSize: 24),
-        heading: Heading(style: .accentBar),
-        entries: Entries(entryGap: 15),
-        ornament: .rail,
-        sections: [
-            // Chips read better than a list in a column that has already
-            // given a hundred points to the rail.
-            .skills: SectionOverride(entries: EntriesPatch(skills: .chips))
-        ]
-    )
-
-    /// Monospaced labels and dates, proportional prose.
-    public static let console = Blueprint(
-        name: "console",
-        masthead: Masthead(nameSize: 23, tracking: -0.9,
-                           rule: Rule(colour: .ink, thickness: 1), monospaced: true),
-        heading: Heading(style: .terminal, size: 8.2, colour: .ink),
-        entries: Entries(entryGap: 15)
     )
 
     /// Every section on its own rounded panel.
@@ -1284,7 +1511,12 @@ extension Blueprint.Masthead {
             // "rule": null is how you say you do not want one.
             rule: container.contains(.rule) ? try container.maybe(.rule) : defaults.rule,
             monospaced: try container.value(.monospaced, or: defaults.monospaced),
-            gapAfter: try container.value(.gapAfter, or: defaults.gapAfter)
+            gapAfter: try container.value(.gapAfter, or: defaults.gapAfter),
+            nameWeight: try container.value(.nameWeight, or: defaults.nameWeight),
+            nameColour: try container.value(.nameColour, or: defaults.nameColour),
+            headlineItalic: try container.value(.headlineItalic, or: defaults.headlineItalic),
+            separator: try container.value(.separator, or: defaults.separator),
+            contacts: try container.value(.contacts, or: defaults.contacts)
         )
     }
 
@@ -1309,11 +1541,17 @@ extension Blueprint.Masthead {
         try container.encode(rule, forKey: .rule)
         try container.encode(monospaced, forKey: .monospaced)
         try container.encode(gapAfter, forKey: .gapAfter)
+        try container.encode(nameWeight, forKey: .nameWeight)
+        try container.encode(nameColour, forKey: .nameColour)
+        try container.encode(headlineItalic, forKey: .headlineItalic)
+        try container.encode(separator, forKey: .separator)
+        try container.encode(contacts, forKey: .contacts)
     }
 
     enum CodingKeys: String, CodingKey {
         case align, nameSize, uppercase, tracking, headlineSize
         case headlineColour, contactSize, panel, photo, qr, rule, monospaced, gapAfter
+        case nameWeight, nameColour, headlineItalic, separator, contacts
     }
 }
 
@@ -1353,11 +1591,14 @@ extension Blueprint.Rule {
         let defaults = Blueprint.Rule()
         self.init(
             colour: try container.value(.colour, or: defaults.colour),
-            thickness: try container.value(.thickness, or: defaults.thickness)
+            thickness: try container.value(.thickness, or: defaults.thickness),
+            double: try container.value(.double, or: defaults.double),
+            width: try container.value(.width, or: defaults.width),
+            underName: try container.value(.underName, or: defaults.underName)
         )
     }
 
-    enum CodingKeys: String, CodingKey { case colour, thickness }
+    enum CodingKeys: String, CodingKey { case colour, thickness, double, width, underName }
 }
 
 extension Blueprint.Column {
@@ -1368,11 +1609,13 @@ extension Blueprint.Column {
         self.init(
             labelWidth: try container.value(.labelWidth, or: defaults.labelWidth),
             gutter: try container.value(.gutter, or: defaults.gutter),
-            labelAlign: try container.value(.labelAlign, or: defaults.labelAlign)
+            labelAlign: try container.value(.labelAlign, or: defaults.labelAlign),
+            headAtMargin: try container.value(.headAtMargin, or: defaults.headAtMargin),
+            ruled: try container.value(.ruled, or: defaults.ruled)
         )
     }
 
-    enum CodingKeys: String, CodingKey { case labelWidth, gutter, labelAlign }
+    enum CodingKeys: String, CodingKey { case labelWidth, gutter, labelAlign, headAtMargin, ruled }
 }
 
 extension Blueprint.Heading {

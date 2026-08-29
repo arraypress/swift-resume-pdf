@@ -119,8 +119,8 @@ final class CodeTests: XCTestCase {
     }
 
     func testABlueprintWithoutOneDrawsNothing() throws {
-        XCTAssertFalse(Blueprint.ledger.showsCode)
-        XCTAssertNil(try scan(try resume().render(design: Blueprint.ledger)))
+        XCTAssertFalse(Blueprint.plain.showsCode)
+        XCTAssertNil(try scan(try resume().render(design: Blueprint.plain)))
     }
 
     func testItSurvivesJSON() throws {

@@ -192,8 +192,9 @@ final class FidelityTests: XCTestCase {
         let data = try Resume.sample.render(design: blueprint)
         let text = String(data: data, encoding: .isoLatin1) ?? ""
 
-        XCTAssertTrue(text.contains("/Subject (skyline)"),
-                      "a design of your own used to be filed as Ledger")
+        // Filed under its own name, capitalised the way the built-in designs
+        // are — it used to be filed as Ledger.
+        XCTAssertTrue(text.contains("/Subject (Skyline)"), "a design of your own should be filed under its name")
     }
 
     // MARK: Labels by code

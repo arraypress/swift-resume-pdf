@@ -31,9 +31,9 @@ Each pairs with a résumé design, because the two arrive in the same email.
 
 ## Designs written as JSON
 
-A `Blueprint` is a design as data — no Swift, no recompile. These are the starting points `Blueprint.starting` ships, rendered:
+A `Blueprint` is a design as data — no Swift, no recompile. Nine of the fourteen designs above *are* blueprints (`ledger`, `broadsheet`, `timeline`, `margin`, `marker`, `bulletin`, `card`, `terminal`, `banner`), so their files are the ones under designs/. These are the other four starting points `Blueprint.starting` ships, rendered:
 
-[ledger](blueprints/ledger.pdf) · [broadsheet](blueprints/broadsheet.pdf) · [plain](blueprints/plain.pdf) · [register](blueprints/register.pdf) · [marginal](blueprints/marginal.pdf) · [marked](blueprints/marked.pdf) · [tabbed](blueprints/tabbed.pdf) · [plaqued](blueprints/plaqued.pdf) · [carded](blueprints/carded.pdf) · [railed](blueprints/railed.pdf) · [console](blueprints/console.pdf)
+[plain](blueprints/plain.pdf) · [register](blueprints/register.pdf) · [plaqued](blueprints/plaqued.pdf) · [carded](blueprints/carded.pdf)
 
 Plus [entry-cards](blueprints/entry-cards.pdf) — the one ornament no starting point uses, because a panel per entry is a choice about the document rather than a look.
 

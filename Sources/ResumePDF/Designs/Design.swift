@@ -161,23 +161,43 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     /// tool treat "one of the fourteen" and "a blueprint from a file" as the
     /// same kind of thing.
     public var design: any Design {
+        if let blueprint { return blueprint }
         switch self {
-        case .ledger: return Ledger()
-        case .broadsheet: return Broadsheet()
-        case .timeline: return Timeline()
         case .sidebar: return Sidebar()
-        case .margin: return Margin()
         case .nocturne: return Nocturne()
         case .eclipse: return Eclipse()
-        case .bulletin: return Bulletin()
-        case .marker: return Marker()
         case .slate: return Slate()
-        case .card: return Card()
-        case .terminal: return Terminal()
-        case .banner: return Banner()
         case .gazette: return Gazette()
+        default: preconditionFailure("\(rawValue) is neither a blueprint nor compiled")
         }
     }
+
+    /// The design as data, for the nine that are written that way.
+    ///
+    /// A design is a blueprint unless it cannot be. Nine of the fourteen are
+    /// the JSON they would be handed back as — `Blueprint.ledger` *is*
+    /// ledger, not a cousin of it — so editing the design is editing its
+    /// file. The five that are nil need what the vocabulary deliberately
+    /// cannot say: two columns (``sidebar``, ``gazette``), twin masthead
+    /// panels (``slate``), or a page inverted below a band (``nocturne``,
+    /// ``eclipse``).
+    public var blueprint: Blueprint? {
+        switch self {
+        case .ledger: return .ledger
+        case .broadsheet: return .broadsheet
+        case .timeline: return .timeline
+        case .margin: return .margin
+        case .marker: return .marker
+        case .bulletin: return .bulletin
+        case .card: return .card
+        case .terminal: return .terminal
+        case .banner: return .banner
+        case .sidebar, .nocturne, .eclipse, .slate, .gazette: return nil
+        }
+    }
+
+    /// Whether the design is Swift rather than JSON.
+    public var isCompiled: Bool { blueprint == nil }
 }
 
 /// An arrangement of a résumé on a page.
