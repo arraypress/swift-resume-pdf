@@ -353,7 +353,7 @@ extension LetterBlueprint {
             contacts: .panel, photo: Blueprint.Photo(diameter: 74),
             finish: .none, gapAfter: 22
         ),
-        pairsWith: .plaque
+        pairsWith: .banner
     )
 
     /// A centred name over a capped rule.

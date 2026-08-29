@@ -333,7 +333,7 @@ final class LetterBlueprintTests: XCTestCase {
     func testItSaysWhichResumeDesignItSitsBeside() throws {
         // The two documents arrive in the same email.
         XCTAssertEqual(LetterBlueprint.letterheaded.pairsWith, .broadsheet)
-        XCTAssertEqual(try decode(#"{"pairsWith": "swiss"}"#).pairsWith, .swiss)
+        XCTAssertEqual(try decode(#"{"pairsWith": "marker"}"#).pairsWith, .marker)
     }
 }
 

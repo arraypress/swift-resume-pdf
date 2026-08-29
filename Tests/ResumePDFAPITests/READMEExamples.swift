@@ -134,3 +134,22 @@ func readmeBlueprintExample(url: URL, out: URL, resume: Resume) throws {
     let mine = try Blueprint(contentsOf: url)
     try resume.save(to: out, design: mine)
 }
+
+// MARK: - Reading, matching and writing
+
+/// Never called. Compiled.
+func readmeExchangeExamples(url: URL, postingURL: URL, resume: Resume) throws {
+    let posting = try Posting(contentsOf: postingURL)
+    let report = try resume.check(design: .ledger, posting: posting)
+    report.coverage?.missing      // ["Terraform", "Datadog", "ArgoCD"]
+
+    try resume.saveDocx(to: url)                          // one layout, the theme's face and colour
+    let data = resume.docx(theme: Theme(accent: "#1F3A5F"))
+    _ = data
+}
+
+/// Never called. Compiled.
+func readmeJSONResumeExample(url: URL) throws {
+    let resume = try Resume(jsonResumeData: try Data(contentsOf: url))   // a resume.json from jsonresume.org
+    _ = resume
+}

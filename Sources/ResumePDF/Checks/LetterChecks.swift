@@ -43,7 +43,8 @@ extension CoverLetter {
             findings: findings.sorted { $0.severity < $1.severity },
             pages: pages,
             design: design.displayName,
-            region: region
+            region: region,
+            coverage: nil
         )
     }
 }

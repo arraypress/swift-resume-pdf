@@ -208,7 +208,7 @@ final class CheckTests: XCTestCase {
             experience: [Position(role: "Ingenieur", dates: DateRange("2020", "2022"))],
             labels: .german
         )
-        let report = try resume.check(design: .plaque, region: .germany)
+        let report = try resume.check(design: .banner, region: .germany)
         XCTAssertTrue(report.findings.contains { $0.message.contains("none is set") }, messages(report))
     }
 
@@ -222,7 +222,7 @@ final class CheckTests: XCTestCase {
             experience: [Position(role: "Ingenieur", dates: DateRange("2020", "2022"))],
             labels: .german
         )
-        let report = try resume.check(design: .plaque, region: .germany)
+        let report = try resume.check(design: .banner, region: .germany)
 
         XCTAssertFalse(report.findings.contains { $0.message.contains("photograph") }, messages(report))
     }

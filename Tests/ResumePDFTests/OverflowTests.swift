@@ -25,51 +25,6 @@ final class OverflowTests: XCTestCase {
         Sheet(theme: .plain, family: FontFamily(name: ""), labels: .english)
     }
 
-    // MARK: The Swiss name
-
-    func testALongNameIsSizedToTheMeasure() throws {
-        let family = try Typography.family(.inter)
-        let sheet = Sheet(theme: .plain, family: family, labels: .english)
-
-        // Twenty-seven characters — a real name, not a stress fixture. The
-        // old character-count formula left it at 52pt, which drew it two
-        // hundred points past the edge of the page.
-        let name = "Alexandra Konstantinopoulos"
-        let size = Swiss.nameSize(for: name, fitting: sheet.width, on: sheet)
-
-        XCTAssertLessThan(size, 52)
-        XCTAssertLessThanOrEqual(
-            sheet.pdf.width(of: name, size: size, face: sheet.semibold),
-            sheet.width + 0.01,
-            "the name should be sized to fit the measure it is drawn into"
-        )
-    }
-
-    func testAShortNameKeepsTheIdealSize() throws {
-        let family = try Typography.family(.inter)
-        let sheet = Sheet(theme: .plain, family: family, labels: .english)
-
-        XCTAssertEqual(Swiss.nameSize(for: "Alex Moreau", fitting: sheet.width, on: sheet), 52)
-    }
-
-    func testTheSwissPageRendersALongNameWhole() throws {
-        let sample = Resume.sample
-        let resume = Resume(
-            profile: Profile(name: "Alexandra Konstantinopoulos",
-                             headline: sample.profile.headline,
-                             email: sample.profile.email),
-            summary: sample.summary,
-            experience: sample.experience,
-            education: sample.education,
-            skills: sample.skills
-        )
-
-        let document = try resume.document(design: .swiss)
-        _ = document.render()
-        XCTAssertTrue(document.drawnText.contains("Alexandra Konstantinopoulos"),
-                      "a name that fits after resizing should be drawn whole, not truncated")
-    }
-
     // MARK: The sidebar rail
 
     func testAnOverflowingRailLeavesTheMainColumnOnPageOne() {
@@ -136,6 +91,19 @@ final class OverflowTests: XCTestCase {
 
     func testBannerKeepsLongContentInsideTheMargins() throws {
         let document = try Resume.long.document(design: .banner)
+        _ = document.render()
+
+        XCTAssertGreaterThanOrEqual(document.pageCount(), 2)
+        XCTAssertGreaterThanOrEqual(document.remaining(), 0,
+                                    "nothing should be drawn past the bottom margin")
+    }
+
+    // MARK: The eclipse body
+
+    func testEclipsePaintsEveryPageAndKeepsInsideTheMargins() throws {
+        // The band belongs to page one; the pages after it must still be
+        // painted edge to edge, and nothing may run past the bottom margin.
+        let document = try Resume.long.document(design: .eclipse)
         _ = document.render()
 
         XCTAssertGreaterThanOrEqual(document.pageCount(), 2)

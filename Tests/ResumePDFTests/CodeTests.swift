@@ -76,7 +76,7 @@ final class CodeTests: XCTestCase {
             experience: [Position(role: "Engineer", dates: .since("2022"))]
         )
 
-        for design in [DesignKind.ledger, .swiss] {
+        for design in [DesignKind.ledger, .terminal] {
             let text = try XCTUnwrap(
                 PDFDocument(data: try long.render(design: design))?.string
             )
@@ -86,7 +86,7 @@ final class CodeTests: XCTestCase {
     }
 
     func testNothingIsDrawnThroughTheCode() throws {
-        // It was: Swiss drew the code in the contact band and then set the
+        // It was: one design drew the code in the contact band and then set the
         // summary straight over it, because nothing reserved the height.
         for design in DesignKind.allCases where design.showsCode {
             let data = try resume(links: [Link(address)])

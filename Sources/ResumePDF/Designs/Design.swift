@@ -46,15 +46,14 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     /// Striking on a screen, expensive on somebody's office printer.
     case nocturne
 
-    /// A coloured panel across the top with the name reversed out of it.
-    case plaque
+    /// Nocturne without the light band: the whole page reversed, and the
+    /// masthead a step darker than the body rather than a step lighter. The
+    /// darkest page here, and the most expensive to print.
+    case eclipse
 
     /// Section headings as tabs with a mark beside each. Navigable at a
     /// glance, which suits a long CV.
     case bulletin
-
-    /// Alternate sections on a tinted band, labels in the margin.
-    case register
 
     /// Headings struck through with a highlighter. The least formal of them.
     case marker
@@ -62,10 +61,6 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     /// Two panels across the head — summary on one, contact on the other —
     /// and a coloured tab beside every section.
     case slate
-
-    /// A very large name, very small labels, and a great deal of nothing.
-    /// The most confident page here, and the first to run over.
-    case swiss
 
     /// Every entry on a panel of its own. Suits several short roles; unkind
     /// to one long one.
@@ -96,12 +91,10 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .sidebar: return "Sidebar"
         case .margin: return "Margin"
         case .nocturne: return "Nocturne"
-        case .plaque: return "Plaque"
+        case .eclipse: return "Eclipse"
         case .bulletin: return "Bulletin"
-        case .register: return "Register"
         case .marker: return "Marker"
         case .slate: return "Slate"
-        case .swiss: return "Swiss"
         case .card: return "Card"
         case .terminal: return "Terminal"
         case .banner: return "Banner"
@@ -118,12 +111,10 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .sidebar: return "Two columns with a tinted rail. Not machine-readable."
         case .margin: return "Section names hung in the left margin."
         case .nocturne: return "Light masthead, reversed body."
-        case .plaque: return "A coloured panel across the top."
+        case .eclipse: return "The whole page reversed, masthead darker still."
         case .bulletin: return "Headings as tabs, each with a mark."
-        case .register: return "Alternating tinted bands."
         case .marker: return "Highlighter headings. Informal."
         case .slate: return "Twin panels and section tabs."
-        case .swiss: return "An oversized name and a lot of air."
         case .card: return "Every entry on its own panel."
         case .terminal: return "Monospaced labels and dates, proportional prose."
         case .banner: return "A dark masthead band on a light page."
@@ -177,12 +168,10 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .sidebar: return Sidebar()
         case .margin: return Margin()
         case .nocturne: return Nocturne()
-        case .plaque: return Plaque()
+        case .eclipse: return Eclipse()
         case .bulletin: return Bulletin()
-        case .register: return Register()
         case .marker: return Marker()
         case .slate: return Slate()
-        case .swiss: return Swiss()
         case .card: return Card()
         case .terminal: return Terminal()
         case .banner: return Banner()

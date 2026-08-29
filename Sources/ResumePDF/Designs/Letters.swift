@@ -30,7 +30,7 @@ public enum LetterDesign: String, Sendable, CaseIterable, Codable {
     /// `broadsheet`, and the right choice for law and academia.
     case letterhead
 
-    /// Contact details in a filled panel under the name. Pairs with `plaque`.
+    /// Contact details in a filled panel under the name. Pairs with `banner`.
     case panel
 
     /// Centred name, with the body between two rules. Pairs with `marker` and
@@ -59,7 +59,7 @@ public enum LetterDesign: String, Sendable, CaseIterable, Codable {
         switch self {
         case .memo: return .ledger
         case .letterhead: return .broadsheet
-        case .panel: return .plaque
+        case .panel: return .banner
         case .monogram: return .bulletin
         }
     }
@@ -338,7 +338,7 @@ public struct LetterheadLetter: LetterLayout {
 
 // MARK: - Panel
 
-/// Contact details in a filled panel under the name. Pairs with `plaque`.
+/// Contact details in a filled panel under the name. Pairs with `banner`.
 public struct PanelLetter: LetterLayout {
 
     /// Makes the layout; it carries no settings.

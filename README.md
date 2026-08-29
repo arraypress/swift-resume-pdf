@@ -1,6 +1,6 @@
 # Swift Resume PDF
 
-Résumés, CVs and cover letters as PDFs. Sixteen designs, real typography, and the checks that decide whether the thing gets read.
+Résumés, CVs and cover letters as PDFs. Fourteen designs, real typography, and the checks that decide whether the thing gets read.
 
 ```swift
 let resume = Resume(
@@ -37,18 +37,21 @@ This writes the PDF directly, in designs that are honest about which side of tha
 ## Features
 
 - ✒️ **Real typography** — Inter, Source Serif 4 and JetBrains Mono travel with the package, in several weights and italic
-- 🎨 **Sixteen designs** — genuinely different arrangements, not one with the colours changed
+- 🎨 **Fourteen designs** — genuinely different arrangements, not one with the colours changed
 - 🧩 **Designs as JSON** — `Blueprint` and `LetterBlueprint` compose the same parts the built-ins are made of, no recompile
 - ✉️ **Cover letters** — four letter designs, each paired with a résumé one
 - 🌗 **Light, dark and tinted** — a property of the theme, so every design gets all three
 - 🤖 **ATS checks** — column layout, heading names, date formats, ordering, length
+- 🎯 **Against the posting** — which of the posting's own terms are not on the page
 - 🌍 **Regional conventions** — what a Lebenslauf must carry and a US résumé must not
 - 📄 **Multi-page** — footers know the page count, entries do not split from their headings
+- 📥 **JSON Resume** — a `resume.json` from jsonresume.org is read as a `Resume`, the whole v1.0.0 schema
+- 📝 **A Word document** — `docx()`: one layout, real headings and bullets, for the form that takes nothing else
 - 🔗 **Clickable contacts** — every email and URL is a link, because a recruiter reads from a screen
 - 🖼️ **Photographs** — JPEG or PNG, circular, with transparency kept
 - ⬌ **Justified prose** — optional, and only where the measure is wide enough to take it
 - 🔤 **Any Latin, Greek or Cyrillic name** — subset and embedded, and still selectable afterwards
-- 📦 **One dependency** — [swift-text-pdf](https://github.com/arraypress/swift-text-pdf), which has none
+- 📦 **Two dependencies** — [swift-text-pdf](https://github.com/arraypress/swift-text-pdf) and [swift-text-docx](https://github.com/arraypress/swift-text-docx), which have none
 - 🪶 **~50 KB out** — three subset faces and a page of text
 
 ## The designs
@@ -60,12 +63,10 @@ This writes the PDF directly, in designs that are honest about which side of tha
 | `timeline` | Dates in a rail down the left edge. | ✅ |
 | `margin` | Section names hung in the left margin. Book typography. | ✅ |
 | `nocturne` | Light masthead band, the rest of the page reversed. | ✅ |
-| `plaque` | A coloured panel across the top, name knocked out of it. | ✅ |
+| `eclipse` | The whole page reversed, the masthead a step darker still. Nocturne without the light band. | ✅ |
 | `bulletin` | Headings as tabs, each with a mark. Navigable at a glance. | ✅ |
-| `register` | Alternating tinted section bands, labels in the margin. | ✅ |
 | `marker` | Headings struck through with a highlighter. Informal. | ✅ |
 | `slate` | Twin masthead panels and a tab beside every section. | ✅ |
-| `swiss` | An oversized name and a great deal of air. | ✅ |
 | `card` | Every entry on a panel of its own. | ✅ |
 | `terminal` | Monospaced labels and dates, proportional prose. | ✅ |
 | `banner` | A near-black masthead band, name reversed out of it. | ✅ |
@@ -177,7 +178,7 @@ let mine = try Blueprint(contentsOf: url)
 try resume.save(to: out, design: mine)
 ```
 
-Name only what you want changed — everything else takes the default, so two keys is a design. `Blueprint.starting` holds ten to begin from, because nobody writes one from an empty file.
+Name only what you want changed — everything else takes the default, so two keys is a design. `Blueprint.starting` holds eleven to begin from, because nobody writes one from an empty file. `plain` is the one for a first job — centred name, ruled headings, nothing else, at a scale that keeps it to the page a US posting expects.
 
 | Key | What it sets |
 |---|---|
@@ -310,7 +311,7 @@ try letter.save(to: url, design: .panel)
 |---|---|
 | `memo` | `ledger` |
 | `letterhead` | `broadsheet` |
-| `panel` | `plaque` |
+| `panel` | `banner` |
 | `monogram` | `bulletin` |
 
 The greeting and the sign-off are derived when they are not given, and they follow the British convention: *faithfully* to a stranger, *sincerely* to a name. It costs nothing to observe and is noticed by exactly the people who observe it.
@@ -337,6 +338,22 @@ pages: 1   clean: true
 Every finding carries a `detail` explaining why it matters, because a warning nobody understands is a warning people turn off.
 
 None of this is a standard. Vendors parse differently and none of them publish how, so these are the failures that are well attested rather than a specification anybody can be measured against. They are also all things the library can actually see: the checks are about the document, not about whether somebody is a good candidate.
+
+### Against the posting
+
+```swift
+let posting = try Posting(contentsOf: postingURL)
+let report = try resume.check(design: .ledger, posting: posting)
+report.coverage?.missing      // ["Terraform", "Datadog", "ArgoCD"]
+```
+
+The other half of what a tracking system does. Once it has the text, it scores it against the posting — and the crude form of that score, which is the form most of them use, is whether the posting's words appear at all. Kubernetes in the posting and "container orchestration" on the page is a miss, however true the page is.
+
+`Posting` reads an advertisement the way that scorer would. The terms are the hard-edged tokens — the things with capitals, digits, dots and slashes in them: `C++`, `Node.js`, `CI/CD`, `ES6`, `AWS`, `PostgreSQL` — and the proper nouns that sit in lists beside them. The prose around them is not: a company's name and a city live in sentences, and technologies live in bullets. Matching forgives case, a plural, and the spelling variants a scorer forgives — `Node.js`, `NodeJS` and `node js` are one word.
+
+The result is a warning naming what is absent, not a blocker: the document is still read, it just scores lower. What to add is a question of what is true, which no check can answer. `report.coverage` carries the found and missing lists and the ratio.
+
+It is a heuristic and says so. A customer named in a bullet will be read as a requirement now and then, and a technology that opens a sentence in prose will be missed — because an employer's name sits in exactly that place, and the two cannot be told apart. The alternative, a dictionary of every technology, would be out of date the week it shipped.
 
 ### What a heading costs
 
@@ -412,17 +429,55 @@ Three shorthands, for the things written most often:
 
 What is *not* defaulted is the identifying field. A position with no role is not a position, and accepting one would turn a mistyped key into a blank line on somebody's résumé.
 
+## Reading a JSON Resume
+
+```swift
+let resume = try Resume(jsonResumeData: try Data(contentsOf: url))   // a resume.json from jsonresume.org
+```
+
+Thousands of people already have a `resume.json` in the [JSON Resume](https://jsonresume.org/schema) schema, and a tool that made them retype it would not be used. `JSONResume` decodes the whole v1.0.0 schema — every property, checked against the schema in the tests — and `Resume(jsonResume:)` maps it. `JSONResume.looksLikeOne(data)` tells the two shapes apart, so a tool can read either from the same flag.
+
+The mapping is one-way and lossy in a few named places, each of them a decision rather than an omission:
+
+| Schema | Here |
+|---|---|
+| `basics.location.address`, `postalCode` | Not printed. A street address is not wanted on a résumé and never was; the city and region are kept. |
+| `work[].description` | Joins the position's summary. |
+| `work[].url`, `volunteer[].url`, `education[].url`, `certificates[].url` | Not printed. An entry carries no link of its own; the links on a résumé are the person's. `projects[].url` and `publications[].url` are kept, because those *are* the work. |
+| `education[].courses` | The entry's highlights. |
+| `skills[].level` | Not printed. A word ("Master") rather than a number, and a printed proficiency label is the thing recruiters most distrust. |
+| `projects[].entity` | Rides on the role line. `projects[].type` is not printed. |
+| `publications[].summary` | Not printed; there is no equivalent. |
+| `interests[].keywords` | In brackets after the interest. |
+| `references[]` | Each quote, then its name. |
+| `meta`, `$schema` | Read, not printed. About the file, not the person. |
+
+Dates come through as a résumé prints them: `2022-03-15` is `Mar 2022`, `2022` stays `2022`, and a job with no `endDate` is current. The old `company` spelling of a work entry's `name` is read, because files in the wild were written against three versions of the schema and by hand.
+
 ## A code to scan
 
 ```swift
 Profile(name: "Alex Moreau", email: "alex@moreau.dev", qr: "https://moreau.dev/cv")
 ```
 
-Worth the square inch on a printed CV, where a link is a thing to be typed by hand and therefore not followed. `ledger`, `swiss` and `terminal` place one; the rest ignore it, and `check` says which. In a blueprint it is `"masthead": { "qr": 58 }`.
+Worth the square inch on a printed CV, where a link is a thing to be typed by hand and therefore not followed. `ledger` and `terminal` place one; the rest ignore it, and `check` says which. In a blueprint it is `"masthead": { "qr": 58 }`.
 
 Drawn as vector squares in the ink colour, because a scanner wants contrast and a pale brand colour on white is a code that reads on a screen and fails on a photocopy.
 
 **It is not a substitute for the address in writing.** A parser reads text; a code is a picture. `check` reports it when the code is the only place an address appears — a URL no tracking system will ever see is a URL you did not publish.
+
+## As a Word document
+
+```swift
+try resume.saveDocx(to: url)                          // one layout, the theme's face and colour
+let data = resume.docx(theme: Theme(accent: "#1F3A5F"))
+```
+
+For the form that takes nothing else. One layout, not fourteen: the name at the top, headings Word recognises as headings, real bullets, a date against the right margin on the same line as the title — the document a parser reads correctly, and nothing that would confuse one. Every section the PDF carries is written, in the résumé's own order, under the same labels, in the theme's typeface and colour. What is not carried is the photograph and the code: a form that wants a `.docx` wants neither.
+
+Written by [swift-text-docx](https://github.com/arraypress/swift-text-docx), which is to Word what swift-text-pdf is to PDF: a direct writer, no dependencies, the same bytes for the same document. `docxDocument(theme:)` returns the document before it is written, for a caller who wants to add to it.
+
+The tests hand the file to `textutil`, the system's own reader, and check the words come back in the order they went in.
 
 ## Archival copies
 
@@ -436,7 +491,7 @@ The one thing that can break the claim is a run of text no bundled face covers, 
 
 ## Photographs
 
-`Profile.photo` takes a path to a baseline JPEG or a PNG. `plaque`, `bulletin`, `nocturne`, `banner` and `sidebar` have somewhere to put one; the rest ignore it, and `check` says which.
+`Profile.photo` takes a path to a baseline JPEG or a PNG. `bulletin`, `nocturne`, `eclipse`, `banner` and `sidebar` have somewhere to put one; the rest ignore it, and `check` says which.
 
 A PNG's transparency is kept — it becomes a soft mask rather than being flattened onto white, so a cut-out portrait does not arrive on a square. A missing or unreadable file leaves a gap rather than failing the render: a résumé that refuses to build because a photograph moved is worse than one with a space where a face was. `check` says why — a file that cannot be read, a progressive JPEG, or an EXIF rotation the writer will not apply, which prints a phone portrait on its side.
 

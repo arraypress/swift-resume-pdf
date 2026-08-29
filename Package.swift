@@ -14,12 +14,14 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/arraypress/swift-text-pdf.git", from: "0.1.0"),
+        .package(url: "https://github.com/arraypress/swift-text-docx.git", from: "0.1.0"),
     ],
     targets: [
         .target(
             name: "ResumePDF",
             dependencies: [
                 .product(name: "TextPDF", package: "swift-text-pdf"),
+                .product(name: "TextDocx", package: "swift-text-docx"),
             ],
             resources: [
                 .copy("Resources/Fonts"),

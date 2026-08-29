@@ -73,10 +73,14 @@ struct Terminal: Design {
         let profile = resume.profile
         let top = pdf.height() - sheet.theme.density.margin
 
+        // Drawn first so the width it takes is known: a name set without
+        // regard for it ran straight through the code and left it unreadable.
         let code = 58.0
-        sheet.code(profile.qr, x: sheet.right - code, y: top - code, size: code)
+        let coded = sheet.code(profile.qr, x: sheet.right - code, y: top - code, size: code)
+        let measure = coded ? sheet.width - code - 20 : sheet.width
 
-        pdf.textAt(profile.name, x: sheet.left, y: top - 21, size: 23,
+        pdf.textAt(pdf.fit(profile.name, into: measure, size: 23, face: sheet.monoBold),
+                   x: sheet.left, y: top - 21, size: 23,
                    color: sheet.ink, face: sheet.monoBold, tracking: -0.9)
 
         var y = top - 41

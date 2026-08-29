@@ -139,8 +139,8 @@ final class ExampleTests: XCTestCase {
     func testTheOtherShapesOfDocument() throws {
         let cases: [(String, Resume, DesignKind, Theme)] = [
             ("academic-cv", .academicSample, .broadsheet, .classic),
-            ("lebenslauf", Self.lebenslauf, .register, Theme(accent: "#2F4F4F")),
-            ("graduate", Self.graduate, .swiss, Theme(accent: "#B0451F")),
+            ("lebenslauf", Self.lebenslauf, .margin, Theme(accent: "#2F4F4F")),
+            ("graduate", Self.graduate, .card, Theme(accent: "#B0451F")),
         ]
 
         for (name, resume, design, theme) in cases {

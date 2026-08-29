@@ -37,7 +37,9 @@ struct Marker: Design {
         sheet.footer(name: resume.profile.name)
     }
 
-    /// The heading, with a swipe of colour behind its first two-thirds.
+    /// The heading, with a swipe of colour behind it — a little past each
+    /// end, the way a marker overshoots. One that stopped two-thirds of the
+    /// way along read as a misregistered print rather than as a highlight.
     private func highlighted(_ title: String, on sheet: Sheet) {
         let pdf = sheet.pdf
         let size = 12.0
@@ -54,8 +56,8 @@ struct Marker: Design {
             ? sheet.theme.wash.darkened(by: 0.06)
             : sheet.accent.lightened(by: 0.62)
 
-        pdf.rect(x: sheet.left - 3, y: top - size * 1.12,
-                 width: measured * 0.66 + 6, height: size * 1.05, color: swipe)
+        pdf.rect(x: sheet.left - 4, y: top - size * 1.12,
+                 width: measured + 8, height: size * 1.05, color: swipe)
 
         pdf.textAt(label, x: sheet.left, y: top - size * 0.92, size: size,
                    color: sheet.ink, face: sheet.semibold, tracking: tracking)

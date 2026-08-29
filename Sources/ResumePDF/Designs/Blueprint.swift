@@ -15,7 +15,7 @@
 //          a gap
 //      footer
 //
-//  What separates Ledger from Register from Bulletin is not the structure but
+//  What separates Ledger from Marker from Bulletin is not the structure but
 //  a bounded set of choices about it — where the name sits and how big, what a
 //  heading looks like, whether the sections sit in a full-width column or an
 //  inset one with labels hung in the margin, whether anything is drawn behind
@@ -259,8 +259,8 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
             let padding = Ornament.cardPadding
             for entry in Blocks.entriesOrWhole(of: section, in: resume) {
                 let page = sheet.pdf.pageCount()
-                let top = sheet.cursor + padding
-                sheet.gap(2)
+                let top = sheet.cursor
+                sheet.pdf.gap(padding + 2)
 
                 sheet.drawing(on: .against(sheet.wash, accent: sheet.theme.accentColor)) {
                     entry.draw(sheet, style)
@@ -270,10 +270,10 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
                     shading?.add(page: page, x: bodyX, width: bodyWidth,
                                  top: top, bottom: sheet.cursor - padding + 4)
                 }
-                // Clears both panels' padding with daylight to spare — any
-                // less and neighbouring cards touch, which a drawn edge
-                // turns into one long smear of boxes.
-                sheet.gap(padding + 15)
+                // The next panel starts at the cursor: clear this one's bottom
+                // padding with daylight to spare, or neighbouring cards touch
+                // and a drawn edge turns them into one long smear of boxes.
+                sheet.gap(15)
             }
 
         case .rail:
@@ -322,7 +322,7 @@ extension Blueprint {
         public var headlineColour: Paint
         public var contactSize: Double
 
-        /// A filled band behind the masthead, as Plaque and Nocturne have.
+        /// A filled band behind the masthead, as Banner and Nocturne have.
         public var panel: Panel?
 
         /// A round portrait. Only drawn when the profile carries one.
@@ -520,7 +520,7 @@ extension Blueprint {
         public var height: Double
 
         /// How far the bottom edge rises at the sides, in points. Zero is a
-        /// straight cut; anything larger gives the shallow V that Plaque has.
+        /// straight cut; anything larger gives the shallow V the plaqued blueprint has.
         public var dip: Double
 
         public init(fill: Paint = .accent, height: Double = 172, dip: Double = 26) {
@@ -592,7 +592,7 @@ extension Blueprint {
     ///
     /// `labelWidth` of zero is a full-width column — the usual case. Anything
     /// larger insets the text and leaves that much room to its left for
-    /// section labels, which is how Margin, Register and Timeline are laid
+    /// section labels, which is how Margin and Timeline are laid
     /// out. It is still one column in reading order.
     public struct Column: Codable, Sendable, Equatable {
 
@@ -739,14 +739,17 @@ extension Blueprint {
             let bottom = top - height
             let textWidth = pdf.width(of: label, size: size, face: sheet.semibold, tracking: tracking)
 
-            pdf.roundedRect(x: x + badge / 2, y: bottom, width: textWidth + badge + 26,
+            // The badge sits inside the tab's rounded end, concentric with it
+            // — see Bulletin.
+            let textX = x + height + 6
+            pdf.roundedRect(x: x, y: bottom, width: textX - x + textWidth + 13,
                             height: height, radius: height / 2, color: sheet.wash)
 
             if icon {
                 // Filled where the accent can carry a reversed mark, outlined
                 // where it cannot — the same choice the panel makes, for the
                 // same reason.
-                let centreX = x + badge / 2
+                let centreX = x + height / 2
                 let centreY = bottom + height / 2
                 let mark = badge * 0.55
                 let filled = sheet.theme.accentIsDark && !sheet.theme.isMonochrome
@@ -762,13 +765,13 @@ extension Blueprint {
                            size: mark, color: filled ? sheet.theme.page : sheet.accent)
             }
 
-            pdf.textAt(label, x: x + badge + 8, y: bottom + height * 0.35, size: size,
+            pdf.textAt(label, x: textX, y: bottom + height * 0.35, size: size,
                        color: colour.colour(on: sheet), face: sheet.semibold, tracking: tracking)
 
             pdf.move(to: bottom - 10)
         }
 
-        /// A highlighter swipe, ending part-way through the words.
+        /// A highlighter swipe across the words, a little past each end.
         private func drawMarker(_ title: String, on sheet: Sheet, x: Double) {
             let pdf = sheet.pdf
             let label = title.uppercased()
@@ -782,7 +785,7 @@ extension Blueprint {
                 ? sheet.theme.wash.darkened(by: 0.06)
                 : sheet.accent.lightened(by: 0.62)
 
-            pdf.rect(x: x - 3, y: top - size * 1.12, width: measured * 0.66 + 6,
+            pdf.rect(x: x - 4, y: top - size * 1.12, width: measured + 8,
                      height: size * 1.05, color: swipe)
             pdf.textAt(label, x: x, y: top - size * 0.92, size: size,
                        color: colour.colour(on: sheet), face: sheet.semibold, tracking: tracking)
@@ -987,7 +990,10 @@ extension Blueprint {
 
             let pdf = sheet.pdf
             let page = pdf.pageCount()
-            let top = pdf.cursor() + 13
+            // From the cursor down, with the words inset — a panel that
+            // reached up into the heading's gap touched the label above it.
+            let top = pdf.cursor()
+            pdf.gap(13)
 
             // Drawn with a palette derived from the shading, so a chip's own
             // wash steps away from the wash it sits on rather than vanishing
@@ -1133,7 +1139,7 @@ extension Blueprint {
     /// design from an empty file, and "ledger with a marker heading and chips"
     /// is how one actually gets made.
     public static let starting: [Blueprint] = [
-        .ledger, .broadsheet, .register, .marginal, .marked,
+        .ledger, .broadsheet, .plain, .register, .marginal, .marked,
         .tabbed, .plaqued, .carded, .railed, .console,
     ]
 
@@ -1147,6 +1153,18 @@ extension Blueprint {
                            headlineSize: 10.4, headlineColour: .muted),
         heading: Heading(style: .centred, size: 7.4),
         typeface: .serif
+    )
+
+    /// Centred name, ruled headings, no ornament, and a scale that gets a
+    /// first job onto one page. The shape every careers service hands out,
+    /// set properly: the one to start from when the posting says one page.
+    public static let plain = Blueprint(
+        name: "plain",
+        masthead: Masthead(align: .centre, nameSize: 22, headlineSize: 9.6, headlineColour: .muted,
+                           contactSize: 8.2, rule: nil, gapAfter: 10),
+        heading: Heading(size: 9.6, colour: .ink),
+        entries: Entries(roleSize: 9.6, bodySize: 8.8, detailSize: 8.4, dateSize: 8.2, entryGap: 7),
+        sectionGap: 9
     )
 
     /// Alternating tinted bands, labels hung in the margin.

@@ -85,6 +85,9 @@ public struct Report: Sendable, Equatable, Codable {
     public let design: String
     public let region: Region
 
+    /// Which of the posting's terms the page carries, when one was given.
+    public let coverage: Coverage?
+
     /// Nothing that would stop it being read.
     public var isClean: Bool { !findings.contains { $0.severity == .blocker } }
 
@@ -102,12 +105,17 @@ extension Resume {
     /// Rendering is part of the check rather than beside it, because the two
     /// most useful facts — how many pages it runs to, and whether the design
     /// can be parsed at all — are properties of the finished document.
+    /// - Parameter posting: The job posting, when there is one. Its terms
+    ///   are matched against the page and the ones that are absent are
+    ///   reported — the half of a tracking system's work that happens after
+    ///   the parse.
     public func check(
         design: DesignKind = .ledger,
         theme: Theme = .plain,
-        region: Region = .international
+        region: Region = .international,
+        posting: Posting? = nil
     ) throws -> Report {
-        try check(design: design.design, theme: theme, region: region)
+        try check(design: design.design, theme: theme, region: region, posting: posting)
     }
 
     /// The same, for a design of your own.
@@ -119,7 +127,8 @@ extension Resume {
     public func check(
         design: any Design,
         theme: Theme = .plain,
-        region: Region = .international
+        region: Region = .international,
+        posting: Posting? = nil
     ) throws -> Report {
         let document = try document(design: design, theme: theme)
         _ = document.render()
@@ -129,11 +138,15 @@ extension Resume {
         findings += region.check(self, design: design, pages: pages)
         findings += ATS.substitutions(in: document)
 
+        let coverage = posting.map { coverage(of: $0) }
+        if let coverage { findings += ATS.coverage(coverage) }
+
         return Report(
             findings: findings.sorted { $0.severity < $1.severity },
             pages: pages,
             design: design.displayName,
-            region: region
+            region: region,
+            coverage: coverage
         )
     }
 }
@@ -516,5 +529,48 @@ public enum ATS {
                 } ?? "No bundled face covers these characters, so they print as question marks."
             )
         }
+    }
+}
+
+// MARK: - The posting
+
+extension ATS {
+
+    /// What the coverage of a posting comes to, as findings.
+    ///
+    /// A miss is a warning and not a blocker: the document is still read,
+    /// it just scores lower — and the fix is a matter of what is true, which
+    /// no check can decide.
+    static func coverage(_ coverage: Coverage) -> [Finding] {
+        guard coverage.total > 0 else {
+            return [Finding(
+                .note,
+                "Nothing in the posting reads as a term.",
+                "No technologies, products or proper nouns could be picked out to match "
+                    + "against — either the posting names none, or this is not the posting."
+            )]
+        }
+
+        guard !coverage.missing.isEmpty else {
+            return [Finding(
+                .note,
+                "Every term the posting names is on the page.",
+                "\(coverage.total) terms were read out of the posting and all of them appear "
+                    + "here. A scorer that counts words has nothing to hold against it."
+            )]
+        }
+
+        let shown = coverage.missing.prefix(8).joined(separator: ", ")
+        let rest = coverage.missing.count - min(coverage.missing.count, 8)
+        let list = rest > 0 ? "\(shown), and \(rest) more" : shown
+
+        return [Finding(
+            .warning,
+            "\(coverage.missing.count) of \(coverage.total) terms from the posting are not on the page: \(list).",
+            "A tracking system scores the text against the posting's own words, and these "
+                + "appear there and not here. Add the ones that are true of you, in the posting's "
+                + "spelling — a parser does not know that container orchestration means Kubernetes. "
+                + "One that is not true of you is not a keyword problem."
+        )]
     }
 }

@@ -69,8 +69,11 @@ struct Card: Design {
             // pill nobody can see.
             for entry in Cards.entries(of: section, in: resume) {
                 let page = pdf.pageCount()
-                let top = pdf.cursor() + padding
-                pdf.gap(2)
+                // The panel starts where the heading left off and the words
+                // sit inside its padding. Reaching up into the heading's gap
+                // instead put the panel's top edge on the label's baseline.
+                let top = pdf.cursor()
+                pdf.gap(padding + 2)
 
                 sheet.drawing(on: .against(fill, accent: sheet.theme.accentColor)) {
                     entry(sheet, style)
@@ -80,11 +83,11 @@ struct Card: Design {
                     panels.add(page: page, x: sheet.left, width: sheet.width,
                                top: top, bottom: pdf.cursor() - padding + 4)
                 }
-                // The gap has to clear both panels' padding and leave daylight
-                // between the edges: at padding + 6 consecutive cards actually
-                // overlapped by three points, which the old faint wash hid and
-                // a drawn edge turns into one long smear of boxes.
-                sheet.gap(padding + 15)
+                // The next panel starts at the cursor, so this has to clear the
+                // bottom padding and leave daylight between the edges — any
+                // less and consecutive cards touch, which a drawn edge turns
+                // into one long smear of boxes.
+                sheet.gap(15)
             }
             sheet.gap(8)
         }

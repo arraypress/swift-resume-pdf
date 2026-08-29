@@ -439,6 +439,6 @@ extension RenderTests {
         // A résumé that refuses to render because a JPEG moved is worse than
         // one with a gap where a face was.
         let resume = withPhoto("/no/such/portrait.jpg")
-        XCTAssertNoThrow(try resume.render(design: .plaque))
+        XCTAssertNoThrow(try resume.render(design: .banner))
     }
 }

@@ -48,35 +48,39 @@ struct Bulletin: Design {
         let top = pdf.cursor()
         let bottom = top - height
 
-        // The tab runs from behind the badge to a measured width, so it frames
-        // the words rather than the column.
+        // The tab is measured to the words, so it frames them rather than the
+        // column. The badge sits inside the tab's rounded end, concentric with
+        // it: one that began at the badge's centre showed its own edge through
+        // the ring.
         let size = 8.2
         let label = title.uppercased()
         let tracking = size * 0.14
         let textWidth = pdf.width(of: label, size: size, face: sheet.semibold, tracking: tracking)
+        let centreX = sheet.left + height / 2
+        let centreY = bottom + height / 2
+        let textX = sheet.left + height + 6
 
         pdf.roundedRect(
-            x: sheet.left + badge / 2, y: bottom,
-            width: textWidth + badge + 26, height: height,
+            x: sheet.left, y: bottom,
+            width: textX - sheet.left + textWidth + 13, height: height,
             radius: height / 2, color: sheet.wash
         )
 
         let filled = sheet.theme.accentIsDark && !sheet.theme.isMonochrome
         if filled {
-            pdf.circle(x: sheet.left + badge / 2, y: bottom + height / 2,
-                       radius: badge / 2, color: sheet.accent)
+            pdf.circle(x: centreX, y: centreY, radius: badge / 2, color: sheet.accent)
         } else {
-            pdf.ring(x: sheet.left + badge / 2, y: bottom + height / 2,
-                     radius: badge / 2 - 0.5, thickness: 1.1, color: sheet.accent)
+            pdf.ring(x: centreX, y: centreY, radius: badge / 2 - 0.5,
+                     thickness: 1.1, color: sheet.accent)
         }
 
         sheet.icon(
             icon,
-            x: sheet.left + badge / 2 - 5.5, y: bottom + height / 2 - 5.5, size: 11,
+            x: centreX - 5.5, y: centreY - 5.5, size: 11,
             color: filled ? sheet.theme.page : sheet.accent
         )
 
-        pdf.textAt(label, x: sheet.left + badge + 10, y: bottom + (height - size * 0.72) / 2,
+        pdf.textAt(label, x: textX, y: bottom + (height - size * 0.72) / 2,
                    size: size, color: sheet.ink, face: sheet.semibold, tracking: tracking)
 
         pdf.move(to: bottom)
