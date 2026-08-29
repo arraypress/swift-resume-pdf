@@ -1,0 +1,61 @@
+{
+  "column" : {
+    "gutter" : 0,
+    "headAtMargin" : true,
+    "labelAlign" : "right",
+    "labelWidth" : 0,
+    "ruled" : false
+  },
+  "entries" : {
+    "accentRoles" : false,
+    "bodySize" : 9.4,
+    "dateSize" : 8.5,
+    "dates" : "besideTitle",
+    "detailSize" : 9.2,
+    "entryGap" : 15,
+    "roleSize" : 10.4,
+    "skills" : "list"
+  },
+  "footer" : true,
+  "heading" : {
+    "colour" : "muted",
+    "icon" : false,
+    "size" : 7.6,
+    "style" : "accentBar"
+  },
+  "masthead" : {
+    "align" : "left",
+    "contactSize" : 8.6,
+    "contacts" : "flow",
+    "gapAfter" : 19,
+    "headlineColour" : "muted",
+    "headlineItalic" : false,
+    "headlineSize" : 10.5,
+    "monospaced" : false,
+    "nameColour" : "ink",
+    "nameSize" : 24,
+    "nameWeight" : "semibold",
+    "qr" : 0,
+    "rule" : {
+      "colour" : "accent",
+      "double" : false,
+      "thickness" : 2,
+      "underName" : false,
+      "width" : 96
+    },
+    "separator" : "·",
+    "tracking" : -0.35,
+    "twin" : false,
+    "uppercase" : false
+  },
+  "name" : "timeline",
+  "ornament" : "rail",
+  "sectionGap" : 17,
+  "sections" : {
+
+  },
+  "skip" : [
+
+  ],
+  "typeface" : "sans"
+}

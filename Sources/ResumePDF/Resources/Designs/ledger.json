@@ -1,0 +1,61 @@
+{
+  "column" : {
+    "gutter" : 0,
+    "headAtMargin" : false,
+    "labelAlign" : "right",
+    "labelWidth" : 0,
+    "ruled" : false
+  },
+  "entries" : {
+    "accentRoles" : false,
+    "bodySize" : 9.4,
+    "dateSize" : 8.5,
+    "dates" : "besideTitle",
+    "detailSize" : 9.2,
+    "entryGap" : 13,
+    "roleSize" : 10.4,
+    "skills" : "list"
+  },
+  "footer" : true,
+  "heading" : {
+    "colour" : "muted",
+    "icon" : false,
+    "size" : 7.6,
+    "style" : "ruled"
+  },
+  "masthead" : {
+    "align" : "left",
+    "contactSize" : 8.7,
+    "contacts" : "flow",
+    "gapAfter" : 19,
+    "headlineColour" : "accent",
+    "headlineItalic" : false,
+    "headlineSize" : 10.8,
+    "monospaced" : false,
+    "nameColour" : "ink",
+    "nameSize" : 25.5,
+    "nameWeight" : "semibold",
+    "qr" : 58,
+    "rule" : {
+      "colour" : "ink",
+      "double" : false,
+      "thickness" : 0.9,
+      "underName" : false,
+      "width" : 0
+    },
+    "separator" : "·",
+    "tracking" : -0.4,
+    "twin" : false,
+    "uppercase" : false
+  },
+  "name" : "ledger",
+  "ornament" : "none",
+  "sectionGap" : 17,
+  "sections" : {
+
+  },
+  "skip" : [
+
+  ],
+  "typeface" : "sans"
+}

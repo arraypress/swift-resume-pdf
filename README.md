@@ -73,7 +73,7 @@ This writes the PDF directly, in designs that are honest about which side of tha
 | `sidebar` | Tinted rail carrying contact and skills. | ❌ |
 | `gazette` | Serif two columns behind a hairline. Academic, executive. | ❌ |
 
-Nine of the fourteen are blueprints — designs written as JSON, in the vocabulary below — and `Blueprint.ledger` *is* `ledger`, not a cousin of it, so editing a design is editing its file. The five that are Swift (`sidebar`, `gazette`, `slate`, `nocturne`, `eclipse`) need what that vocabulary deliberately cannot say. `DesignKind.blueprint` hands back the JSON for the nine and nil for the five.
+Every one of them is a JSON file in the package's resources (`Resources/Designs/`), written in the vocabulary below, and `Blueprint.ledger` *is* `ledger` — not a cousin of it — so editing a design is editing its file. The library is a renderer and a vocabulary; the designs are data it reads. `DesignKind.blueprint` hands any of them back.
 
 `sidebar` and `gazette` are the two a tracking system cannot read. That is not a bug to be fixed later — two columns and machine-readability are the same trade-off seen from either end. Send them where a person will open them, and use one of the others for anything that goes through a form. `check` says so rather than leaving it to be discovered.
 
@@ -180,16 +180,17 @@ let mine = try Blueprint(contentsOf: url)
 try resume.save(to: out, design: mine)
 ```
 
-Name only what you want changed — everything else takes the default, so two keys is a design. `Blueprint.starting` holds thirteen to begin from — the nine designs that are blueprints, plus four that are only starting points — because nobody writes one from an empty file. `plain` is the one for a first job — centred name, ruled headings, nothing else, at a scale that keeps it to the page a US posting expects.
+Name only what you want changed — everything else takes the default, so two keys is a design. `Blueprint.starting` holds eighteen to begin from — the fourteen designs, plus four that are only starting points — because nobody writes one from an empty file. `plain` is the one for a first job — centred name, ruled headings, nothing else, at a scale that keeps it to the page a US posting expects.
 
 | Key | What it sets |
 |---|---|
 | `typeface` | `sans` or `serif` — a design whose identity is a serif can say so |
-| `masthead` | align, nameSize, nameWeight, nameColour, uppercase, tracking, headline (size, colour, italic), contacts (`flow` or `labelled`), separator, `panel`, `photo`, `qr`, `rule` (colour, thickness, `double`, `width`, `underName`), `monospaced` |
+| `masthead` | align, nameSize, nameWeight, nameColour, uppercase, tracking, headline (size, colour, italic), contacts (`flow` or `labelled`), separator, `panel`, `photo`, `qr`, `rule` (colour, thickness, `double`, `width`, `underName`), `monospaced`, `twin` panels, a painted `body` and `band` |
 | `column` | full width, or inset with labels hung in the margin; `headAtMargin` keeps the head and headings at the page edge; `ruled` draws a hairline above every section |
 | `heading` | `ruled`, `plain`, `accentBar`, `centred`, `tab`, `marker`, `margin`, `terminal`, `underlined` — size, colour, icon |
 | `entries` | date placement, four sizes, entry gap, accent roles, `list`/`chips`/`bars`/`dots` skills |
-| `ornament` | `none`, `bands`, `cards`, `entryCards`, `rail` |
+| `ornament` | `none`, `bands`, `cards`, `entryCards`, `rail`, `tabs` |
+| `side` | a second column: width, edge, the sections it carries, a `rail` fill or a hairline divider, the masthead inside it or above both |
 | `sections` | any of the above, for one section only |
 | `palette` | theme colours this design overrides |
 
@@ -205,11 +206,11 @@ A section can be set differently from the rest, which is a decision the built-in
 
 An override changes only what it names — the 11pt roles above survive into the skills section, because a patch of defaults would quietly undo the design.
 
-Colours are named (`accent`, `ink`, `muted`, `wash`, `hairline`, `page`) or given as hex. Named ones follow the theme, so a blueprint works under whatever accent somebody sets rather than pinning one into it.
+Colours are named (`accent`, `ink`, `muted`, `wash`, `hairline`, `page`, and `rail`, `inverse`, `dark`, `darkest` for a tinted column or a painted body) or given as hex. Named ones follow the theme, so a blueprint works under whatever accent somebody sets rather than pinning one into it.
 
-What is still not expressible, and why: `sidebar`'s and `gazette`'s second columns (deliberately — see above), `slate`'s twin masthead panels, and the inverted body of `nocturne` and `eclipse`. Everything else the designs do is written as data — because the other nine designs *are* this data.
+Nothing the designs do is outside this vocabulary, because the designs *are* this data — including the two-column pair. A `side` is the one key that produces a page a parser reads wrong, and a blueprint that has one is reported by `check` exactly as `sidebar` and `gazette` are.
 
-**There is no layout language here** — no boxes, no coordinates, no expressions. A general one lets somebody build a résumé that overlaps itself, and its failure mode is a document that renders looking wrong rather than an error saying what is wrong. Composition of known-good parts fails differently: every combination of these choices produces a page that reads, and none of them can produce a two-column document that a parser reads out of order. That is what makes the format safe to hand somebody.
+**There is no layout language here** — no boxes, no coordinates, no expressions. A general one lets somebody build a résumé that overlaps itself, and its failure mode is a document that renders looking wrong rather than an error saying what is wrong. Composition of known-good parts fails differently: every combination of these choices produces a page that reads. The one that a tracking system reads wrong — a `side` column — is not hidden from the format; it is the thing `check` exists to name. That is what makes the format safe to hand somebody: not that it cannot say the wrong thing, but that everything it says is checked.
 
 A blueprint is checked exactly like a compiled design — `check(design:)` takes any `Design` — because an extension point that skips the checks is a hole in them.
 

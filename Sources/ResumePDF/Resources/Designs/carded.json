@@ -1,0 +1,55 @@
+{
+  "column" : {
+    "gutter" : 0,
+    "headAtMargin" : false,
+    "labelAlign" : "right",
+    "labelWidth" : 0,
+    "ruled" : false
+  },
+  "entries" : {
+    "accentRoles" : false,
+    "bodySize" : 9.4,
+    "dateSize" : 8.5,
+    "dates" : "besideTitle",
+    "detailSize" : 9.2,
+    "entryGap" : 12,
+    "roleSize" : 10.4,
+    "skills" : "chips"
+  },
+  "footer" : true,
+  "heading" : {
+    "colour" : "accent",
+    "icon" : false,
+    "size" : 8.2,
+    "style" : "plain"
+  },
+  "masthead" : {
+    "align" : "left",
+    "contactSize" : 8.7,
+    "contacts" : "flow",
+    "gapAfter" : 19,
+    "headlineColour" : "accent",
+    "headlineItalic" : false,
+    "headlineSize" : 10.8,
+    "monospaced" : false,
+    "nameColour" : "ink",
+    "nameSize" : 25,
+    "nameWeight" : "semibold",
+    "qr" : 0,
+    "rule" : null,
+    "separator" : "·",
+    "tracking" : -0.4,
+    "twin" : false,
+    "uppercase" : false
+  },
+  "name" : "carded",
+  "ornament" : "cards",
+  "sectionGap" : 14,
+  "sections" : {
+
+  },
+  "skip" : [
+
+  ],
+  "typeface" : "sans"
+}

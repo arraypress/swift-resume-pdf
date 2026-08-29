@@ -31,7 +31,7 @@ Each pairs with a résumé design, because the two arrive in the same email.
 
 ## Designs written as JSON
 
-A `Blueprint` is a design as data — no Swift, no recompile. Nine of the fourteen designs above *are* blueprints (`ledger`, `broadsheet`, `timeline`, `margin`, `marker`, `bulletin`, `card`, `terminal`, `banner`), so their files are the ones under designs/. These are the other four starting points `Blueprint.starting` ships, rendered:
+A `Blueprint` is a design as data — no Swift, no recompile. Every design above *is* one: a JSON file in the package's `Resources/Designs/`, rendered under designs/. These are the other four starting points `Blueprint.starting` ships, rendered:
 
 [plain](blueprints/plain.pdf) · [register](blueprints/register.pdf) · [plaqued](blueprints/plaqued.pdf) · [carded](blueprints/carded.pdf)
 

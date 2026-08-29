@@ -105,6 +105,10 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
     /// stops one step short.
     public var sections: [Section: SectionOverride]
 
+    /// A second column, carrying the sections it names. The one thing in
+    /// this vocabulary a tracking system reads wrong — see ``Side``.
+    public var side: Side?
+
     public init(
         name: String,
         masthead: Masthead = Masthead(),
@@ -117,7 +121,8 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
         skip: [Section] = [],
         palette: PaletteOverride? = nil,
         typeface: Face = .sans,
-        sections: [Section: SectionOverride] = [:]
+        sections: [Section: SectionOverride] = [:],
+        side: Side? = nil
     ) {
         self.name = name
         self.masthead = masthead
@@ -131,6 +136,7 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
         self.palette = palette
         self.typeface = typeface
         self.sections = sections
+        self.side = side
     }
 
     /// The families a blueprint can ask for, by name.
@@ -180,7 +186,7 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
     /// Always. There is no way to say "two columns" in this format, which is
     /// what makes it safe to hand somebody: a design written as data cannot
     /// produce a document a tracking system reads out of order.
-    public var isSingleColumn: Bool { true }
+    public var isSingleColumn: Bool { side == nil }
 
     /// Whether the masthead was told to place a portrait.
     public var showsPhoto: Bool { masthead.photo != nil }
@@ -201,6 +207,11 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
     }
 
     private func draw(_ resume: Resume, on sheet: Sheet) {
+        if let side {
+            drawWithSide(side, resume, on: sheet)
+            return
+        }
+
         let rail = ornament == .rail
         let labelWidth = rail && column.labelWidth == 0 ? Column.railWidth : column.labelWidth
         let gutter = rail && column.gutter == 0 ? Column.railGutter : column.gutter
@@ -213,12 +224,16 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
         let headX = column.headAtMargin ? sheet.left : bodyX
         let headWidth = column.headAtMargin ? sheet.width : bodyWidth
 
-        masthead.draw(resume, on: sheet, x: headX, width: headWidth,
-                      labelWidth: labelWidth, labelAlign: column.labelAlign)
+        // A masthead that paints the body hands back the palette the body is
+        // to be drawn in; the rest of the page is set inside it.
+        let body = masthead.draw(resume, on: sheet, x: headX, width: headWidth,
+                                 labelWidth: labelWidth, labelAlign: column.labelAlign)
 
         let shading = ornament.prepare(on: sheet)
-        let drawn = resume.populated().filter { !skip.contains($0) }
+        // Twin panels carry the summary in the masthead, so it is not a section.
+        let drawn = resume.populated().filter { !skip.contains($0) && !(masthead.twin && $0 == .summary) }
 
+        sheet.drawing(on: body) {
         for (index, section) in drawn.enumerated() {
             let local = sections[section]
             let sectionHeading = local?.heading?.applied(to: heading) ?? heading
@@ -256,8 +271,153 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
             draw(section, of: resume, on: sheet, style: style, index: index,
                  shading: shading, bodyX: bodyX, bodyWidth: bodyWidth, labelWidth: labelWidth)
         }
+        }
+
+        if footer { sheet.footer(name: resume.profile.name, palette: body) }
+    }
+
+    // MARK: A second column
+
+    /// The page in two columns: the side carrying the sections it names, the
+    /// main column the rest — and any side section that would not fit on
+    /// page one, because a rail lives on page one and the pages after it
+    /// carry the main column alone.
+    private func drawWithSide(_ side: Side, _ resume: Resume, on sheet: Sheet) {
+        let pdf = sheet.pdf
+        let margin = sheet.theme.density.margin
+        let pageWidth = pdf.width()
+        let filled = side.fill != nil
+
+        // Where the two columns sit. A filled rail runs from the page edge
+        // and its words are inset from it; an unfilled column sits inside
+        // the margins like everything else.
+        let sideX: Double, sideWidth: Double, mainX: Double, mainWidth: Double
+        switch (side.edge, filled) {
+        case (.left, true):
+            sideX = side.inset; sideWidth = side.width - side.inset * 2
+            mainX = side.width + side.gutter; mainWidth = pageWidth - mainX - margin
+        case (.right, true):
+            sideX = pageWidth - side.width + side.inset; sideWidth = side.width - side.inset * 2
+            mainX = sheet.left; mainWidth = pageWidth - side.width - side.gutter - sheet.left
+        case (.left, false):
+            sideX = sheet.left; sideWidth = side.width
+            mainX = sheet.left + side.width + side.gutter; mainWidth = sheet.width - side.width - side.gutter
+        case (.right, false):
+            sideX = sheet.right - side.width; sideWidth = side.width
+            mainX = sheet.left; mainWidth = sheet.width - side.width - side.gutter
+        }
+
+        if let fill = side.fill {
+            let tint = fill.colour(on: sheet)
+            let railX = side.edge == .left ? 0 : pageWidth - side.width
+            let railWidth = side.width
+            sheet.background { doc, _, _ in
+                doc.rect(x: railX, y: 0, width: railWidth, height: doc.height(), color: tint)
+            }
+        }
+
+        let pageTop = pdf.height() - margin
+        let top: Double
+        switch side.head {
+        case .inside:
+            top = pageTop
+            drawRailHead(resume, on: sheet, side: side, x: sideX, width: sideWidth, top: pageTop)
+        case .above:
+            _ = masthead.draw(resume, on: sheet, x: sheet.left, width: sheet.width)
+            top = pdf.cursor()
+            pdf.move(to: top)
+        }
+
+        if side.divider {
+            let x = side.edge == .left ? mainX - side.gutter / 2 : sideX - side.gutter / 2
+            pdf.line(from: x, top, to: x, margin, color: sheet.hairline, thickness: 0.6)
+        }
+
+        // The side's sections, each measured on a scratch sheet first: one
+        // that would run past page one is moved to the main column rather
+        // than continued down a rail that is not there on page two.
+        var moved: [Section] = []
+        let sideStyle = side.entries.style(x: sideX, width: sideWidth)
+        let wanted = resume.populated().filter { !skip.contains($0) }
+
+        for section in wanted where side.sections.contains(section) {
+            let scratch = Sheet(theme: sheet.theme, family: sheet.family, labels: sheet.labels)
+            scratch.pdf.move(to: sheet.cursor)
+            side.heading.draw(resume.heading(for: section), section: section, on: scratch,
+                              x: sideX, width: sideWidth, labelWidth: 0, labelAlign: .right)
+            Blocks.render(section, of: resume, on: scratch, style: sideStyle)
+
+            guard scratch.pdf.pageCount() <= 1 else {
+                moved.append(section)
+                continue
+            }
+
+            side.heading.draw(resume.heading(for: section), section: section, on: sheet,
+                              x: sideX, width: sideWidth, labelWidth: 0, labelAlign: .right)
+            Blocks.render(section, of: resume, on: sheet, style: sideStyle)
+            sheet.gap(13)
+        }
+
+        pdf.move(to: top)
+        let mainStyle = entries.style(x: mainX, width: mainWidth)
+        var index = 0
+        for section in wanted where !side.sections.contains(section) || moved.contains(section) {
+            if index > 0 { sheet.gap(sectionGap) }
+            heading.draw(resume.heading(for: section), section: section, on: sheet,
+                         x: mainX, width: mainWidth, labelWidth: 0, labelAlign: .right)
+            Blocks.render(section, of: resume, on: sheet, style: mainStyle)
+            index += 1
+        }
 
         if footer { sheet.footer(name: resume.profile.name) }
+    }
+
+    /// The masthead a rail carries: a portrait, the name wrapped to the
+    /// rail's width, and the contact details one per line under a label.
+    private func drawRailHead(
+        _ resume: Resume, on sheet: Sheet, side: Side, x: Double, width: Double, top: Double
+    ) {
+        let pdf = sheet.pdf
+        let profile = resume.profile
+        pdf.move(to: top)
+
+        if masthead.photo != nil, Sheet.photo(at: profile.photo) != nil {
+            sheet.portrait(profile.photo, x: x, y: top - width, diameter: width)
+            pdf.move(to: top - width - 16)
+        }
+
+        sheet.paragraph(profile.name, x: x, width: width, size: 18.5, face: sheet.semibold)
+        if !profile.headline.isEmpty {
+            sheet.rigidGap(6)
+            sheet.paragraph(profile.headline, x: x, width: width, size: 8.8, color: sheet.muted)
+        }
+        sheet.gap(16)
+
+        let tint = side.heading.colour.colour(on: sheet)
+        let contact = profile.contactEntries()
+        if !contact.isEmpty {
+            sheet.sectionHeading("Contact", x: x, width: width, style: .plain, color: tint, size: side.heading.size)
+            for entry in contact {
+                let lineTop = sheet.cursor
+                sheet.paragraph(entry.text, x: x, width: width, size: 8.6, color: sheet.ink)
+                if !entry.url.isEmpty {
+                    pdf.link(entry.url, x: x, y: sheet.cursor, width: width, height: lineTop - sheet.cursor)
+                }
+                sheet.rigidGap(2)
+            }
+            sheet.gap(13)
+        }
+
+        let particulars = profile.particulars()
+        if !particulars.isEmpty {
+            sheet.sectionHeading("Details", x: x, width: width, style: .plain, color: tint, size: side.heading.size)
+            for item in particulars {
+                sheet.line(item.label, x: x, width: width, size: 7.8, face: sheet.regular, color: sheet.muted)
+                sheet.paragraph(item.value, x: x, width: width, size: 8.6)
+                sheet.rigidGap(3)
+            }
+            sheet.gap(13)
+        }
     }
 
     /// One section's entries, however this design treats them.
@@ -305,6 +465,19 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
                 Blocks.railed(entry, on: sheet, style: style, labels: resume.labels,
                               railX: sheet.left, railWidth: labelWidth,
                               gutter: bodyX - sheet.left - labelWidth)
+            }
+
+        case .tabs:
+            // The bar runs from just above the entries to just below them,
+            // and only when the section stayed on one page: a bar whose ends
+            // are on different sheets of paper is not a bar.
+            let pdf = sheet.pdf
+            let page = pdf.pageCount()
+            let top = pdf.cursor() + 16
+            Blocks.render(section, of: resume, on: sheet, style: style)
+            if pdf.pageCount() == page {
+                pdf.rect(x: sheet.left, y: pdf.cursor() + 4, width: labelWidth,
+                         height: top - pdf.cursor() - 4, color: sheet.accent)
             }
 
         case .none, .bands, .cards:
@@ -381,6 +554,20 @@ extension Blueprint {
         /// column with a margin to hang it in, and flows without one.
         public var contacts: Contacts
 
+        /// Two panels under the name — the summary on a washed one, the
+        /// contact details with their marks on a dark one — in place of the
+        /// contact line. The summary is then not drawn as a section.
+        public var twin: Bool
+
+        /// The page below the masthead painted this colour, with every
+        /// block drawn in a palette derived from it. `inverse` is the page
+        /// reversed; `dark` is near-black whatever the theme.
+        public var body: Paint?
+
+        /// The masthead's own colour when the body is painted. Nil keeps
+        /// the page's, so the head is the one light thing on a dark page.
+        public var band: Paint?
+
         public enum Weight: String, Codable, Sendable, CaseIterable {
             case regular, semibold
         }
@@ -407,7 +594,10 @@ extension Blueprint {
             nameColour: Paint = .ink,
             headlineItalic: Bool = false,
             separator: String = "·",
-            contacts: Contacts = .flow
+            contacts: Contacts = .flow,
+            twin: Bool = false,
+            body: Paint? = nil,
+            band: Paint? = nil
         ) {
             self.align = align
             self.nameSize = nameSize
@@ -427,14 +617,64 @@ extension Blueprint {
             self.headlineItalic = headlineItalic
             self.separator = separator
             self.contacts = contacts
+            self.twin = twin
+            self.body = body
+            self.band = band
         }
 
+        /// Draws the masthead and leaves the cursor where the sections start.
         /// - Parameter labelWidth: The margin column's width, for a labelled
         ///   contact row to hang its label in. Zero when there is no margin.
+        /// - Returns: The palette the body is to be drawn in, when the
+        ///   masthead painted one; nil when the page is the page.
+        @discardableResult
         func draw(
             _ resume: Resume, on sheet: Sheet, x: Double, width: Double,
             labelWidth: Double = 0, labelAlign: Alignment = .right
-        ) {
+        ) -> Sheet.Palette? {
+            guard let body else {
+                _ = head(resume, on: sheet, x: x, width: width,
+                         labelWidth: labelWidth, labelAlign: labelAlign, banded: false)
+                return nil
+            }
+
+            // The body is painted behind everything below the band, on every
+            // page; the band keeps the page's colour unless told otherwise.
+            // Palettes are derived from the fills, so every block reads.
+            let pdf = sheet.pdf
+            let bodyFill = body.colour(on: sheet)
+            let bodyPalette = Sheet.Palette.against(bodyFill, accent: sheet.theme.accentColor)
+            let bandFill = band?.colour(on: sheet)
+            let bandPalette = bandFill.map { Sheet.Palette.against($0, accent: sheet.theme.accentColor) }
+
+            var bandBottom = 0.0
+            sheet.drawing(on: bandPalette) {
+                bandBottom = head(resume, on: sheet, x: x, width: width,
+                                  labelWidth: labelWidth, labelAlign: labelAlign, banded: true)
+            }
+
+            sheet.background { doc, page, _ in
+                let height = page == 1 ? bandBottom : doc.height()
+                doc.rect(x: 0, y: 0, width: doc.width(), height: height, color: bodyFill)
+                if page == 1, let bandFill {
+                    doc.rect(x: 0, y: bandBottom, width: doc.width(),
+                             height: doc.height() - bandBottom, color: bandFill)
+                }
+            }
+
+            // A hairline of accent under the band, which is what makes the
+            // split look intended rather than like a printing fault.
+            pdf.rect(x: 0, y: bandBottom - 2.4, width: pdf.width(), height: 2.4, color: bodyPalette.accent)
+            pdf.move(to: bandBottom - 30)
+            return bodyPalette
+        }
+
+        /// The head itself. Returns the band's bottom when banded, else the
+        /// cursor after the gap.
+        private func head(
+            _ resume: Resume, on sheet: Sheet, x: Double, width: Double,
+            labelWidth: Double, labelAlign: Alignment, banded: Bool
+        ) -> Double {
             let pdf = sheet.pdf
             let profile = resume.profile
             let carriesPhoto = photo != nil && Sheet.photo(at: profile.photo) != nil
@@ -538,6 +778,11 @@ extension Blueprint {
 
             pdf.move(to: y)
 
+            if twin {
+                twinPanels(resume, on: sheet, x: textX, width: textWidth, top: top)
+                return pdf.cursor()
+            }
+
             let particulars = profile.particulars().map { "\($0.label): \($0.value)" }
             let between = monospaced ? "|" : separator
 
@@ -575,6 +820,9 @@ extension Blueprint {
                 }
             }
 
+            // Inside a band the head is done: the caller paints under it.
+            if banded { return pdf.cursor() - 14 }
+
             if let panelHeight {
                 pdf.move(to: pdf.height() - panelHeight - 30)
             } else if let rule, !rule.underName {
@@ -591,6 +839,69 @@ extension Blueprint {
             }
 
             sheet.gap(gapAfter)
+            return pdf.cursor()
+        }
+
+        /// The summary on a washed panel and the contact details on a dark
+        /// one, side by side under the name, each entry with its mark.
+        private func twinPanels(_ resume: Resume, on sheet: Sheet, x: Double, width: Double, top: Double) {
+            let pdf = sheet.pdf
+            let entries = Self.marked(resume.profile)
+            let panelTop = top - 58
+            let gutter = 16.0
+            let rightWidth = min(232.0, width * 0.44)
+            let leftWidth = width - rightWidth - gutter
+            let padding = 15.0
+
+            let summaryHeight = resume.summary.isEmpty ? 0 : pdf.blockHeight(
+                resume.summary, size: 9.2, width: leftWidth - padding * 2,
+                leading: sheet.leading(9.2), face: sheet.regular
+            )
+            let contactHeight = Double(entries.count) * 19
+            let height = max(summaryHeight, contactHeight) + padding * 2
+
+            let darkFill = sheet.theme.scheme == .dark
+                ? sheet.theme.page.lightened(by: 0.12)
+                : sheet.accentPanel
+            let dark = Sheet.Palette.against(darkFill, accent: sheet.theme.accentColor)
+
+            if !resume.summary.isEmpty {
+                pdf.roundedRect(x: x, y: panelTop - height, width: leftWidth,
+                                height: height, radius: 8, color: sheet.wash)
+                pdf.move(to: panelTop - padding)
+                sheet.paragraph(resume.summary, x: x + padding, width: leftWidth - padding * 2, size: 9.2)
+            }
+
+            pdf.roundedRect(x: x + leftWidth + gutter, y: panelTop - height,
+                            width: rightWidth, height: height, radius: 8, color: darkFill)
+
+            let originX = x + leftWidth + gutter + padding
+            for (index, entry) in entries.enumerated() {
+                let baseline = panelTop - padding - Double(index) * 19
+                sheet.icon(entry.icon, x: originX, y: baseline - 11.5, size: 12, color: dark.accent)
+                if entry.url.isEmpty {
+                    pdf.textAt(entry.text, x: originX + 18, y: baseline - 9.6, size: 8.8,
+                               color: dark.ink, face: sheet.regular)
+                } else {
+                    pdf.linked(entry.text, url: entry.url, x: originX + 18, y: baseline - 9.6,
+                               size: 8.8, color: dark.ink, face: sheet.regular)
+                }
+            }
+
+            pdf.move(to: panelTop - height)
+            sheet.gap(22)
+        }
+
+        /// The contact details, each with the mark that says what it is.
+        private static func marked(_ profile: Profile) -> [(icon: Icon, text: String, url: String)] {
+            profile.contactEntries().map { entry in
+                let icon: Icon
+                if entry.url.hasPrefix("mailto:") { icon = .email }
+                else if entry.url.hasPrefix("tel:") { icon = .phone }
+                else if entry.url.isEmpty { icon = .location }
+                else { icon = .link }
+                return (icon, entry.text, entry.url)
+            }
         }
 
         /// A word in the margin, level with what follows it.
@@ -739,6 +1050,80 @@ extension Blueprint {
             self.labelAlign = labelAlign
             self.headAtMargin = headAtMargin
             self.ruled = ruled
+        }
+    }
+}
+
+// MARK: - A second column
+
+extension Blueprint {
+
+    /// A second column, carrying the sections it names.
+    ///
+    /// The one thing in this vocabulary a tracking system reads wrong: the
+    /// parser extracts the text in order and does not know the column is a
+    /// column, so the rail comes out interleaved with the experience — a
+    /// phone number in the middle of an employment history. A blueprint
+    /// with a side is therefore not ``isSingleColumn``, and `check` reports
+    /// it as the blocker it is. It exists for the document a person will
+    /// open, and says so.
+    public struct Side: Codable, Sendable, Equatable {
+
+        /// The column's width in points, from the page edge when filled.
+        public var width: Double
+        public var edge: Edge
+
+        /// The sections it carries. The rest go in the main column, as does
+        /// any of these that would not fit on page one.
+        public var sections: [Section]
+
+        /// A tint behind it, running the page's full height. `rail` is the
+        /// theme's accent lightened to a wash. Nil is no tint.
+        public var fill: Paint?
+
+        /// A hairline between the columns.
+        public var divider: Bool
+
+        /// How far the words sit in from the filled edge.
+        public var inset: Double
+
+        /// The space between the columns.
+        public var gutter: Double
+
+        /// Where the masthead goes: inside the column, stacked to its width
+        /// with the contact details one per line; or above both columns,
+        /// set by ``Masthead``.
+        public var head: Head
+
+        public var heading: Heading
+        public var entries: Entries
+
+        public enum Edge: String, Codable, Sendable, CaseIterable { case left, right }
+        public enum Head: String, Codable, Sendable, CaseIterable { case inside, above }
+
+        public init(
+            width: Double = 190,
+            edge: Edge = .left,
+            sections: [Section] = [.skills, .languages, .education, .certifications, .interests],
+            fill: Paint? = .rail,
+            divider: Bool = false,
+            inset: Double = 27,
+            gutter: Double = 30,
+            head: Head = .inside,
+            heading: Heading = Heading(style: .plain, size: 7.4, colour: .accent),
+            entries: Entries = Entries(dates: .beneath, roleSize: 9.6, bodySize: 8.7,
+                                       detailSize: 8.6, dateSize: 8, entryGap: 10)
+        ) {
+            self.width = width
+            self.edge = edge
+            self.sections = sections
+            self.fill = fill
+            self.divider = divider
+            self.inset = inset
+            self.gutter = gutter
+            self.head = head
+            self.heading = heading
+            self.entries = entries
         }
     }
 }
@@ -1103,13 +1488,17 @@ extension Blueprint {
         /// ordinary treatment rather than being given an empty rail.
         case rail
 
+        /// A bar of accent down the left of every section — the column
+        /// inset by the bar's width, which is the column's `labelWidth`.
+        case tabs
+
         static let cardPadding = 13.0
 
         /// Whether the entries sit inside something and need room from its edge.
         var insets: Bool { self == .cards || self == .entryCards }
 
         func prepare(on sheet: Sheet) -> Shading? {
-            guard self != .none, self != .rail else { return nil }
+            guard self != .none, self != .rail, self != .tabs else { return nil }
 
             let shading = Shading()
             let tint = sheet.wash
@@ -1220,7 +1609,18 @@ extension Blueprint {
         public static let wash = Paint(rawValue: "wash")
         public static let page = Paint(rawValue: "page")
 
-        public static let named: [Paint] = [.ink, .muted, .accent, .hairline, .wash, .page]
+        /// The accent lightened to a wash, for a rail down the page.
+        public static let rail = Paint(rawValue: "rail")
+
+        /// The page reversed: near-black on a light theme, near-white on a
+        /// dark one.
+        public static let inverse = Paint(rawValue: "inverse")
+
+        /// Near-black whatever the theme; `darkest` a step below it.
+        public static let dark = Paint(rawValue: "dark")
+        public static let darkest = Paint(rawValue: "darkest")
+
+        public static let named: [Paint] = [.ink, .muted, .accent, .hairline, .wash, .page, .rail, .inverse, .dark, .darkest]
 
         func colour(on sheet: Sheet, fallback: Color? = nil) -> Color {
             switch rawValue {
@@ -1230,6 +1630,10 @@ extension Blueprint {
             case "hairline": return sheet.hairline
             case "wash": return sheet.wash
             case "page": return sheet.page
+            case "rail": return sheet.theme.railTint
+            case "inverse": return sheet.theme.inverse
+            case "dark": return sheet.theme.dark
+            case "darkest": return sheet.theme.dark.darkened(by: 0.55)
             default:
                 // A hex value, or a name nobody defined — in which case the
                 // theme's own ink is a better answer than black.
@@ -1302,160 +1706,111 @@ extension Blueprint {
     /// close relatives, and they exist to be starting points: nobody writes a
     /// design from an empty file, and "ledger with a marker heading and chips"
     /// is how one actually gets made.
-    public static let starting: [Blueprint] = [
-        .ledger, .broadsheet, .timeline, .margin, .marker, .bulletin, .card, .terminal, .banner,
-        .plain, .register, .plaqued, .carded,
+    /// The designs that ship with the package, read from the JSON files in
+    /// its resources — because a design is a JSON file, and the Swift here
+    /// only names it. The first fourteen are the designs; the last four are
+    /// starting points only.
+    public static let starting: [Blueprint] = bundledNames.map { bundled($0) }
+
+    static let bundledNames = [
+        "ledger", "broadsheet", "timeline", "sidebar", "margin", "nocturne", "eclipse",
+        "bulletin", "marker", "slate", "card", "terminal", "banner", "gazette",
+        "plain", "register", "plaqued", "carded",
     ]
 
     /// One column, a rule under each heading, a code beside the name where
     /// there is one. Restraint is the design.
-    public static let ledger = Blueprint(
-        name: "ledger",
-        masthead: Masthead(qr: 58)
-    )
+    public static let ledger = bundled("ledger")
 
     /// Serif, centred masthead: the name in light tracked capitals, the
     /// headline in the italic, a heavy rule and a hairline under the head.
     /// Academic and formal.
-    public static let broadsheet = Blueprint(
-        name: "broadsheet",
-        masthead: Masthead(align: .centre, nameSize: 19, uppercase: true, tracking: 2.2,
-                           headlineSize: 10.6, headlineColour: .muted, contactSize: 8.8,
-                           rule: Rule(colour: .ink, thickness: 0.7, double: true), gapAfter: 20,
-                           nameWeight: .regular, headlineItalic: true),
-        heading: Heading(style: .centred, size: 8),
-        entries: Entries(roleSize: 10.6, bodySize: 9.7, detailSize: 9.5, entryGap: 14),
-        sectionGap: 18,
-        typeface: .serif
-    )
+    public static let broadsheet = bundled("broadsheet")
 
     /// Dates in a rail down the left, with a tick out to each entry. The head
     /// and the headings sit at the margin; only the entries are past the
     /// rail, so the employment history is the shape of the page.
-    public static let timeline = Blueprint(
-        name: "timeline",
-        masthead: Masthead(nameSize: 24, tracking: -0.35, headlineSize: 10.5, headlineColour: .muted,
-                           contactSize: 8.6, rule: Rule(colour: .accent, thickness: 2, width: 96)),
-        column: Column(headAtMargin: true),
-        heading: Heading(style: .accentBar),
-        entries: Entries(entryGap: 15),
-        ornament: .rail
-    )
+    public static let timeline = bundled("timeline")
+
+    /// A tinted rail carrying contact, skills and languages, with the
+    /// experience beside it. The best-looking of the set and the one a
+    /// tracking system reads wrong — `check` says so.
+    public static let sidebar = bundled("sidebar")
 
     /// Section names hung in the left margin, a hairline above every
     /// section, and the contact details as the first ruled row. Book
     /// typography, and the calmest page here.
-    public static let margin = Blueprint(
-        name: "margin",
-        masthead: Masthead(nameSize: 23, tracking: -0.3, headlineSize: 10.4, headlineColour: .muted,
-                           rule: nil, gapAfter: 6, nameColour: .accent, contacts: .labelled),
-        column: Column(labelWidth: 104, gutter: 22, ruled: true),
-        heading: Heading(style: .margin, size: 8.6),
-        entries: Entries(entryGap: 14),
-        sectionGap: 15
-    )
+    public static let margin = bundled("margin")
 
-    /// Headings struck through with a highlighter, a name ruled like a
-    /// signature. The least formal of them.
-    public static let marker = Blueprint(
-        name: "marker",
-        masthead: Masthead(align: .centre, nameSize: 28, tracking: -0.5, headlineSize: 10.8,
-                           headlineColour: .muted,
-                           rule: Rule(colour: .accent, thickness: 2.6, underName: true),
-                           gapAfter: 14, separator: "▪"),
-        heading: Heading(style: .marker, size: 12, colour: .ink),
-        entries: Entries(entryGap: 15, skills: .bars),
-        sectionGap: 18
-    )
+    /// A light band at the top and the rest of the page reversed out.
+    /// Striking on a screen, expensive on somebody's office printer.
+    public static let nocturne = bundled("nocturne")
+
+    /// Nocturne with the light band taken away: the whole page dark, the
+    /// masthead a step darker still. The darkest page here.
+    public static let eclipse = bundled("eclipse")
 
     /// Headings as rounded tabs, each with a mark, and room for a portrait.
     /// Navigable at a glance, which suits a long CV.
-    public static let bulletin = Blueprint(
-        name: "bulletin",
-        masthead: Masthead(nameSize: 25, headlineSize: 11, photo: Photo(diameter: 78, align: .right),
-                           rule: nil, gapAfter: 16),
-        heading: Heading(style: .tab, size: 8.2, colour: .ink, icon: true),
-        entries: Entries(entryGap: 14, skills: .chips),
-        sectionGap: 16
-    )
+    public static let bulletin = bundled("bulletin")
+
+    /// Headings struck through with a highlighter, a name ruled like a
+    /// signature. The least formal of them.
+    public static let marker = bundled("marker")
+
+    /// Two panels across the head — summary on one, contact on the other —
+    /// and a coloured tab beside every section.
+    public static let slate = bundled("slate")
 
     /// Every entry on a panel of its own — a section that is a list of
     /// entries gets one each, the rest get one around the block. Suits
     /// several short roles; unkind to one long one.
-    public static let card = Blueprint(
-        name: "card",
-        masthead: Masthead(nameSize: 26, headlineSize: 11, rule: nil, gapAfter: 14),
-        heading: Heading(style: .plain, size: 8.2, colour: .accent),
-        entries: Entries(entryGap: 12, skills: .chips),
-        ornament: .entryCards,
-        sectionGap: 8
-    )
+    public static let card = bundled("card")
 
     /// A prompt before every heading, monospaced labels and dates,
     /// proportional prose, and a code beside the name where there is one.
     /// Technical without being a costume.
-    public static let terminal = Blueprint(
-        name: "terminal",
-        masthead: Masthead(nameSize: 23, tracking: -0.9, headlineSize: 10.4, contactSize: 8.6, qr: 58,
-                           rule: Rule(colour: .ink, thickness: 1), monospaced: true, gapAfter: 18),
-        heading: Heading(style: .terminal, size: 8.2, colour: .ink),
-        entries: Entries(entryGap: 15)
-    )
+    public static let terminal = bundled("terminal")
 
     /// A near-black band across the head with the name reversed out of it,
     /// the role in the accent and the portrait inside the band; a light page
     /// under it. The modern product-company résumé.
-    public static let banner = Blueprint(
-        name: "banner",
-        masthead: Masthead(nameSize: 27, headlineSize: 11.2,
-                           panel: Panel(fill: .ink, height: 150, dip: 0),
-                           photo: Photo(diameter: 84, align: .right), rule: nil, gapAfter: 10),
-        heading: Heading(style: .underlined, size: 7.8, colour: .ink),
-        entries: Entries(entryGap: 14, skills: .chips),
-        sectionGap: 16
-    )
+    public static let banner = bundled("banner")
+
+    /// The serif two-column: centred masthead, the argument in a wide
+    /// column and the credentials in a narrow one behind a hairline. The
+    /// academic and executive look, and the other one a parser reads wrong.
+    public static let gazette = bundled("gazette")
 
     /// Centred name, ruled headings, no ornament, and a scale that gets a
     /// first job onto one page. The shape every careers service hands out,
     /// set properly: the one to start from when the posting says one page.
-    public static let plain = Blueprint(
-        name: "plain",
-        masthead: Masthead(align: .centre, nameSize: 22, headlineSize: 9.6, headlineColour: .muted,
-                           contactSize: 8.2, rule: nil, gapAfter: 10),
-        heading: Heading(size: 9.6, colour: .ink),
-        entries: Entries(roleSize: 9.6, bodySize: 8.8, detailSize: 8.4, dateSize: 8.2, entryGap: 7),
-        sectionGap: 9
-    )
+    public static let plain = bundled("plain")
 
     /// Alternating tinted bands, labels hung in the margin.
-    public static let register = Blueprint(
-        name: "register",
-        masthead: Masthead(align: .centre, nameSize: 24, tracking: -0.3, rule: nil, gapAfter: 8),
-        column: Column(labelWidth: 96, gutter: 20),
-        heading: Heading(style: .margin, size: 8.6, icon: true),
-        entries: Entries(entryGap: 14),
-        ornament: .bands,
-        sectionGap: 15
-    )
+    public static let register = bundled("register")
 
     /// A coloured panel across the top, dipped, with a portrait.
-    public static let plaqued = Blueprint(
-        name: "plaqued",
-        masthead: Masthead(nameSize: 27, panel: Panel(), photo: Photo(), rule: nil, gapAfter: 10),
-        heading: Heading(style: .accentBar, colour: .accent),
-        entries: Entries(entryGap: 14, skills: .chips),
-        sectionGap: 16
-    )
+    public static let plaqued = bundled("plaqued")
 
     /// Every section on its own rounded panel.
-    public static let carded = Blueprint(
-        name: "carded",
-        masthead: Masthead(nameSize: 25, rule: nil),
-        heading: Heading(style: .plain, size: 8.2, colour: .accent),
-        entries: Entries(entryGap: 12, skills: .chips),
-        ornament: .cards,
-        sectionGap: 14
-    )
+    public static let carded = bundled("carded")
+
+    /// A design from the package's resources.
+    ///
+    /// The files are part of the package, so one that is missing or will
+    /// not read is a build fault rather than a condition to handle — and
+    /// there is a test that reads every one of them.
+    static func bundled(_ name: String) -> Blueprint {
+        guard let url = Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Designs") else {
+            preconditionFailure("The bundled design \(name).json is not in the package")
+        }
+        do {
+            return try Blueprint(contentsOf: url)
+        } catch {
+            preconditionFailure("The bundled design \(name).json does not read: \(error)")
+        }
+    }
 }
 
 // MARK: - Reading a partial one
@@ -1481,13 +1836,14 @@ extension Blueprint {
             skip: try container.value(.skip, or: []),
             palette: try container.maybe(.palette),
             typeface: try container.value(.typeface, or: .sans),
-            sections: try container.value(.sections, or: [:])
+            sections: try container.value(.sections, or: [:]),
+            side: try container.maybe(.side)
         )
     }
 
     enum CodingKeys: String, CodingKey {
         case name, masthead, column, heading, entries
-        case ornament, sectionGap, footer, skip, palette, typeface, sections
+        case ornament, sectionGap, footer, skip, palette, typeface, sections, side
     }
 }
 
@@ -1516,7 +1872,10 @@ extension Blueprint.Masthead {
             nameColour: try container.value(.nameColour, or: defaults.nameColour),
             headlineItalic: try container.value(.headlineItalic, or: defaults.headlineItalic),
             separator: try container.value(.separator, or: defaults.separator),
-            contacts: try container.value(.contacts, or: defaults.contacts)
+            contacts: try container.value(.contacts, or: defaults.contacts),
+            twin: try container.value(.twin, or: defaults.twin),
+            body: try container.maybe(.body),
+            band: try container.maybe(.band)
         )
     }
 
@@ -1546,12 +1905,15 @@ extension Blueprint.Masthead {
         try container.encode(headlineItalic, forKey: .headlineItalic)
         try container.encode(separator, forKey: .separator)
         try container.encode(contacts, forKey: .contacts)
+        try container.encode(twin, forKey: .twin)
+        try container.encodeIfPresent(body, forKey: .body)
+        try container.encodeIfPresent(band, forKey: .band)
     }
 
     enum CodingKeys: String, CodingKey {
         case align, nameSize, uppercase, tracking, headlineSize
         case headlineColour, contactSize, panel, photo, qr, rule, monospaced, gapAfter
-        case nameWeight, nameColour, headlineItalic, separator, contacts
+        case nameWeight, nameColour, headlineItalic, separator, contacts, twin, body, band
     }
 }
 
@@ -1616,6 +1978,81 @@ extension Blueprint.Column {
     }
 
     enum CodingKeys: String, CodingKey { case labelWidth, gutter, labelAlign, headAtMargin, ruled }
+}
+
+extension Blueprint.Side {
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = Blueprint.Side()
+        self.init(
+            width: try container.value(.width, or: defaults.width),
+            edge: try container.value(.edge, or: defaults.edge),
+            sections: try container.value(.sections, or: defaults.sections),
+            // A fill is on by default, so leaving the key out keeps it and
+            // "fill": null is how you say you do not want one.
+            fill: container.contains(.fill) ? try container.maybe(.fill) : defaults.fill,
+            divider: try container.value(.divider, or: defaults.divider),
+            inset: try container.value(.inset, or: defaults.inset),
+            gutter: try container.value(.gutter, or: defaults.gutter),
+            head: try container.value(.head, or: defaults.head),
+            heading: try container.value(.heading, or: defaults.heading),
+            entries: try container.value(.entries, or: defaults.entries)
+        )
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(width, forKey: .width)
+        try container.encode(edge, forKey: .edge)
+        try container.encode(sections, forKey: .sections)
+        try container.encode(fill, forKey: .fill)
+        try container.encode(divider, forKey: .divider)
+        try container.encode(inset, forKey: .inset)
+        try container.encode(gutter, forKey: .gutter)
+        try container.encode(head, forKey: .head)
+        try container.encode(heading, forKey: .heading)
+        try container.encode(entries, forKey: .entries)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case width, edge, sections, fill, divider, inset, gutter, head, heading, entries
+    }
+}
+
+// MARK: - The colours the paints name
+
+extension Theme {
+
+    /// The accent lightened to a wash — or the wash itself on a monochrome
+    /// theme, where there is no accent to lighten.
+    var railTint: Color {
+        guard !isMonochrome else { return wash }
+        return scheme == .dark
+            ? accentColor.darkened(by: 0.72).lightened(by: 0.06)
+            : accentColor.lightened(by: 0.93)
+    }
+
+    /// The page reversed.
+    var inverse: Color {
+        scheme == .dark ? page.lightened(by: 0.93) : page.darkened(by: 0.9)
+    }
+
+    /// Near-black whatever the theme: a dark theme's page as it is, a light
+    /// theme's taken most of the way to black.
+    var dark: Color {
+        scheme == .dark ? page : page.darkened(by: 0.88)
+    }
+}
+
+extension Sheet {
+
+    /// A panel dark enough to reverse type out of: the accent taken down,
+    /// or a plain dark grey where the theme has no accent.
+    var accentPanel: Color {
+        guard !theme.isMonochrome else { return .grey(46) }
+        return theme.accentColor.darkened(by: theme.accentIsDark ? 0.15 : 0.62)
+    }
 }
 
 extension Blueprint.Heading {

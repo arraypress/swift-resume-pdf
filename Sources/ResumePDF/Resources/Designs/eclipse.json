@@ -1,0 +1,61 @@
+{
+  "column" : {
+    "gutter" : 0,
+    "headAtMargin" : false,
+    "labelAlign" : "right",
+    "labelWidth" : 0,
+    "ruled" : false
+  },
+  "entries" : {
+    "accentRoles" : false,
+    "bodySize" : 9.4,
+    "dateSize" : 8.5,
+    "dates" : "besideTitle",
+    "detailSize" : 9.2,
+    "entryGap" : 14,
+    "roleSize" : 10.4,
+    "skills" : "chips"
+  },
+  "footer" : true,
+  "heading" : {
+    "colour" : "accent",
+    "icon" : false,
+    "size" : 7.6,
+    "style" : "plain"
+  },
+  "masthead" : {
+    "align" : "left",
+    "band" : "darkest",
+    "body" : "dark",
+    "contactSize" : 8.7,
+    "contacts" : "flow",
+    "gapAfter" : 19,
+    "headlineColour" : "accent",
+    "headlineItalic" : false,
+    "headlineSize" : 10.6,
+    "monospaced" : false,
+    "nameColour" : "ink",
+    "nameSize" : 25,
+    "nameWeight" : "semibold",
+    "photo" : {
+      "align" : "right",
+      "diameter" : 74
+    },
+    "qr" : 0,
+    "rule" : null,
+    "separator" : "·",
+    "tracking" : -0.4,
+    "twin" : false,
+    "uppercase" : false
+  },
+  "name" : "eclipse",
+  "ornament" : "none",
+  "sectionGap" : 17,
+  "sections" : {
+
+  },
+  "skip" : [
+
+  ],
+  "typeface" : "sans"
+}

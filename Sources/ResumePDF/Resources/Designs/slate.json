@@ -1,0 +1,55 @@
+{
+  "column" : {
+    "gutter" : 14,
+    "headAtMargin" : false,
+    "labelAlign" : "right",
+    "labelWidth" : 4,
+    "ruled" : false
+  },
+  "entries" : {
+    "accentRoles" : false,
+    "bodySize" : 9.4,
+    "dateSize" : 8.5,
+    "dates" : "besideTitle",
+    "detailSize" : 9.2,
+    "entryGap" : 15,
+    "roleSize" : 10.4,
+    "skills" : "chips"
+  },
+  "footer" : true,
+  "heading" : {
+    "colour" : "accent",
+    "icon" : false,
+    "size" : 8.4,
+    "style" : "plain"
+  },
+  "masthead" : {
+    "align" : "left",
+    "contactSize" : 8.7,
+    "contacts" : "flow",
+    "gapAfter" : 19,
+    "headlineColour" : "accent",
+    "headlineItalic" : false,
+    "headlineSize" : 11,
+    "monospaced" : false,
+    "nameColour" : "ink",
+    "nameSize" : 25,
+    "nameWeight" : "semibold",
+    "qr" : 0,
+    "rule" : null,
+    "separator" : "·",
+    "tracking" : -0.4,
+    "twin" : true,
+    "uppercase" : false
+  },
+  "name" : "slate",
+  "ornament" : "tabs",
+  "sectionGap" : 16,
+  "sections" : {
+
+  },
+  "skip" : [
+
+  ],
+  "typeface" : "sans"
+}

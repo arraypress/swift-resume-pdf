@@ -102,7 +102,9 @@ final class BlueprintTests: XCTestCase {
         for blueprint in Blueprint.starting {
             let data = try Resume.sample.render(design: blueprint)
             XCTAssertNotNil(PDFDocument(data: data), "\(blueprint.name) did not produce a PDF")
-            XCTAssertTrue(try text(of: data).contains("Alex Moreau"), blueprint.name)
+            // Case-insensitively: a masthead may set the name in capitals, and
+            // a one-page document carries no footer to spell it the other way.
+            XCTAssertTrue(try text(of: data).lowercased().contains("alex moreau"), blueprint.name)
         }
     }
 
@@ -121,14 +123,21 @@ final class BlueprintTests: XCTestCase {
         }
     }
 
-    func testEveryStartingBlueprintIsMachineReadable() throws {
-        // The property that makes this format safe to hand somebody: a design
-        // written as data cannot accidentally produce a document a tracking
-        // system cannot read, because there is no way to say "two columns".
+    func testEveryStartingBlueprintIsCheckedHonestly() throws {
+        // The property that makes this format safe to hand somebody: a
+        // blueprint is checked exactly as a compiled design was. One column
+        // is clean; a side column is the blocker it is, and says so.
         for blueprint in Blueprint.starting {
             let report = try Resume.sample.check(design: blueprint)
-            XCTAssertTrue(report.isClean, "\(blueprint.name): \(report.findings.map(\.message))")
+            if blueprint.isSingleColumn {
+                XCTAssertTrue(report.isClean, "\(blueprint.name): \(report.findings.map(\.message))")
+            } else {
+                XCTAssertFalse(report.isClean, "\(blueprint.name) has a side column and must be reported")
+                XCTAssertTrue(report.findings.contains { $0.severity == .blocker && $0.message.contains("two columns") },
+                              "\(blueprint.name): \(report.findings.map(\.message))")
+            }
         }
+        XCTAssertEqual(Blueprint.starting.filter { !$0.isSingleColumn }.map(\.name), ["sidebar", "gazette"])
     }
 
     func testASkippedSectionIsNotDrawn() throws {
@@ -199,17 +208,13 @@ final class BlueprintTests: XCTestCase {
         XCTAssertEqual(try Blueprint(contentsOf: url), Blueprint.marker)
     }
 
-    // MARK: A design is a blueprint unless it cannot be
+    // MARK: Every design is a blueprint
 
-    func testNineDesignsAreTheirBlueprints() throws {
+    func testEveryDesignIsItsBlueprint() throws {
         // Not cousins: the design and its blueprint are the same bytes, so
         // what `--blueprint ledger` hands back is what `--design ledger` draws.
-        let written = DesignKind.allCases.filter { !$0.isCompiled }
-        XCTAssertEqual(written.map(\.rawValue),
-                       ["ledger", "broadsheet", "timeline", "margin", "bulletin", "marker", "card", "terminal", "banner"])
-
-        for kind in written {
-            let blueprint = try XCTUnwrap(kind.blueprint, kind.rawValue)
+        for kind in DesignKind.allCases {
+            let blueprint = kind.blueprint
             XCTAssertEqual(blueprint.name, kind.rawValue)
             XCTAssertTrue(Blueprint.starting.contains(blueprint), "\(kind.rawValue) is not a starting point")
             // Pinned to one creation date, or a second boundary between the
@@ -222,14 +227,47 @@ final class BlueprintTests: XCTestCase {
         }
     }
 
-    func testFiveDesignsCannotBeWrittenAsData() {
-        // Two columns, twin panels, an inverted body: the vocabulary says
-        // none of them on purpose, so these stay Swift.
-        let compiled = DesignKind.allCases.filter(\.isCompiled).map(\.rawValue)
-        XCTAssertEqual(compiled, ["sidebar", "nocturne", "eclipse", "slate", "gazette"])
-        for kind in DesignKind.allCases where kind.isCompiled {
-            XCTAssertNil(kind.blueprint)
+    func testTheDesignsAreTheFilesInTheBundle() throws {
+        // A design lives in Resources/Designs as JSON, and the Swift only
+        // names it. Every file decodes, names itself after its filename, and
+        // is one of the starting points — so a file added or dropped without
+        // the list following is caught here rather than in a release.
+        let folder = try XCTUnwrap(Bundle.module.url(forResource: "Designs", withExtension: nil))
+        let files = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "json" }
+        XCTAssertEqual(files.count, Blueprint.starting.count)
+
+        for file in files {
+            let blueprint = try Blueprint(contentsOf: file)
+            XCTAssertEqual(blueprint.name, file.deletingPathExtension().lastPathComponent)
+            XCTAssertTrue(Blueprint.starting.contains(blueprint), "\(blueprint.name) is a file but not a starting point")
         }
+        for kind in DesignKind.allCases {
+            XCTAssertTrue(files.contains { $0.lastPathComponent == "\(kind.rawValue).json" }, "\(kind.rawValue).json is missing")
+        }
+    }
+
+    func testTheSideColumnAndThePaintedBodySurviveJSON() throws {
+        let written = try JSONDecoder().decode(Blueprint.self, from: Data("""
+            { "masthead": { "twin": true, "body": "inverse", "band": "darkest" },
+              "ornament": "tabs",
+              "side": { "width": 152, "edge": "right", "sections": ["education", "skills"],
+                        "fill": null, "divider": true, "head": "above" } }
+            """.utf8))
+        XCTAssertTrue(written.masthead.twin)
+        XCTAssertEqual(written.masthead.body, .inverse)
+        XCTAssertEqual(written.masthead.band, .darkest)
+        XCTAssertEqual(written.ornament, .tabs)
+        XCTAssertEqual(written.side?.edge, .right)
+        XCTAssertEqual(written.side?.sections, [.education, .skills])
+        XCTAssertNil(written.side?.fill, "\"fill\": null is no fill; leaving it out would have kept the rail")
+        XCTAssertTrue(written.side?.divider ?? false)
+        XCTAssertEqual(written.side?.head, .above)
+        XCTAssertFalse(written.isSingleColumn)
+        XCTAssertEqual(try JSONDecoder().decode(Blueprint.self, from: try written.encoded()), written)
+
+        let railed = try JSONDecoder().decode(Blueprint.self, from: Data(#"{"side": {}}"#.utf8))
+        XCTAssertEqual(railed.side?.fill, .rail, "a side is a tinted rail unless told otherwise")
     }
 
     func testTheNewKeysSurviveJSON() throws {

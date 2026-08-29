@@ -1,0 +1,92 @@
+{
+  "column" : {
+    "gutter" : 0,
+    "headAtMargin" : false,
+    "labelAlign" : "right",
+    "labelWidth" : 0,
+    "ruled" : false
+  },
+  "entries" : {
+    "accentRoles" : false,
+    "bodySize" : 9.6,
+    "dateSize" : 8.5,
+    "dates" : "besideTitle",
+    "detailSize" : 9.4,
+    "entryGap" : 14,
+    "roleSize" : 10.6,
+    "skills" : "list"
+  },
+  "footer" : true,
+  "heading" : {
+    "colour" : "muted",
+    "icon" : false,
+    "size" : 7.6,
+    "style" : "ruled"
+  },
+  "masthead" : {
+    "align" : "centre",
+    "contactSize" : 8.8,
+    "contacts" : "flow",
+    "gapAfter" : 18,
+    "headlineColour" : "muted",
+    "headlineItalic" : true,
+    "headlineSize" : 10.4,
+    "monospaced" : false,
+    "nameColour" : "ink",
+    "nameSize" : 19,
+    "nameWeight" : "regular",
+    "qr" : 0,
+    "rule" : {
+      "colour" : "ink",
+      "double" : false,
+      "thickness" : 0.7,
+      "underName" : false,
+      "width" : 0
+    },
+    "separator" : "·",
+    "tracking" : 2.2,
+    "twin" : false,
+    "uppercase" : true
+  },
+  "name" : "gazette",
+  "ornament" : "none",
+  "sectionGap" : 17,
+  "sections" : {
+
+  },
+  "side" : {
+    "divider" : true,
+    "edge" : "right",
+    "entries" : {
+      "accentRoles" : false,
+      "bodySize" : 8.8,
+      "dateSize" : 8.2,
+      "dates" : "beneath",
+      "detailSize" : 8.8,
+      "entryGap" : 10,
+      "roleSize" : 9.4,
+      "skills" : "list"
+    },
+    "fill" : null,
+    "gutter" : 28,
+    "head" : "above",
+    "heading" : {
+      "colour" : "muted",
+      "icon" : false,
+      "size" : 7.2,
+      "style" : "plain"
+    },
+    "inset" : 27,
+    "sections" : [
+      "education",
+      "skills",
+      "certifications",
+      "languages"
+    ],
+    "width" : 152
+  },
+  "skip" : [
+
+  ],
+  "typeface" : "serif"
+}

@@ -29,7 +29,7 @@ final class OverflowTests: XCTestCase {
 
     func testAnOverflowingRailLeavesTheMainColumnOnPageOne() {
         let sheet = plainSheet()
-        Sidebar().render(Resume.long, on: sheet)
+        Blueprint.sidebar.render(Resume.long, on: sheet)
         let streams = Fixtures.pageStreams(sheet.pdf.render())
 
         XCTAssertGreaterThan(streams.count, 1, "the long résumé should cross pages")
@@ -43,7 +43,7 @@ final class OverflowTests: XCTestCase {
 
     func testARailSectionThatMovesIsDrawnExactlyOnce() {
         let sheet = plainSheet()
-        Sidebar().render(Resume.long, on: sheet)
+        Blueprint.sidebar.render(Resume.long, on: sheet)
         let text = String(data: sheet.pdf.render(), encoding: .isoLatin1) ?? ""
 
         // Twelve education entries cannot fit the rail, so the section moves
@@ -56,7 +56,7 @@ final class OverflowTests: XCTestCase {
 
     func testARailThatFitsStaysOnOnePage() {
         let sheet = plainSheet()
-        Sidebar().render(Resume.sample, on: sheet)
+        Blueprint.sidebar.render(Resume.sample, on: sheet)
         let streams = Fixtures.pageStreams(sheet.pdf.render())
 
         XCTAssertEqual(streams.count, 1)
@@ -68,7 +68,7 @@ final class OverflowTests: XCTestCase {
 
     func testAnOverflowingAsideLeavesTheWideColumnOnPageOne() {
         let sheet = plainSheet()
-        Gazette().render(Resume.long, on: sheet)
+        Blueprint.gazette.render(Resume.long, on: sheet)
         let streams = Fixtures.pageStreams(sheet.pdf.render())
 
         XCTAssertGreaterThan(streams.count, 1, "the long résumé should cross pages")
@@ -78,7 +78,7 @@ final class OverflowTests: XCTestCase {
 
     func testAnAsideSectionThatMovesIsDrawnExactlyOnce() {
         let sheet = plainSheet()
-        Gazette().render(Resume.long, on: sheet)
+        Blueprint.gazette.render(Resume.long, on: sheet)
         let text = String(data: sheet.pdf.render(), encoding: .isoLatin1) ?? ""
 
         for needle in ["cohort 12", "cohort 7"] {
