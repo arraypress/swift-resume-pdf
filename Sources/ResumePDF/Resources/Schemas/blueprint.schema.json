@@ -1,0 +1,554 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arraypress/swift-resume-pdf/schemas/blueprint.schema.json",
+  "title": "Résumé design",
+  "description": "A résumé design written as data. Name only what you want changed; everything else takes the default.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "typeface": {
+      "type": "string",
+      "enum": [
+        "sans",
+        "serif"
+      ]
+    },
+    "masthead": {
+      "type": "object",
+      "properties": {
+        "align": {
+          "$ref": "#/$defs/alignment"
+        },
+        "nameSize": {
+          "type": "number"
+        },
+        "uppercase": {
+          "type": "boolean"
+        },
+        "tracking": {
+          "type": "number"
+        },
+        "headlineSize": {
+          "type": "number"
+        },
+        "headlineColour": {
+          "$ref": "#/$defs/paint"
+        },
+        "contactSize": {
+          "type": "number"
+        },
+        "panel": {
+          "type": "object",
+          "properties": {
+            "fill": {
+              "$ref": "#/$defs/paint"
+            },
+            "height": {
+              "type": "number"
+            },
+            "dip": {
+              "type": "number",
+              "description": "0 for a straight edge; larger for the shallow V."
+            }
+          },
+          "additionalProperties": false
+        },
+        "photo": {
+          "type": "object",
+          "properties": {
+            "diameter": {
+              "type": "number"
+            },
+            "align": {
+              "$ref": "#/$defs/alignment"
+            }
+          },
+          "additionalProperties": false
+        },
+        "qr": {
+          "type": "number",
+          "description": "Size of the code beside the name; 0 for none."
+        },
+        "rule": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "colour": {
+                  "$ref": "#/$defs/paint"
+                },
+                "thickness": {
+                  "type": "number"
+                },
+                "double": {
+                  "type": "boolean",
+                  "description": "A hairline under the rule as well."
+                },
+                "width": {
+                  "type": "number",
+                  "description": "Points; 0 is the whole column."
+                },
+                "underName": {
+                  "type": "boolean",
+                  "description": "Under the name and as wide as it."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "monospaced": {
+          "type": "boolean"
+        },
+        "gapAfter": {
+          "type": "number"
+        },
+        "nameWeight": {
+          "type": "string",
+          "enum": [
+            "regular",
+            "semibold"
+          ]
+        },
+        "nameColour": {
+          "$ref": "#/$defs/paint"
+        },
+        "headlineItalic": {
+          "type": "boolean"
+        },
+        "separator": {
+          "type": "string"
+        },
+        "contacts": {
+          "type": "string",
+          "enum": [
+            "flow",
+            "labelled"
+          ]
+        },
+        "twin": {
+          "type": "boolean",
+          "description": "Two panels under the name: the summary and the contacts."
+        },
+        "body": {
+          "$ref": "#/$defs/paint"
+        },
+        "band": {
+          "$ref": "#/$defs/paint"
+        }
+      },
+      "additionalProperties": false
+    },
+    "column": {
+      "type": "object",
+      "properties": {
+        "labelWidth": {
+          "type": "number"
+        },
+        "gutter": {
+          "type": "number"
+        },
+        "labelAlign": {
+          "$ref": "#/$defs/alignment"
+        },
+        "headAtMargin": {
+          "type": "boolean"
+        },
+        "ruled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "heading": {
+      "type": "object",
+      "properties": {
+        "style": {
+          "type": "string",
+          "enum": [
+            "ruled",
+            "plain",
+            "accentBar",
+            "centred",
+            "tab",
+            "marker",
+            "margin",
+            "terminal",
+            "underlined"
+          ]
+        },
+        "size": {
+          "type": "number"
+        },
+        "colour": {
+          "$ref": "#/$defs/paint"
+        },
+        "icon": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "entries": {
+      "type": "object",
+      "properties": {
+        "dates": {
+          "type": "string",
+          "enum": [
+            "besideTitle",
+            "beneath"
+          ]
+        },
+        "roleSize": {
+          "type": "number"
+        },
+        "bodySize": {
+          "type": "number"
+        },
+        "detailSize": {
+          "type": "number"
+        },
+        "dateSize": {
+          "type": "number"
+        },
+        "entryGap": {
+          "type": "number"
+        },
+        "accentRoles": {
+          "type": "boolean"
+        },
+        "skills": {
+          "type": "string",
+          "enum": [
+            "list",
+            "chips",
+            "bars",
+            "dots"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ornament": {
+      "type": "string",
+      "enum": [
+        "none",
+        "bands",
+        "cards",
+        "entryCards",
+        "rail",
+        "tabs"
+      ]
+    },
+    "sectionGap": {
+      "type": "number"
+    },
+    "footer": {
+      "type": "boolean"
+    },
+    "skip": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sectionName"
+      }
+    },
+    "palette": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "$ref": "#/$defs/paint"
+        },
+        "ink": {
+          "$ref": "#/$defs/paint"
+        },
+        "muted": {
+          "$ref": "#/$defs/paint"
+        },
+        "hairline": {
+          "$ref": "#/$defs/paint"
+        },
+        "wash": {
+          "$ref": "#/$defs/paint"
+        },
+        "accent": {
+          "$ref": "#/$defs/paint"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sections": {
+      "type": "object",
+      "description": "Overrides for one section only.",
+      "propertyNames": {
+        "$ref": "#/$defs/sectionName"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "heading": {
+            "type": "object",
+            "properties": {
+              "style": {
+                "type": "string",
+                "enum": [
+                  "ruled",
+                  "plain",
+                  "accentBar",
+                  "centred",
+                  "tab",
+                  "marker",
+                  "margin",
+                  "terminal",
+                  "underlined"
+                ]
+              },
+              "size": {
+                "type": "number"
+              },
+              "colour": {
+                "$ref": "#/$defs/paint"
+              },
+              "icon": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          "entries": {
+            "type": "object",
+            "properties": {
+              "dates": {
+                "type": "string",
+                "enum": [
+                  "besideTitle",
+                  "beneath"
+                ]
+              },
+              "roleSize": {
+                "type": "number"
+              },
+              "bodySize": {
+                "type": "number"
+              },
+              "detailSize": {
+                "type": "number"
+              },
+              "dateSize": {
+                "type": "number"
+              },
+              "entryGap": {
+                "type": "number"
+              },
+              "accentRoles": {
+                "type": "boolean"
+              },
+              "skills": {
+                "type": "string",
+                "enum": [
+                  "list",
+                  "chips",
+                  "bars",
+                  "dots"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "sectionGap": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "side": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "number"
+        },
+        "edge": {
+          "type": "string",
+          "enum": [
+            "left",
+            "right"
+          ]
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sectionName"
+          }
+        },
+        "fill": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/paint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "divider": {
+          "type": "boolean"
+        },
+        "inset": {
+          "type": "number"
+        },
+        "gutter": {
+          "type": "number"
+        },
+        "head": {
+          "type": "string",
+          "enum": [
+            "inside",
+            "above"
+          ]
+        },
+        "heading": {
+          "type": "object",
+          "properties": {
+            "style": {
+              "type": "string",
+              "enum": [
+                "ruled",
+                "plain",
+                "accentBar",
+                "centred",
+                "tab",
+                "marker",
+                "margin",
+                "terminal",
+                "underlined"
+              ]
+            },
+            "size": {
+              "type": "number"
+            },
+            "colour": {
+              "$ref": "#/$defs/paint"
+            },
+            "icon": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "entries": {
+          "type": "object",
+          "properties": {
+            "dates": {
+              "type": "string",
+              "enum": [
+                "besideTitle",
+                "beneath"
+              ]
+            },
+            "roleSize": {
+              "type": "number"
+            },
+            "bodySize": {
+              "type": "number"
+            },
+            "detailSize": {
+              "type": "number"
+            },
+            "dateSize": {
+              "type": "number"
+            },
+            "entryGap": {
+              "type": "number"
+            },
+            "accentRoles": {
+              "type": "boolean"
+            },
+            "skills": {
+              "type": "string",
+              "enum": [
+                "list",
+                "chips",
+                "bars",
+                "dots"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "description": "A second column. The one thing a tracking system reads wrong; `check` says so."
+    }
+  },
+  "$defs": {
+    "paint": {
+      "description": "A named colour that follows the theme, or hex.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "ink",
+            "muted",
+            "accent",
+            "hairline",
+            "wash",
+            "page",
+            "rail",
+            "inverse",
+            "dark",
+            "darkest"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        }
+      ]
+    },
+    "alignment": {
+      "type": "string",
+      "enum": [
+        "left",
+        "centre",
+        "right"
+      ]
+    },
+    "sectionName": {
+      "description": "A built-in section, or `custom:<title>` for one of your own.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "summary",
+            "experience",
+            "education",
+            "skills",
+            "projects",
+            "volunteering",
+            "certifications",
+            "publications",
+            "awards",
+            "languages",
+            "grants",
+            "teaching",
+            "talks",
+            "service",
+            "memberships",
+            "interests",
+            "references"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^custom:.+$"
+        }
+      ]
+    }
+  }
+}

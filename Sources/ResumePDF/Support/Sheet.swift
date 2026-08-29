@@ -75,7 +75,7 @@ public final class Sheet {
 
     /// The monospaced family, loaded on first use.
     ///
-    /// Lazy because two designs out of fourteen want it, and three subset
+    /// Lazy because two designs out of eighteen want it, and three subset
     /// faces is not a cost to impose on the twelve that do not.
     private lazy var monoFamily: FontFamily? = try? Typography.mono()
 
@@ -278,7 +278,7 @@ public final class Sheet {
         tracking: Double = 0,
         advance: Bool = true
     ) -> Double {
-        guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return 0 }
+        guard !text.isBlank else { return 0 }
 
         let originX = x ?? left
         let boxWidth = columnWidth ?? width
@@ -424,7 +424,7 @@ public final class Sheet {
         // Set in the face asked for, or the body face — a mono masthead
         // wants its addresses in mono, and everything else does not.
         let type = face ?? regular
-        let entries = items.filter { !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }
+        let entries = items.filter { !$0.text.isBlank }
         guard !entries.isEmpty else { return 0 }
 
         let originX = x ?? left
@@ -553,7 +553,7 @@ public final class Sheet {
         size: Double = 8.4,
         filled: Bool = true
     ) -> Double {
-        let entries = items.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        let entries = items.filter { !$0.isBlank }
         guard !entries.isEmpty else { return 0 }
 
         let originX = x ?? left

@@ -58,19 +58,10 @@ public struct LetterBlueprint: LetterLayout, Codable, Sendable, Equatable {
         self.typeface = typeface
     }
 
-    // MARK: Reading one
+    // MARK: What it declares
 
-    public init(contentsOf url: URL) throws {
-        self = try JSONDecoder().decode(LetterBlueprint.self, from: try Data(contentsOf: url))
-    }
-
-    public func encoded() throws -> Data {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        return try encoder.encode(self)
-    }
-
-    public var displayName: String { name.prefix(1).uppercased() + name.dropFirst() }
+    /// Its own name, capitalised.
+    public var displayName: String { name.capitalised }
 
     public var intendedTypeface: Typeface? { typeface.typeface }
 
@@ -197,30 +188,23 @@ extension LetterBlueprint {
             // have the measure to itself.
             if contacts == .ranged { textWidth = min(textWidth, sheet.width * 0.62) }
 
-            let label = uppercase ? profile.name.uppercased() : profile.name
-            pdf.textAt(pdf.fit(label, into: textWidth, size: nameSize,
-                               face: nameBold ? sheet.semibold : sheet.regular),
-                       x: sheet.left, y: top - nameSize * 0.88, size: nameSize,
-                       color: sheet.ink, align: align.textAlign,
-                       boxWidth: align == .centre ? sheet.width : textWidth,
-                       face: nameBold ? sheet.semibold : sheet.regular,
-                       tracking: tracking)
-
-            var y = top - nameSize * 0.88 - nameSize * 0.74
-
-            if !profile.headline.isEmpty {
-                let tint = sheet.theme.isMonochrome && headlineColour == .accent
-                    ? sheet.muted
-                    : headlineColour.colour(on: sheet)
-                pdf.textAt(pdf.fit(profile.headline, into: textWidth, size: headlineSize,
-                                   face: headlineItalic ? sheet.italic : sheet.regular),
-                           x: sheet.left, y: y, size: headlineSize, color: tint,
-                           align: align.textAlign,
-                           boxWidth: align == .centre ? sheet.width : textWidth,
-                           face: headlineItalic ? sheet.italic : sheet.regular)
-                y -= headlineSize * 1.55
-            }
-
+            let y = sheet.nameplate(
+                Sheet.Nameplate(
+                    name: profile.name, size: nameSize,
+                    face: nameBold ? sheet.semibold : sheet.regular, colour: sheet.ink,
+                    tracking: tracking, uppercase: uppercase,
+                    // A letter's head has no second line to wrap to.
+                    fitted: true, rule: nil,
+                    headline: profile.headline, headlineSize: headlineSize,
+                    headlineFace: headlineItalic ? sheet.italic : sheet.regular,
+                    headlineColour: sheet.headlineTint(headlineColour, ink: sheet.ink, muted: sheet.muted),
+                    headlineFitted: true,
+                    align: align, metrics: .letter
+                ),
+                x: sheet.left, top: top, width: textWidth,
+                // A centred head aligns on the page, and fits beside its portrait.
+                boxWidth: align == .centre ? sheet.width : textWidth
+            )
             pdf.move(to: y)
             drawContacts(profile, on: sheet, top: top)
             close(on: sheet)
@@ -235,14 +219,14 @@ extension LetterBlueprint {
                 break
 
             case .flow:
-                sheet.contactFlow(Letters.contact(profile), size: contactSize,
+                sheet.contactFlow(profile.contactEntries(), size: contactSize,
                                   align: align.textAlign)
 
             case .ranged:
                 // Ranged right against the name — the two together make the
                 // head, and neither is a list.
                 var y = top - contactSize * 1.6
-                for entry in Letters.contact(profile) {
+                for entry in profile.contactEntries() {
                     let measured = pdf.width(of: entry.text, size: contactSize, face: sheet.regular)
                     let originX = sheet.right - measured
 
@@ -264,45 +248,25 @@ extension LetterBlueprint {
 
         /// The contact details in a filled panel, each with its mark.
         private func drawPanel(_ profile: Profile, on sheet: Sheet) {
-            let pdf = sheet.pdf
-
-            let entries: [(Icon, String)] = [
-                (.email, profile.email),
-                (.phone, profile.phone),
-                (.location, profile.location),
-            ].filter { !$0.1.trimmingCharacters(in: .whitespaces).isEmpty }
-                + profile.links.map { (Icon.link, $0.label) }
-
+            // Set as text rather than linked, unlike the flowed and ranged
+            // arrangements — kept as it has always been drawn, so the
+            // rendered examples hold.
+            let entries = profile.markedContacts().map { (icon: $0.icon, text: $0.text, url: "") }
             guard !entries.isEmpty else { return }
 
             let columns = entries.count > 2 ? 2 : 1
             let rows = (entries.count + columns - 1) / columns
-            let rowStep = 19.0
-            let padding = 15.0
-            let height = Double(rows) * rowStep + padding * 2 - 4
+            let height = Double(rows) * Sheet.contactRow + Sheet.panelPadding * 2 - 4
 
             let fill = sheet.theme.accentIsDark && !sheet.theme.isMonochrome
                 ? sheet.accent
                 : sheet.wash
-            let palette = Sheet.Palette.against(fill, accent: sheet.theme.accentColor)
 
             // Under the headline with room to breathe: the panel is the
             // masthead's second half, not a caption on its first.
-            let panelTop = pdf.cursor() - 17
-            pdf.roundedRect(x: sheet.left, y: panelTop - height, width: sheet.width,
-                            height: height, radius: 9, color: fill)
-
-            let columnWidth = (sheet.width - padding * 2) / Double(columns)
-            for (index, entry) in entries.enumerated() {
-                let originX = sheet.left + padding + Double(index % columns) * columnWidth
-                let baseline = panelTop - padding - Double(index / columns) * rowStep
-
-                sheet.icon(entry.0, x: originX, y: baseline - 11.5, size: 12, color: palette.accent)
-                pdf.textAt(entry.1, x: originX + 18, y: baseline - 9.6, size: contactSize + 0.2,
-                           color: palette.ink, face: sheet.regular)
-            }
-
-            pdf.move(to: panelTop - height)
+            sheet.contactPanel(entries, x: sheet.left, top: sheet.cursor - 17, width: sheet.width,
+                               height: height, columns: columns, radius: 9, fill: fill,
+                               size: contactSize + 0.2)
         }
 
         private func close(on sheet: Sheet) {
@@ -335,15 +299,16 @@ extension LetterBlueprint {
 
 // MARK: - Starting points
 
-extension LetterBlueprint {
+extension LetterBlueprint: BundledBlueprint {
 
-    /// The built-in letter designs, as blueprints to start from.
     /// The four letter designs, read from the JSON files in the package's
     /// resources — a letter design is a JSON file, and the Swift only names
-    /// it.
-    public static let starting: [LetterBlueprint] = bundledNames.map { bundled($0) }
+    /// it. Each is a blueprint to start from.
+    public static let starting: [LetterBlueprint] = readBundled()
 
-    static let bundledNames = ["memo", "letterhead", "panel", "monogram"]
+    public static let subdirectory = "Letters"
+
+    public static let bundledNames = ["memo", "letterhead", "panel", "monogram"]
 
     /// A small ruled head and one column. Pairs with `ledger`.
     public static let memo = bundled("memo")
@@ -358,20 +323,6 @@ extension LetterBlueprint {
 
     /// Centred name, with the body between two rules. Pairs with `bulletin`.
     public static let monogram = bundled("monogram")
-
-    /// A letter design from the package's resources. The files are part of
-    /// the package, so one that is missing or will not read is a build
-    /// fault — and there is a test that reads every one of them.
-    static func bundled(_ name: String) -> LetterBlueprint {
-        guard let url = Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Letters") else {
-            preconditionFailure("The bundled letter design \(name).json is not in the package")
-        }
-        do {
-            return try LetterBlueprint(contentsOf: url)
-        } catch {
-            preconditionFailure("The bundled letter design \(name).json does not read: \(error)")
-        }
-    }
 }
 
 // MARK: - Reading a partial one

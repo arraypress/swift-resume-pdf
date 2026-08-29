@@ -100,6 +100,23 @@ extension Resume {
     }
 
     /// An academic CV, which is a different document rather than a longer one.
+    /// The sample cut to a page: two roles, the degree, the skills and a
+    /// credential, which is what a design is shown on. Eleven years of
+    /// experience runs to two pages in every design, and a gallery of
+    /// "1 / 2" footers makes the designs look looser than they are.
+    public static var brief: Resume {
+        let full = sample
+        return Resume(
+            profile: full.profile,
+            summary: full.summary,
+            experience: Array(full.experience.prefix(2)),
+            education: full.education,
+            skills: Array(full.skills.prefix(2)),
+            certifications: full.certifications,
+            order: Section.conventional
+        )
+    }
+
     public static var academicSample: Resume {
         Resume(
             profile: Profile(

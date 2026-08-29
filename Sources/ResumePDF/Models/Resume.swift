@@ -137,7 +137,7 @@ public struct Resume: Sendable, Equatable, Codable {
 
     func isPopulated(_ section: Section) -> Bool {
         switch section {
-        case .summary: return !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .summary: return !summary.isBlank
         case .experience: return !experience.isEmpty
         case .education: return !education.isEmpty
         case .skills: return !skills.isEmpty
@@ -152,8 +152,8 @@ public struct Resume: Sendable, Equatable, Codable {
         case .talks: return !talks.isEmpty
         case .service: return !service.isEmpty
         case .memberships: return !memberships.isEmpty
-        case .interests: return !interests.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .references: return !references.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .interests: return !interests.isBlank
+        case .references: return !references.isBlank
         default:
             // A section of your own is populated when the block matching it
             // has something in it.
@@ -370,7 +370,7 @@ public struct CustomSection: Sendable, Equatable, Codable {
 
         var isEmpty: Bool {
             switch self {
-            case .prose(let text): return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            case .prose(let text): return text.isBlank
             case .list(let items): return items.isEmpty
             case .positions(let items): return items.isEmpty
             case .education(let items): return items.isEmpty
@@ -417,16 +417,27 @@ public struct Labels: Sendable, Equatable, Codable {
     /// flagging, and it is also the case that stops them being untouched.
     public let language: String
 
+    /// The word a masthead hangs beside the contact details, where a design
+    /// labels them — a rail, or a row in the margin.
+    public let contact: String
+
+    /// The word beside the regional particulars, in the same places.
+    public let details: String
+
     public init(
         _ overrides: [Section: String] = [:],
         present: String = "Present",
         dateSeparator: String = "–",
-        language: String = "en"
+        language: String = "en",
+        contact: String = "Contact",
+        details: String = "Details"
     ) {
         self.overrides = overrides
         self.present = present
         self.dateSeparator = dateSeparator
         self.language = language
+        self.contact = contact
+        self.details = details
     }
 
     public func title(for section: Section) -> String {
@@ -437,7 +448,8 @@ public struct Labels: Sendable, Equatable, Codable {
     public func naming(_ section: Section, _ title: String) -> Labels {
         var copy = overrides
         copy[section] = title
-        return Labels(copy, present: present, dateSeparator: dateSeparator, language: language)
+        return Labels(copy, present: present, dateSeparator: dateSeparator, language: language,
+                      contact: contact, details: details)
     }
 
     public static let english = Labels()
@@ -465,7 +477,9 @@ public struct Labels: Sendable, Equatable, Codable {
         ],
         present: "heute",
         dateSeparator: "–",
-        language: "de"
+        language: "de",
+        contact: "Kontakt",
+        details: "Persönliche Daten"
     )
 }
 

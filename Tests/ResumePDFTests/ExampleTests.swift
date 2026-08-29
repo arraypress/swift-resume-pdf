@@ -56,10 +56,12 @@ final class ExampleTests: XCTestCase {
 
     func testEveryDesign() throws {
         for design in DesignKind.allCases {
-            let document = try Resume.sample.document(
+            let document = try Resume.brief.document(
                 design: design, theme: Theme(typeface: design.intendedTypeface)
             )
-            try put(document.render(creationDate: Self.stamped), "designs/\(design.rawValue).pdf")
+            let data = document.render(creationDate: Self.stamped)
+            XCTAssertEqual(document.pageCount(), 1, "\(design.rawValue) should show on one page")
+            try put(data, "designs/\(design.rawValue).pdf")
         }
     }
 
@@ -76,7 +78,7 @@ final class ExampleTests: XCTestCase {
         // The starting points that are not designs. Nine of the designs are
         // blueprints, and those are written once, under designs/.
         for blueprint in Blueprint.starting where DesignKind(rawValue: blueprint.name) == nil {
-            let document = try Resume.sample.document(
+            let document = try Resume.brief.document(
                 design: blueprint, theme: Theme(typeface: blueprint.typeface.typeface)
             )
             try put(document.render(creationDate: Self.stamped), "blueprints/\(blueprint.name).pdf")
@@ -94,7 +96,7 @@ final class ExampleTests: XCTestCase {
         // one long one does not.
         var perEntry = Blueprint.carded
         perEntry.ornament = .entryCards
-        try put(try Resume.sample.document(design: perEntry).render(creationDate: Self.stamped),
+        try put(try Resume.brief.document(design: perEntry).render(creationDate: Self.stamped),
                 "blueprints/entry-cards.pdf")
     }
 
@@ -110,7 +112,7 @@ final class ExampleTests: XCTestCase {
         ]
 
         for (name, theme) in themes {
-            let document = try Resume.sample.document(design: .ledger, theme: theme)
+            let document = try Resume.brief.document(design: .ledger, theme: theme)
             try put(document.render(creationDate: Self.stamped), "themes/\(name).pdf")
         }
     }

@@ -73,8 +73,8 @@ public struct DateRange: Sendable, Equatable, Codable {
     }
 
     public var isEmpty: Bool {
-        start.trimmingCharacters(in: .whitespaces).isEmpty
-            && end.trimmingCharacters(in: .whitespaces).isEmpty
+        start.isBlank
+            && end.isBlank
     }
 }
 

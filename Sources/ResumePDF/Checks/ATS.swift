@@ -80,7 +80,7 @@ public struct Report: Sendable, Equatable, Codable {
     ///
     /// A name rather than a ``DesignKind``: a report on a design of your own —
     /// a ``Blueprint`` read from a file, say — is still a report, and one that
-    /// could only name the built-in fourteen would have nothing to say about
+    /// could only name the built-in eighteen would have nothing to say about
     /// the design somebody actually sent.
     public let design: String
     public let region: Region
@@ -130,24 +130,14 @@ extension Resume {
         region: Region = .international,
         posting: Posting? = nil
     ) throws -> Report {
-        let document = try document(design: design, theme: theme)
-        _ = document.render()
-        let pages = document.pageCount()
+        try report(design: design, named: design.displayName, theme: theme, region: region,
+                   coverage: posting.map { coverage(of: $0) })
+    }
 
-        var findings = ATS.check(self, design: design, pages: pages)
-        findings += region.check(self, design: design, pages: pages)
-        findings += ATS.substitutions(in: document)
-
-        let coverage = posting.map { coverage(of: $0) }
-        if let coverage { findings += ATS.coverage(coverage) }
-
-        return Report(
-            findings: findings.sorted { $0.severity < $1.severity },
-            pages: pages,
-            design: design.displayName,
-            region: region,
-            coverage: coverage
-        )
+    /// What is wrong with the résumé before the page is read: the
+    /// machine-readability checks, and the region's conventions.
+    public func findings(design: any Design, pages: Int, region: Region) -> [Finding] {
+        ATS.check(self, design: design, pages: pages) + region.check(self, design: design, pages: pages)
     }
 }
 
@@ -181,9 +171,7 @@ public enum ATS {
             findings.append(Finding(
                 .note,
                 "A code is set, and the \(design.displayName) design has nowhere to put it.",
-                "Designs that place one: "
-                    + DesignKind.allCases.filter(\.showsCode).map(\.displayName).joined(separator: ", ")
-                    + "."
+                "Designs that place one: " + DesignKind.listed(where: \.showsCode) + "."
             ))
         }
 
@@ -215,17 +203,28 @@ public enum ATS {
     /// natural way round carries a rotation flag nothing will honour, and it
     /// renders on its side.
     static func portrait(_ resume: Resume) -> [Finding] {
-        let path = resume.profile.photo.trimmingCharacters(in: .whitespaces)
-        guard !path.isEmpty else { return [] }
+        portrait(at: resume.profile.photo)
+    }
 
-        let expanded = (path as NSString).expandingTildeInPath
+    /// The same, of a photograph at `path` — for a tool that has the path
+    /// before it has the résumé, and wants the same answer this gives.
+    /// Nothing to say about an empty path: no photograph was asked for.
+    ///
+    /// A photograph that cannot be used is a blocker: it was asked for, and
+    /// the page will carry a gap where it should be, which the sender is the
+    /// last to see. A rotation is a warning — the picture is there, only
+    /// turned.
+    public static func portrait(at path: String) -> [Finding] {
+        guard !path.isBlank else { return [] }
+
+        let expanded = (path.trimmingCharacters(in: .whitespaces) as NSString).expandingTildeInPath
         let url = URL(fileURLWithPath: expanded)
 
         do {
             _ = try EmbeddedImage.load(url)
         } catch {
             return [Finding(
-                .warning,
+                .blocker,
                 "The photograph cannot be used, so the page will have a gap where it was meant to go.",
                 (error as? LocalizedError)?.errorDescription ?? String(describing: error)
             )]
@@ -267,7 +266,7 @@ public enum ATS {
         var findings: [Finding] = []
         let profile = resume.profile
 
-        if profile.email.trimmingCharacters(in: .whitespaces).isEmpty {
+        if profile.email.isBlank {
             findings.append(Finding(
                 .blocker,
                 "No email address.",
@@ -281,11 +280,11 @@ public enum ATS {
             ))
         }
 
-        if profile.name.trimmingCharacters(in: .whitespaces).isEmpty {
+        if profile.name.isBlank {
             findings.append(Finding(.blocker, "No name.", "There is nothing to file the application under."))
         }
 
-        if profile.phone.trimmingCharacters(in: .whitespaces).isEmpty {
+        if profile.phone.isBlank {
             findings.append(Finding(
                 .note,
                 "No phone number.",
@@ -293,7 +292,7 @@ public enum ATS {
             ))
         }
 
-        if profile.location.trimmingCharacters(in: .whitespaces).isEmpty {
+        if profile.location.isBlank {
             findings.append(Finding(
                 .note,
                 "No location.",
@@ -457,7 +456,7 @@ public enum ATS {
             ))
         }
 
-        if resume.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if resume.summary.isBlank {
             findings.append(Finding(
                 .note,
                 "No summary.",

@@ -29,6 +29,8 @@ let package = Package(
                 // only names it.
                 .copy("Resources/Designs"),
                 .copy("Resources/Letters"),
+                .copy("Resources/Schemas"),
+                .copy("Resources/Themes"),
             ]
         ),
         .testTarget(name: "ResumePDFTests", dependencies: ["ResumePDF"]),

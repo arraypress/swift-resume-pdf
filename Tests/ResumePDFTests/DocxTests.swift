@@ -173,3 +173,30 @@ final class DocxTests: XCTestCase {
     }
     #endif
 }
+
+// MARK: - A letter
+
+extension DocxTests {
+
+    func testALetterIsWrittenTopToBottom() throws {
+        let members = Docx.members(of: CoverLetter.sample.docx())
+        let xml = try XCTUnwrap(String(data: try XCTUnwrap(members["word/document.xml"]), encoding: .utf8))
+
+        XCTAssertTrue(xml.contains("<w:pStyle w:val=\"Title\"/></w:pPr><w:r><w:t xml:space=\"preserve\">Alex Moreau</w:t>"))
+        for expected in ["14 August 2026", "Ms Adaeze Okonkwo", "12 Finsbury Circus",
+                         "Re: Staff Infrastructure Engineer (ref. NW-2291)", "Dear Ms Adaeze Okonkwo,",
+                         "Ledger reliability. ", "Yours sincerely,"] {
+            XCTAssertTrue(xml.contains(expected), "\(expected) is missing")
+        }
+        XCTAssertEqual(xml.components(separatedBy: "<w:numPr>").count - 1, CoverLetter.sample.highlights.count,
+                       "every highlight is a bullet")
+        XCTAssertTrue(xml.contains("<w:b/></w:rPr><w:t xml:space=\"preserve\">Ledger reliability. </w:t>"),
+                      "the lead is bold and the detail is not")
+
+        let subject = try XCTUnwrap(xml.range(of: "Re: Staff"))
+        let greeting = try XCTUnwrap(xml.range(of: "Dear Ms"))
+        let signOff = try XCTUnwrap(xml.range(of: "Yours sincerely"))
+        XCTAssertLessThan(subject.lowerBound, greeting.lowerBound)
+        XCTAssertLessThan(greeting.lowerBound, signOff.lowerBound)
+    }
+}

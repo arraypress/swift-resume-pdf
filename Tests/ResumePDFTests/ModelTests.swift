@@ -136,6 +136,23 @@ final class ModelTests: XCTestCase {
 
 extension ModelTests {
 
+    func testAThemeNamesItsChoicesInAnyCase() throws {
+        // A theme file is typed by hand; "letter" and "Letter" are the same choice.
+        let theme = try decode(Theme.self, #"{ "pageSize": "letter", "density": "Compact", "scheme": "DARK" }"#)
+
+        XCTAssertEqual(theme.pageSize, .letter)
+        XCTAssertEqual(theme.density, .compact)
+        XCTAssertEqual(theme.scheme, .dark)
+    }
+
+    func testAThemeChoiceThatIsNoneOfThemNamesTheOnesThereAre() {
+        XCTAssertThrowsError(try decode(Theme.self, #"{ "pageSize": "foolscap" }"#)) { error in
+            let described = String(describing: error)
+            XCTAssertTrue(described.contains("foolscap"), described)
+            XCTAssertTrue(described.contains("Letter"), "the real sizes should be listed: \(described)")
+        }
+    }
+
     private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
         try JSONDecoder().decode(type, from: XCTUnwrap(json.data(using: .utf8)))
     }

@@ -1,6 +1,6 @@
 # Swift Resume PDF
 
-Résumés, CVs and cover letters as PDFs. Fourteen designs, real typography, and the checks that decide whether the thing gets read.
+Résumés, CVs and cover letters as PDFs — and as Word documents, plain text and Markdown. Eighteen designs, every one a JSON file, real typography, and the checks that decide whether the thing gets read.
 
 ```swift
 let resume = Resume(
@@ -37,7 +37,7 @@ This writes the PDF directly, in designs that are honest about which side of tha
 ## Features
 
 - ✒️ **Real typography** — Inter, Source Serif 4 and JetBrains Mono travel with the package, in several weights and italic
-- 🎨 **Fourteen designs** — genuinely different arrangements, not one with the colours changed
+- 🎨 **Eighteen designs, all JSON** — genuinely different arrangements, each a file in the package you can copy and edit
 - 🧩 **Designs as JSON** — `Blueprint` and `LetterBlueprint` compose the same parts the built-ins are made of, no recompile
 - ✉️ **Cover letters** — four letter designs, each paired with a résumé one
 - 🌗 **Light, dark and tinted** — a property of the theme, so every design gets all three
@@ -46,7 +46,8 @@ This writes the PDF directly, in designs that are honest about which side of tha
 - 🌍 **Regional conventions** — what a Lebenslauf must carry and a US résumé must not
 - 📄 **Multi-page** — footers know the page count, entries do not split from their headings
 - 📥 **JSON Resume** — a `resume.json` from jsonresume.org is read as a `Resume`, the whole v1.0.0 schema
-- 📝 **A Word document** — `docx()`: one layout, real headings and bullets, for the form that takes nothing else
+- 📝 **Word, plain text and Markdown** — `docx()`, `plainText()`, `markdown()`, for the form that takes nothing else and the box that says "paste your résumé here"
+- 📐 **JSON Schemas** — for a résumé, a letter, a design and a theme, kept honest by the tests
 - 🔗 **Clickable contacts** — every email and URL is a link, because a recruiter reads from a screen
 - 🖼️ **Photographs** — JPEG or PNG, circular, with transparency kept
 - ⬌ **Justified prose** — optional, and only where the measure is wide enough to take it
@@ -72,6 +73,10 @@ This writes the PDF directly, in designs that are honest about which side of tha
 | `banner` | A near-black masthead band, name reversed out of it. | ✅ |
 | `sidebar` | Tinted rail carrying contact and skills. | ❌ |
 | `gazette` | Serif two columns behind a hairline. Academic, executive. | ❌ |
+| `plain` | Centred name, ruled headings, a scale that gets a first job onto one page. | ✅ |
+| `register` | Alternating tinted section bands, labels in the margin. | ✅ |
+| `plaqued` | A dipped coloured panel across the top, with a portrait. | ✅ |
+| `carded` | Every section on a panel of its own. | ✅ |
 
 Every one of them is a JSON file in the package's resources (`Resources/Designs/`), written in the vocabulary below, and `Blueprint.ledger` *is* `ledger` — not a cousin of it — so editing a design is editing its file. The library is a renderer and a vocabulary; the designs are data it reads. `DesignKind.blueprint` hands any of them back.
 
@@ -87,7 +92,10 @@ Theme(accent: "#E8A33D", scheme: .dark)         // reversed out
 Theme(accent: "#7A4A2B", tint: "#F6F1E8")       // on warm paper
 Theme(density: .compact)                        // six more lines per page
 Theme(justified: true)                          // flush both edges
+Theme.named("navy")                             // a preset, from its file
 ```
+
+The presets — `plain`, `navy`, `classic`, `american`, `midnight`, `paper` — are JSON files in the package's resources, the way the designs are, and `Theme.named(_:)` reads one by name.
 
 An accent chosen against white is routinely invisible on a dark page, so it is lifted when it comes too close to the background and left alone when it does not. A design that inverts a band gets a palette derived from that band, so bullets, dates and rules inside it stay legible without knowing anything unusual is happening.
 
@@ -180,7 +188,7 @@ let mine = try Blueprint(contentsOf: url)
 try resume.save(to: out, design: mine)
 ```
 
-Name only what you want changed — everything else takes the default, so two keys is a design. `Blueprint.starting` holds eighteen to begin from — the fourteen designs, plus four that are only starting points — because nobody writes one from an empty file. `plain` is the one for a first job — centred name, ruled headings, nothing else, at a scale that keeps it to the page a US posting expects.
+Name only what you want changed — everything else takes the default, so two keys is a design. `Blueprint.starting` holds the eighteen designs, because nobody writes one from an empty file and the best place to start is one that already works. `plain` is the one for a first job — centred name, ruled headings, nothing else, at a scale that keeps it to the page a US posting expects.
 
 | Key | What it sets |
 |---|---|
@@ -471,18 +479,33 @@ Drawn as vector squares in the ink colour, because a scanner wants contrast and 
 
 **It is not a substitute for the address in writing.** A parser reads text; a code is a picture. `check` reports it when the code is the only place an address appears — a URL no tracking system will ever see is a URL you did not publish.
 
-## As a Word document
+## As a Word document, as text, as Markdown
 
 ```swift
 try resume.saveDocx(to: url)                          // one layout, the theme's face and colour
 let data = resume.docx(theme: Theme(accent: "#1F3A5F"))
+let pasted = resume.plainText()                       // for the box that says "paste your résumé here"
+let readme = resume.markdown()
+try letter.saveDocx(to: letterURL)                    // the letter too
 ```
 
-For the form that takes nothing else. One layout, not fourteen: the name at the top, headings Word recognises as headings, real bullets, a date against the right margin on the same line as the title — the document a parser reads correctly, and nothing that would confuse one. Every section the PDF carries is written, in the résumé's own order, under the same labels, in the theme's typeface and colour. What is not carried is the photograph and the code: a form that wants a `.docx` wants neither.
+The commonest way a résumé reaches a tracking system is not a file at all: it is pasted into a form. `plainText()` is that paste — single column, the headings in capitals, a dash before every bullet, and nothing wrapped, because a form reflows its own text and a hard break inside a sentence is what makes a pasted résumé look pasted. `markdown()` is the same walk with the emphasis kept.
+
+All three come from one outline of the document — `resume.outline()`, public, a list of `Outline.Block`s — so a section the PDF carries is in every flat format or in none, and a format this library does not write is a short renderer over the same blocks rather than a second walk over the model.
+
+For the form that takes nothing else. One layout, not eighteen: the name at the top, headings Word recognises as headings, real bullets, a date against the right margin on the same line as the title — the document a parser reads correctly, and nothing that would confuse one. Every section the PDF carries is written, in the résumé's own order, under the same labels, in the theme's typeface and colour. What is not carried is the photograph and the code: a form that wants a `.docx` wants neither.
 
 Written by [swift-text-docx](https://github.com/arraypress/swift-text-docx), which is to Word what swift-text-pdf is to PDF: a direct writer, no dependencies, the same bytes for the same document. `docxDocument(theme:)` returns the document before it is written, for a caller who wants to add to it.
 
 The tests hand the file to `textutil`, the system's own reader, and check the words come back in the order they went in.
+
+## The schemas
+
+```swift
+let schema = Schema.resume.json                       // JSON Schema, draft 2020-12
+```
+
+Everything the library reads is JSON, and an editor or an agent that has the schema stops guessing the keys. There is one each for a résumé (`Schema.resume`, including the `design`, `theme` and `extends` keys a tool reads beside it), a letter, a design (`.blueprint`), a letter design and a theme. They are kept honest by the tests, which validate every design, letter and theme the package carries — and the sample documents — against them.
 
 ## Archival copies
 

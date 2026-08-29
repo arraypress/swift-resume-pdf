@@ -239,3 +239,27 @@ extension LetterTests {
         XCTAssertTrue(raw.contains("/DCTDecode"), "the portrait was not embedded")
     }
 }
+
+// MARK: - The words a masthead labels
+
+extension LetterTests {
+
+    func testTheContactLabelsFollowTheLanguage() throws {
+        // A rail and a margin row hang a word beside the contact details; a
+        // Lebenslauf says Kontakt, not Contact.
+        let lebenslauf = Resume(
+            profile: Profile(name: "Anna Weber", email: "a@w.de", dateOfBirth: "12.03.1990"),
+            experience: [Position(role: "Entwicklerin", organisation: "SAP", dates: .since("2020"))],
+            labels: .german
+        )
+        for design in [DesignKind.sidebar, .margin] {
+            // Case-insensitively: a rail sets its labels in capitals.
+            let text = try XCTUnwrap(PDFDocument(data: try lebenslauf.render(design: design))?.string).lowercased()
+            XCTAssertTrue(text.contains("kontakt"), "\(design.rawValue) should say Kontakt")
+            XCTAssertTrue(text.contains("persönliche daten"), "\(design.rawValue) should label the particulars in German")
+            XCTAssertFalse(text.contains("contact"), design.rawValue)
+        }
+        let english = try XCTUnwrap(PDFDocument(data: try Resume.sample.render(design: .sidebar))?.string).lowercased()
+        XCTAssertTrue(english.contains("contact"))
+    }
+}

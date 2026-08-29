@@ -32,20 +32,13 @@ extension CoverLetter {
         theme: Theme = .plain,
         region: Region = .international
     ) throws -> Report {
-        let document = try document(design: design, theme: theme)
-        _ = document.render()
-        let pages = document.pageCount()
+        try report(design: design, named: design.displayName, theme: theme, region: region)
+    }
 
-        var findings = LetterChecks.check(self, pages: pages)
-        findings += ATS.substitutions(in: document)
-
-        return Report(
-            findings: findings.sorted { $0.severity < $1.severity },
-            pages: pages,
-            design: design.displayName,
-            region: region,
-            coverage: nil
-        )
+    /// What is wrong with the letter before the page is read. The region
+    /// is a résumé's concern — a letter's conventions do not vary by it.
+    public func findings(design: any LetterLayout, pages: Int, region: Region) -> [Finding] {
+        LetterChecks.check(self, pages: pages)
     }
 }
 
@@ -68,7 +61,7 @@ public enum LetterChecks {
     private static func substance(_ letter: CoverLetter) -> [Finding] {
         var findings: [Finding] = []
 
-        let written = letter.body.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let written = letter.body.filter { !$0.isBlank }
         if written.isEmpty, letter.highlights.isEmpty {
             findings.append(Finding(
                 .blocker,
@@ -77,7 +70,7 @@ public enum LetterChecks {
             ))
         }
 
-        if letter.profile.email.trimmingCharacters(in: .whitespaces).isEmpty {
+        if letter.profile.email.isBlank {
             findings.append(Finding(
                 .warning,
                 "No email address on the letter.",
@@ -85,7 +78,7 @@ public enum LetterChecks {
             ))
         }
 
-        if letter.date.trimmingCharacters(in: .whitespaces).isEmpty {
+        if letter.date.isBlank {
             findings.append(Finding(
                 .note,
                 "No date.",
@@ -109,7 +102,7 @@ public enum LetterChecks {
         var findings: [Finding] = []
         let recipient = letter.recipient
 
-        if recipient.name.trimmingCharacters(in: .whitespaces).isEmpty {
+        if recipient.name.isBlank {
             findings.append(Finding(
                 .note,
                 "Not addressed to anybody by name.",
@@ -121,7 +114,7 @@ public enum LetterChecks {
             ))
         }
 
-        if recipient.organisation.trimmingCharacters(in: .whitespaces).isEmpty {
+        if recipient.organisation.isBlank {
             findings.append(Finding(
                 .warning,
                 "The employer is not named in the address block.",
@@ -129,7 +122,7 @@ public enum LetterChecks {
             ))
         }
 
-        if letter.subject.trimmingCharacters(in: .whitespaces).isEmpty {
+        if letter.subject.isBlank {
             findings.append(Finding(
                 .note,
                 "No subject line.",
@@ -140,7 +133,7 @@ public enum LetterChecks {
         // The British convention, which the sign-off is derived from unless it
         // was written by hand.
         let closing = letter.signOff.lowercased()
-        let named = !recipient.name.trimmingCharacters(in: .whitespaces).isEmpty
+        let named = !recipient.name.isBlank
         if named, closing.contains("faithfully") {
             findings.append(Finding(
                 .note,

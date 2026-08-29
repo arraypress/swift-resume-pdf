@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arraypress/swift-resume-pdf/schemas/letter-blueprint.schema.json",
+  "title": "Letter design",
+  "description": "A letter design written as data. Only the masthead is yours to set; the body of a letter is not a setting.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "pairsWith": {
+      "type": "string",
+      "description": "The résumé design it sits beside."
+    },
+    "typeface": {
+      "type": "string",
+      "enum": [
+        "sans",
+        "serif"
+      ]
+    },
+    "masthead": {
+      "type": "object",
+      "properties": {
+        "align": {
+          "$ref": "#/$defs/alignment"
+        },
+        "nameSize": {
+          "type": "number"
+        },
+        "uppercase": {
+          "type": "boolean"
+        },
+        "tracking": {
+          "type": "number"
+        },
+        "nameBold": {
+          "type": "boolean"
+        },
+        "headlineSize": {
+          "type": "number"
+        },
+        "headlineColour": {
+          "$ref": "#/$defs/paint"
+        },
+        "headlineItalic": {
+          "type": "boolean"
+        },
+        "contacts": {
+          "type": "string",
+          "enum": [
+            "flow",
+            "ranged",
+            "panel",
+            "none"
+          ]
+        },
+        "contactSize": {
+          "type": "number"
+        },
+        "photo": {
+          "type": "object",
+          "properties": {
+            "diameter": {
+              "type": "number"
+            },
+            "align": {
+              "$ref": "#/$defs/alignment"
+            }
+          },
+          "additionalProperties": false
+        },
+        "finish": {
+          "type": "string",
+          "enum": [
+            "rule",
+            "capped",
+            "none"
+          ]
+        },
+        "rule": {
+          "type": "object",
+          "properties": {
+            "colour": {
+              "$ref": "#/$defs/paint"
+            },
+            "thickness": {
+              "type": "number"
+            },
+            "double": {
+              "type": "boolean",
+              "description": "A hairline under the rule as well."
+            },
+            "width": {
+              "type": "number",
+              "description": "Points; 0 is the whole column."
+            },
+            "underName": {
+              "type": "boolean",
+              "description": "Under the name and as wide as it."
+            }
+          },
+          "additionalProperties": false
+        },
+        "gapAfter": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "paint": {
+      "description": "A named colour that follows the theme, or hex.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "ink",
+            "muted",
+            "accent",
+            "hairline",
+            "wash",
+            "page",
+            "rail",
+            "inverse",
+            "dark",
+            "darkest"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        }
+      ]
+    },
+    "alignment": {
+      "type": "string",
+      "enum": [
+        "left",
+        "centre",
+        "right"
+      ]
+    }
+  }
+}

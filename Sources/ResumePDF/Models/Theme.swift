@@ -151,24 +151,53 @@ public struct Theme: Sendable, Equatable, Codable {
 
     // MARK: Presets
 
+    /// The presets that ship with the package, read from the JSON files in
+    /// its resources — a theme is a JSON file, the way a design is, and the
+    /// Swift only names it.
+    public static let presets: [Theme] = presetNames.map { bundled($0) }
+
+    /// Their names, in the order they are listed.
+    public static let presetNames = ["plain", "navy", "classic", "american", "midnight", "paper"]
+
     /// Restrained and monochrome. The safest thing to send anybody.
-    public static let plain = Theme()
+    public static let plain = bundled("plain")
 
     /// A quiet ink blue.
-    public static let navy = Theme(accent: "#1F3A5F")
+    public static let navy = bundled("navy")
 
     /// Set in the serif, for academia and law.
-    public static let classic = Theme(typeface: .sourceSerif, accent: "#1A1A1A")
+    public static let classic = bundled("classic")
 
     /// US Letter, because a résumé printed on A4 in Chicago comes out with a
     /// margin the printer had to invent.
-    public static let american = Theme(pageSize: .letter)
+    public static let american = bundled("american")
 
     /// Near-black, with a warm accent that survives it.
-    public static let midnight = Theme(accent: "#E8A33D", scheme: .dark)
+    public static let midnight = bundled("midnight")
 
     /// A warm paper tint. Reads as considered; costs a lot of toner.
-    public static let paper = Theme(accent: "#7A4A2B", tint: "#F6F1E8")
+    public static let paper = bundled("paper")
+
+    /// A preset by name, however it was typed; nil for a name that is not one.
+    public static func named(_ name: String) -> Theme? {
+        let wanted = name.lowercased()
+        guard let index = presetNames.firstIndex(where: { $0 == wanted }) else { return nil }
+        return presets[index]
+    }
+
+    /// A theme from the package's resources. The files are part of the
+    /// package, so one that is missing or will not read is a build fault —
+    /// and there is a test that reads every one of them.
+    static func bundled(_ name: String) -> Theme {
+        guard let url = Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Themes") else {
+            preconditionFailure("The bundled theme \(name).json is not in the package")
+        }
+        do {
+            return try JSONDecoder().decode(Theme.self, from: try Data(contentsOf: url))
+        } catch {
+            preconditionFailure("The bundled theme \(name).json does not read: \(error)")
+        }
+    }
 }
 
 // MARK: - Scheme

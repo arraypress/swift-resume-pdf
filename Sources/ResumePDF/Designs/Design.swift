@@ -83,23 +83,28 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     /// interleaved.
     case gazette
 
-    public var displayName: String {
-        switch self {
-        case .ledger: return "Ledger"
-        case .broadsheet: return "Broadsheet"
-        case .timeline: return "Timeline"
-        case .sidebar: return "Sidebar"
-        case .margin: return "Margin"
-        case .nocturne: return "Nocturne"
-        case .eclipse: return "Eclipse"
-        case .bulletin: return "Bulletin"
-        case .marker: return "Marker"
-        case .slate: return "Slate"
-        case .card: return "Card"
-        case .terminal: return "Terminal"
-        case .banner: return "Banner"
-        case .gazette: return "Gazette"
-        }
+    /// Centred name, ruled headings, no ornament, and a scale that gets a
+    /// first job onto one page. The shape every careers service hands out.
+    case plain
+
+    /// Alternating tinted bands, labels hung in the margin.
+    case register
+
+    /// A coloured panel across the top, dipped, with a portrait.
+    case plaqued
+
+    /// Every section on a rounded panel of its own — ``card`` gives one to
+    /// every entry instead.
+    case carded
+
+    /// What the design is called, in a report or a listing: its name,
+    /// capitalised, the same way its blueprint says it.
+    public var displayName: String { rawValue.capitalised }
+
+    /// The designs that answer `keeps`, by name, for a finding that sends
+    /// somebody to them: "Designs that place one: Bulletin, Banner, …".
+    static func listed(where keeps: (DesignKind) -> Bool) -> String {
+        allCases.filter(keeps).map(\.displayName).joined(separator: ", ")
     }
 
     /// What the design is for, in one line.
@@ -119,6 +124,10 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .terminal: return "Prompt-marked headings, monospaced labels and dates, proportional prose."
         case .banner: return "A dark masthead band on a light page."
         case .gazette: return "Serif two columns behind a hairline. Not machine-readable."
+        case .plain: return "Centred name, ruled headings, one-page scale. A first job."
+        case .register: return "Alternating tinted bands, labels in the margin."
+        case .plaqued: return "A dipped coloured panel across the top."
+        case .carded: return "Every section on its own panel."
         }
     }
 
@@ -158,7 +167,7 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     ///
     /// Public so a caller can reach a built-in design through the same
     /// ``Design`` interface a design of their own uses — which is what lets a
-    /// tool treat "one of the fourteen" and "a blueprint from a file" as the
+    /// tool treat "one of the eighteen" and "a blueprint from a file" as the
     /// same kind of thing.
     public var design: any Design { blueprint }
 
@@ -168,25 +177,9 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     /// `Blueprint.ledger` *is* ledger, not a cousin of it, so editing a
     /// design is editing its file — and the two that a tracking system reads
     /// wrong (``sidebar``, ``gazette``) are data too, with a ``Blueprint/Side``
-    /// that `check` reports as the blocker it is.
-    public var blueprint: Blueprint {
-        switch self {
-        case .ledger: return .ledger
-        case .broadsheet: return .broadsheet
-        case .timeline: return .timeline
-        case .sidebar: return .sidebar
-        case .margin: return .margin
-        case .nocturne: return .nocturne
-        case .eclipse: return .eclipse
-        case .bulletin: return .bulletin
-        case .marker: return .marker
-        case .slate: return .slate
-        case .card: return .card
-        case .terminal: return .terminal
-        case .banner: return .banner
-        case .gazette: return .gazette
-        }
-    }
+    /// that `check` reports as the blocker it is. The case's name is the
+    /// file's name, so there is nothing to look up.
+    public var blueprint: Blueprint { .bundled(rawValue) }
 }
 
 /// An arrangement of a résumé on a page.
@@ -289,7 +282,7 @@ extension Resume {
     /// ``Blocks`` renders any section the same way the built-in designs do, so
     /// a design of your own is a masthead and a loop unless you want it to be
     /// more. Everything below that — ``Sheet``'s type, palette, rhythm and
-    /// components — is the same furniture the fourteen are built from.
+    /// components — is the same furniture the eighteen are built from.
     public func document(design: any Design, theme: Theme = .plain) throws -> Document {
         let family = try Typography.family(theme.typeface(declared: design.intendedTypeface))
         let sheet = Sheet(theme: theme, family: family, labels: labels)
@@ -299,6 +292,11 @@ extension Resume {
     }
 
     /// The finished bytes, from a design of your own.
+    public func render(design: any Design, theme: Theme = .plain) throws -> Data {
+        try render(design: design, theme: theme, archival: false)
+    }
+
+    /// The same, with the archival profile, a password, or a fixed date.
     public func render(
         design: any Design, theme: Theme = .plain, archival: Bool = false,
         password: String = "", creationDate: Date = Date()
@@ -332,14 +330,6 @@ extension Resume {
             )
         }
         throw ResumeError.notArchival(issues)
-    }
-
-    /// Renders a design of your own and writes it, returning the byte count.
-    @discardableResult
-    public func save(to url: URL, design: any Design, theme: Theme = .plain) throws -> Int {
-        let data = try render(design: design, theme: theme)
-        try data.write(to: url, options: .atomic)
-        return data.count
     }
 
     /// The loosest setting that fits the résumé into `pages`.
@@ -405,9 +395,7 @@ extension Resume {
     public func save(
         to url: URL, design: DesignKind = .ledger, theme: Theme = .plain
     ) throws -> Int {
-        let data = try render(design: design, theme: theme)
-        try data.write(to: url, options: .atomic)
-        return data.count
+        try save(to: url, design: design.design, theme: theme)
     }
 
     /// Document properties.

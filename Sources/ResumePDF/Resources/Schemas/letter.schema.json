@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arraypress/swift-resume-pdf/schemas/letter.schema.json",
+  "title": "Cover letter",
+  "description": "A covering letter as swift-resume-pdf reads it. The greeting and the sign-off are worked out when they are not given.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "profile": {
+      "$ref": "#/$defs/profile"
+    },
+    "recipient": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "organisation": {
+          "type": "string"
+        },
+        "address": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "date": {
+      "type": "string",
+      "description": "As written; not formatted."
+    },
+    "subject": {
+      "type": "string"
+    },
+    "salutation": {
+      "type": "string",
+      "description": "Overrides the greeting worked out from the recipient."
+    },
+    "body": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Paragraphs."
+    },
+    "highlights": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "detail"
+        ]
+      }
+    },
+    "closing": {
+      "type": "string",
+      "description": "Overrides the sign-off."
+    },
+    "signature": {
+      "type": "string",
+      "description": "Overrides the signed name."
+    },
+    "postscript": {
+      "type": "string"
+    },
+    "design": {
+      "type": "string",
+      "description": "A letter design by name, or a path to a letter blueprint. Read by the tool."
+    },
+    "letterDesign": {
+      "type": "string"
+    },
+    "theme": {
+      "$ref": "#/$defs/themeSpec"
+    },
+    "extends": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "profile": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "headline": {
+          "type": "string",
+          "description": "The role, under the name."
+        },
+        "location": {
+          "type": "string",
+          "description": "A city and country."
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/link"
+          }
+        },
+        "photo": {
+          "type": "string",
+          "description": "A path to a JPEG or PNG."
+        },
+        "qr": {
+          "type": "string",
+          "description": "An address to print as a code, in the designs that place one."
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "description": "A Lebenslauf carries one; a US résumé must not."
+        },
+        "nationality": {
+          "type": "string"
+        },
+        "maritalStatus": {
+          "type": "string"
+        },
+        "placeOfBirth": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ]
+    },
+    "link": {
+      "description": "An address. A bare string prints as the address shortened; an object names the label.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "url"
+          ]
+        }
+      ]
+    },
+    "themeSpec": {
+      "type": "object",
+      "properties": {
+        "typeface": {
+          "type": "string",
+          "description": "inter, sourceSerif, or a name for the files below."
+        },
+        "typefaceFiles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "Paths to .ttf files: regular, medium, semibold, bold, italic."
+          }
+        },
+        "accent": {
+          "type": "string"
+        },
+        "pageSize": {
+          "type": "string"
+        },
+        "density": {
+          "type": "string"
+        },
+        "scheme": {
+          "type": "string"
+        },
+        "tint": {
+          "type": "string"
+        },
+        "justified": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "description": "How the tool lays the document out. Any flag on the command line beats it."
+    }
+  }
+}

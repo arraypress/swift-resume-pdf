@@ -109,7 +109,7 @@ public struct CoverLetter: Sendable, Equatable, Codable {
 
         // The British rule, which costs nothing to observe and is noticed by
         // the people who observe it.
-        return recipient.name.trimmingCharacters(in: .whitespaces).isEmpty
+        return recipient.name.isBlank
             ? "Yours faithfully,"
             : "Yours sincerely,"
     }
@@ -159,7 +159,7 @@ public struct Recipient: Sendable, Equatable, Codable {
     /// The block as it is set, one string per line.
     public func lines() -> [String] {
         ([name, role, organisation] + address)
-            .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+            .filter { !$0.isBlank }
     }
 
     public var isEmpty: Bool { lines().isEmpty }

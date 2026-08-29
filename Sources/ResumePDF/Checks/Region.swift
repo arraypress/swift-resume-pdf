@@ -160,9 +160,7 @@ public enum Region: String, Sendable, CaseIterable, Codable {
             return [Finding(
                 .note,
                 "A photograph is set, and the \(design.displayName) design has nowhere to put it.",
-                "Designs that place one: "
-                    + DesignKind.allCases.filter(\.showsPhoto).map(\.displayName).joined(separator: ", ")
-                    + "."
+                "Designs that place one: " + DesignKind.listed(where: \.showsPhoto) + "."
             )]
         }
 
@@ -173,7 +171,7 @@ public enum Region: String, Sendable, CaseIterable, Codable {
             "A photograph is conventional here, and none is set.",
             """
             Set Profile.photo to a JPEG or PNG and render a design that places \
-            one — \(DesignKind.allCases.filter(\.showsPhoto).map(\.displayName).joined(separator: ", ")). \
+            one — \(DesignKind.listed(where: \.showsPhoto)). \
             The practice has been receding since the AGG and plenty of employers \
             now prefer none, so sending without is a defensible choice rather \
             than an omission.

@@ -48,6 +48,7 @@ func readmeExamples(
     Theme(accent: "#7A4A2B", tint: "#F6F1E8")       // on warm paper
     Theme(density: .compact)                        // six more lines per page
     Theme(justified: true)                          // flush both edges
+    Theme.named("navy")                             // a preset, from its file
 
     Resume(profile: profile, experience: roles, order: .conventional)   // a résumé
     Resume(profile: profile, grants: funding, order: .academic)         // a CV
@@ -145,7 +146,13 @@ func readmeExchangeExamples(url: URL, postingURL: URL, resume: Resume) throws {
 
     try resume.saveDocx(to: url)                          // one layout, the theme's face and colour
     let data = resume.docx(theme: Theme(accent: "#1F3A5F"))
-    _ = data
+    let pasted = resume.plainText()                       // for the box that says "paste your résumé here"
+    let readme = resume.markdown()
+    let letter = CoverLetter.sample
+    let letterURL = url
+    try letter.saveDocx(to: letterURL)                    // the letter too
+    let schema = Schema.resume.json                       // JSON Schema, draft 2020-12
+    _ = (data, pasted, readme, schema)
 }
 
 /// Never called. Compiled.

@@ -442,7 +442,7 @@ public enum Blocks {
             // a reader is asking who backed it and for how much, in that
             // order, and separating them makes them look like two facts.
             let detail = [item.funder, item.amount, item.role, item.identifier]
-                .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+                .filter { !$0.isBlank }
 
             if !detail.isEmpty {
                 sheet.paragraph(detail.joined(separator: "  ·  "), x: style.x, width: style.width,

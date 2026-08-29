@@ -37,15 +37,9 @@ public enum LetterDesign: String, Sendable, CaseIterable, Codable {
     /// `bulletin`.
     case monogram
 
-    /// What the design is called, in a report or a listing.
-    public var displayName: String {
-        switch self {
-        case .memo: return "Memo"
-        case .letterhead: return "Letterhead"
-        case .panel: return "Panel"
-        case .monogram: return "Monogram"
-        }
-    }
+    /// What the design is called, in a report or a listing: its name,
+    /// capitalised, the same way its blueprint says it.
+    public var displayName: String { rawValue.capitalised }
 
     /// The thing that draws.
     ///
@@ -54,15 +48,9 @@ public enum LetterDesign: String, Sendable, CaseIterable, Codable {
     /// thing.
     public var layout: any LetterLayout { blueprint }
 
-    /// The design as data: the JSON file it would be handed back as.
-    public var blueprint: LetterBlueprint {
-        switch self {
-        case .memo: return .memo
-        case .letterhead: return .letterhead
-        case .panel: return .panel
-        case .monogram: return .monogram
-        }
-    }
+    /// The design as data: the JSON file it would be handed back as. The
+    /// case's name is the file's name, so there is nothing to look up.
+    public var blueprint: LetterBlueprint { .bundled(rawValue) }
 
     /// The résumé design this was drawn to sit beside.
     public var pairsWith: DesignKind {
@@ -138,39 +126,31 @@ extension CoverLetter {
 
     /// The finished bytes, from a masthead of your own.
     public func render(design: any LetterLayout, theme: Theme = .plain) throws -> Data {
-        try document(design: design, theme: theme).render(metadata: [
-            "Title": profile.name.isEmpty ? "Cover letter" : "\(profile.name) — cover letter",
-            "Author": profile.name,
-            "Subject": subject.isEmpty ? "Letter of application" : subject,
-            "Creator": "ResumePDF",
-        ])
-    }
-
-    /// Writes a letter laid out by a masthead of your own.
-    @discardableResult
-    public func save(to url: URL, design: any LetterLayout, theme: Theme = .plain) throws -> Int {
-        let data = try render(design: design, theme: theme)
-        try data.write(to: url, options: .atomic)
-        return data.count
+        try document(design: design, theme: theme).render(metadata: metadata)
     }
 
     /// The finished PDF bytes.
     public func render(design: LetterDesign = .memo, theme: Theme = .plain) throws -> Data {
-        try document(design: design, theme: theme).render(metadata: [
-            "Title": profile.name.isEmpty ? "Cover letter" : "\(profile.name) — cover letter",
-            "Author": profile.name,
-            "Subject": subject.isEmpty ? "Letter of application" : subject,
-            "Creator": "ResumePDF",
-        ])
+        try render(design: design.blueprint, theme: theme)
     }
 
+    /// Renders and writes to a file, returning the byte count.
     @discardableResult
     public func save(
         to url: URL, design: LetterDesign = .memo, theme: Theme = .plain
     ) throws -> Int {
-        let data = try render(design: design, theme: theme)
-        try data.write(to: url, options: .atomic)
-        return data.count
+        try save(to: url, design: design.blueprint, theme: theme)
+    }
+
+    /// Document properties — the title a file list shows, and the subject,
+    /// which is the letter's own where it has one.
+    var metadata: [String: String] {
+        [
+            "Title": profile.name.isEmpty ? "Cover letter" : "\(profile.name) — cover letter",
+            "Author": profile.name,
+            "Subject": subject.isEmpty ? "Letter of application" : subject,
+            "Creator": "ResumePDF",
+        ]
     }
 }
 
@@ -249,10 +229,5 @@ public enum Letters {
         sheet.runOn(lead, highlight.detail,
                     x: sheet.left + indent, width: sheet.width - indent, size: size)
         sheet.rigidGap(4)
-    }
-
-    /// The contact line every letter head carries, linked where it can be.
-    public static func contact(_ profile: Profile) -> [(text: String, url: String)] {
-        profile.contactEntries()
     }
 }

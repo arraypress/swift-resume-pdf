@@ -116,6 +116,9 @@ final class FidelityTests: XCTestCase {
         let report = try resume.check(design: .bulletin)
         XCTAssertTrue(report.findings.contains { $0.message.contains("cannot be used") },
                       "a photograph that will silently not render must be reported")
+        XCTAssertTrue(report.findings.contains { $0.message.contains("cannot be used") && $0.severity == .blocker },
+                      "a gap where the photograph should be is a defect to fix, not a note")
+        XCTAssertFalse(report.isClean)
     }
 
     func testARotatedPhotographIsReported() throws {
@@ -132,8 +135,8 @@ final class FidelityTests: XCTestCase {
         )
 
         let report = try resume.check(design: .bulletin)
-        XCTAssertTrue(report.findings.contains { $0.message.contains("render rotated") },
-                      "an EXIF orientation the writer will not apply must be reported")
+        XCTAssertTrue(report.findings.contains { $0.message.contains("render rotated") && $0.severity == .warning },
+                      "an EXIF orientation the writer will not apply must be reported — as a warning, the picture is there")
     }
 
     func testAnUprightPhotographPassesTheChecks() throws {

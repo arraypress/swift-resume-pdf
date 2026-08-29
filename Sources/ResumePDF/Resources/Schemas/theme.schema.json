@@ -1,0 +1,97 @@
+{
+  "type": "object",
+  "properties": {
+    "typeface": {
+      "description": "`inter`, `sourceSerif`, or a family of your own.",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "inter",
+            "sourceSerif"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "weight": {
+                    "type": "integer"
+                  },
+                  "italic": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "weight",
+                  "italic"
+                ]
+              }
+            },
+            "bundled": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    },
+    "accent": {
+      "type": "string",
+      "description": "Hex, such as #1F3A5F.",
+      "pattern": "^#[0-9A-Fa-f]{6}$"
+    },
+    "pageSize": {
+      "type": "string",
+      "enum": [
+        "A4",
+        "A5",
+        "Letter",
+        "Legal"
+      ]
+    },
+    "density": {
+      "type": "string",
+      "enum": [
+        "relaxed",
+        "normal",
+        "compact"
+      ]
+    },
+    "scheme": {
+      "type": "string",
+      "enum": [
+        "light",
+        "dark"
+      ]
+    },
+    "tint": {
+      "type": "string",
+      "description": "Hex; the page painted this.",
+      "pattern": "^#[0-9A-Fa-f]{6}$"
+    },
+    "justified": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arraypress/swift-resume-pdf/schemas/theme.schema.json",
+  "title": "Theme",
+  "description": "The look laid over any design: accent, page, density, scheme, tint, typeface."
+}

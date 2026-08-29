@@ -40,6 +40,72 @@ extension KeyedDecodingContainer {
     func maybe<T: Decodable>(_ key: Key) throws -> T? {
         try decodeIfPresent(T.self, forKey: key)
     }
+
+    /// A named choice at `key` — a page size, a density — or `fallback`
+    /// when the key is absent. A name that is none of the choices is
+    /// refused with the names that are.
+    func choice<T: RawRepresentable & CaseIterable>(
+        _ key: Key, or fallback: T, called what: String
+    ) throws -> T where T.RawValue == String {
+        guard let written = try decodeIfPresent(String.self, forKey: key) else { return fallback }
+        guard let matched = T.matching(written) else {
+            throw DecodingError.noSuch(what, called: written, options: T.allCases.map(\.rawValue),
+                                       at: codingPath + [key])
+        }
+        return matched
+    }
+}
+
+extension Decoder {
+
+    /// Decodes a named choice, saying what the choices are when it is not one.
+    ///
+    /// "There is no heading style called 'tabbed'" and a list beats "Cannot
+    /// initialize Style from invalid String value tabbed", which tells
+    /// somebody editing a JSON file nothing they did not already know.
+    func choice<T: RawRepresentable & CaseIterable>(
+        _ type: T.Type, called what: String
+    ) throws -> T where T.RawValue == String {
+        let raw = try singleValueContainer().decode(String.self)
+        guard let value = T.matching(raw) else {
+            throw DecodingError.noSuch(what, called: raw, options: T.allCases.map(\.rawValue), at: codingPath)
+        }
+        return value
+    }
+
+    /// A bare string where an object is also accepted — `"2023"` for a
+    /// date range, `"English"` for a language, a URL for a link. Nil when
+    /// what is there is not a string, so the keyed decode can go ahead.
+    func shorthand() -> String? {
+        guard let single = try? singleValueContainer() else { return nil }
+        return try? single.decode(String.self)
+    }
+}
+
+extension RawRepresentable where Self: CaseIterable, RawValue == String {
+
+    /// The case written as `raw`, without regard to case: `"Letter"` and
+    /// `"letter"` are one choice, and a file typed by hand should not be
+    /// refused over a capital.
+    static func matching(_ raw: String) -> Self? {
+        let typed = raw.lowercased()
+        return allCases.first { $0.rawValue.lowercased() == typed }
+    }
+}
+
+extension DecodingError {
+
+    /// "There is no heading style called "tabbed" — one of: …": what
+    /// somebody editing a JSON file needs to read next.
+    /// - Parameter advice: What to write instead, where the list is not
+    ///   the whole answer.
+    static func noSuch(
+        _ what: String, called raw: String, options: [String], at path: [any CodingKey], advice: String = ""
+    ) -> DecodingError {
+        var description = "There is no \(what) called \"\(raw)\" — one of: " + options.joined(separator: ", ")
+        if !advice.isEmpty { description += ". " + advice }
+        return .dataCorrupted(DecodingError.Context(codingPath: path, debugDescription: description))
+    }
 }
 
 // MARK: - Dates
@@ -49,8 +115,7 @@ extension DateRange {
     public init(from decoder: Decoder) throws {
         // A bare string is a single date, which is what somebody writing
         // "2023" by hand means and is tedious to spell as an object.
-        if let single = try? decoder.singleValueContainer(),
-           let text = try? single.decode(String.self) {
+        if let text = decoder.shorthand() {
             self.init(text)
             return
         }
@@ -190,8 +255,7 @@ extension Language {
     public init(from decoder: Decoder) throws {
         // "English" alone is a language somebody knows; the level is a
         // refinement rather than part of the fact.
-        if let single = try? decoder.singleValueContainer(),
-           let name = try? single.decode(String.self) {
+        if let name = decoder.shorthand() {
             self.init(name)
             return
         }
@@ -251,8 +315,7 @@ extension Link {
     public init(from decoder: Decoder) throws {
         // A bare string is the common case, and writing {"url": …, "label": …}
         // for every link is a tax on it.
-        if let single = try? decoder.singleValueContainer(),
-           let url = try? single.decode(String.self) {
+        if let url = decoder.shorthand() {
             self.init(url)
             return
         }
@@ -445,9 +508,9 @@ extension Theme {
         self.init(
             typeface: try container.maybe(.typeface),
             accent: try container.value(.accent, or: "#111111"),
-            pageSize: try container.value(.pageSize, or: .a4),
-            density: try container.value(.density, or: .normal),
-            scheme: try container.value(.scheme, or: .light),
+            pageSize: try container.choice(.pageSize, or: .a4, called: "page size"),
+            density: try container.choice(.density, or: .normal, called: "density"),
+            scheme: try container.choice(.scheme, or: .light, called: "scheme"),
             tint: try container.maybe(.tint),
             justified: try container.value(.justified, or: false)
         )
@@ -467,18 +530,16 @@ extension Labels {
         // English — "fr" used to do that, and a Lebenslauf's neighbour
         // rendered with the wrong headings and no error is exactly the
         // silent failure this library exists to prevent.
-        if let single = try? decoder.singleValueContainer(),
-           let code = try? single.decode(String.self) {
+        if let code = decoder.shorthand() {
             switch code.lowercased() {
             case "en": self = .english
             case "de": self = .german
             default:
-                throw DecodingError.dataCorrupted(DecodingError.Context(
-                    codingPath: decoder.codingPath,
-                    debugDescription: "There is no label set for \"\(code)\" — one of: en, de. "
-                        + "For another language, spell the labels out: "
+                throw DecodingError.noSuch(
+                    "label set", called: code, options: ["en", "de"], at: decoder.codingPath,
+                    advice: "For another language, spell the labels out: "
                         + "{\"present\": …, \"overrides\": {\"experience\": …}}."
-                ))
+                )
             }
             return
         }
@@ -487,9 +548,52 @@ extension Labels {
             try container.value(.overrides, or: [:]),
             present: try container.value(.present, or: "Present"),
             dateSeparator: try container.value(.dateSeparator, or: "–"),
-            language: try container.value(.language, or: "en")
+            language: try container.value(.language, or: "en"),
+            contact: try container.value(.contact, or: "Contact"),
+            details: try container.value(.details, or: "Details")
         )
     }
 
-    enum CodingKeys: String, CodingKey { case overrides, present, dateSeparator, language }
+    enum CodingKeys: String, CodingKey { case overrides, present, dateSeparator, language, contact, details }
+}
+
+extension Typeface {
+
+    /// A bundled family is its name — `"inter"`, `"sourceSerif"` — because
+    /// that is what a theme file wants to say. A family of your own is the
+    /// object it always was, with the files that make it.
+    public init(from decoder: Decoder) throws {
+        if let name = decoder.shorthand() {
+            switch name.lowercased() {
+            case "inter", "sans": self = .inter
+            case "sourceserif", "source-serif", "serif": self = .sourceSerif
+            default:
+                throw DecodingError.noSuch(
+                    "bundled typeface", called: name, options: ["inter", "sourceSerif"], at: decoder.codingPath,
+                    advice: "A family of your own is an object: {\"name\": …, \"files\": […]}."
+                )
+            }
+            return
+        }
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            name: try container.decode(String.self, forKey: .name),
+            files: try container.value(.files, or: []),
+            bundled: try container.maybe(.bundled)
+        )
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        if let bundled, files.isEmpty {
+            var single = encoder.singleValueContainer()
+            try single.encode(bundled)
+            return
+        }
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encode(files, forKey: .files)
+        try container.encodeIfPresent(bundled, forKey: .bundled)
+    }
+
+    enum CodingKeys: String, CodingKey { case name, files, bundled }
 }
