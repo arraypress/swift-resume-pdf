@@ -248,10 +248,9 @@ extension LetterBlueprint {
 
         /// The contact details in a filled panel, each with its mark.
         private func drawPanel(_ profile: Profile, on sheet: Sheet) {
-            // Set as text rather than linked, unlike the flowed and ranged
-            // arrangements — kept as it has always been drawn, so the
-            // rendered examples hold.
-            let entries = profile.markedContacts().map { (icon: $0.icon, text: $0.text, url: "") }
+            // Linked, like the flowed and ranged arrangements: the address
+            // in a panel is still an address somebody will click.
+            let entries = profile.markedContacts()
             guard !entries.isEmpty else { return }
 
             let columns = entries.count > 2 ? 2 : 1
