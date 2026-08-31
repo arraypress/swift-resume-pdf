@@ -156,12 +156,6 @@ public struct Recipient: Sendable, Equatable, Codable {
         self.address = address
     }
 
-    /// The block as it is set, one string per line.
-    public func lines() -> [String] {
-        ([name, role, organisation] + address)
-            .filter { !$0.isBlank }
-    }
-
     public var isEmpty: Bool { lines().isEmpty }
 }
 

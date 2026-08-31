@@ -116,61 +116,6 @@ public struct Profile: Sendable, Equatable, Codable {
         self.maritalStatus = maritalStatus
         self.placeOfBirth = placeOfBirth
     }
-
-    /// The contact line, in the order a reader scans it.
-    ///
-    /// Email first because it is what they will use. Everything empty is
-    /// dropped rather than left as a gap or a stray separator.
-    public func contactLine() -> [String] {
-        [email, phone, location].filter { !$0.isBlank }
-    }
-
-    /// The contact line, with somewhere to go where there is somewhere.
-    ///
-    /// A résumé is read from a screen far more often than from paper, and an
-    /// address nobody can click is one somebody has to retype — which is the
-    /// difference between a recruiter opening your GitHub and meaning to.
-    ///
-    /// The location has no URL. It is the one thing here that is not a way of
-    /// reaching you, and putting it on a map is answering a question nobody
-    /// asked.
-    public func contactEntries() -> [(text: String, url: String)] {
-        markedContacts().map { ($0.text, $0.url) }
-    }
-
-    /// The same, each with the mark that says what it is — for the panels
-    /// that set an icon beside every entry.
-    func markedContacts() -> [(icon: Icon, text: String, url: String)] {
-        var entries: [(icon: Icon, text: String, url: String)] = []
-
-        if !email.isBlank {
-            entries.append((.email, email, "mailto:\(email.trimmingCharacters(in: .whitespaces))"))
-        }
-        if !phone.isBlank {
-            // tel: wants the number and nothing else — no spaces, no brackets.
-            // The "(0)" written inside an international number is the national
-            // trunk digit: dialled after a country code it reaches a wrong
-            // number, so it comes out of the dial string and stays in the text.
-            let dialable = phone
-                .replacingOccurrences(of: "(0)", with: "")
-                .filter { $0.isNumber || $0 == "+" }
-            entries.append((.phone, phone, dialable.count > 5 ? "tel:\(dialable)" : ""))
-        }
-        if !location.isBlank {
-            entries.append((.location, location, ""))
-        }
-        return entries + links.map { (.link, $0.label, $0.absolute) }
-    }
-
-    /// The regional particulars that are actually set, as label and value.
-    public func particulars() -> [(label: String, value: String)] {
-        [
-            ("Date of birth", dateOfBirth),
-            ("Place of birth", placeOfBirth),
-            ("Nationality", nationality),
-            ("Marital status", maritalStatus),
-        ].filter { !$0.1.isBlank }
-    }
 }
 
 // MARK: - Link

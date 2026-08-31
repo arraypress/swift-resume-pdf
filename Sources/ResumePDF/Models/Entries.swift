@@ -61,17 +61,6 @@ public struct DateRange: Sendable, Equatable, Codable {
         Self.ongoingWords.contains(end.trimmingCharacters(in: .whitespaces).lowercased())
     }
 
-    /// The range as one string, using `dash` between the two.
-    public func rendered(present: String = "Present", dash: String = "–") -> String {
-        let from = start.trimmingCharacters(in: .whitespaces)
-        let trimmedEnd = end.trimmingCharacters(in: .whitespaces)
-
-        guard !trimmedEnd.isEmpty else { return from }
-
-        let to = isCurrent ? present : trimmedEnd
-        return from.isEmpty ? to : "\(from) \(dash) \(to)"
-    }
-
     public var isEmpty: Bool {
         start.isBlank
             && end.isBlank
