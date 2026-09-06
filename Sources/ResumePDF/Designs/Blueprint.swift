@@ -250,7 +250,15 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
             // would be printed twice, which is the more visible mistake.
             if rail { style.dates = DatePlacement.external }
 
-            if index > 0 { sheet.gap(local?.sectionGap ?? sectionGap) }
+            // A banded section keeps the same air above its tint as below it,
+            // so the band before, the words before — or the masthead's
+            // contact line, for the first — do not crowd its edge.
+            let room = ornament.bands(index) ? Ornament.bandPadding : 0
+            if index > 0 {
+                sheet.gap((local?.sectionGap ?? sectionGap) + room)
+            } else if room > 0 {
+                sheet.gap(room)
+            }
 
             // A section drawn as one piece takes its heading with it to the
             // next page, rather than leaving the heading behind.
@@ -266,6 +274,11 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
                 sheet.gap(11)
             }
 
+            // Where the section begins, for a band to start above its heading
+            // — only trusted if the heading did not move to a new page.
+            let sectionPage = sheet.pdf.pageCount()
+            let sectionTop = sheet.cursor
+
             sectionHeading.draw(
                 resume.heading(for: section),
                 section: section,
@@ -276,7 +289,8 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
             )
 
             draw(section, of: resume, on: sheet, style: style, index: index,
-                 shading: shading, bodyX: bodyX, bodyWidth: bodyWidth, labelWidth: labelWidth)
+                 shading: shading, bodyX: bodyX, bodyWidth: bodyWidth, labelWidth: labelWidth,
+                 sectionTop: sheet.pdf.pageCount() == sectionPage ? sectionTop : nil)
         }
         }
 
@@ -474,7 +488,8 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
     /// One section's entries, however this design treats them.
     private func draw(
         _ section: Section, of resume: Resume, on sheet: Sheet, style: Blocks.Style,
-        index: Int, shading: Shading?, bodyX: Double, bodyWidth: Double, labelWidth: Double
+        index: Int, shading: Shading?, bodyX: Double, bodyWidth: Double, labelWidth: Double,
+        sectionTop: Double? = nil
     ) {
         switch ornament {
         case .entryCards:
@@ -533,7 +548,7 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
 
         case .none, .bands, .cards:
             ornament.wrap(index: index, on: sheet, shading: shading,
-                          x: sheet.left, width: sheet.width) {
+                          x: sheet.left, width: sheet.width, sectionTop: sectionTop) {
                 Blocks.render(section, of: resume, on: sheet, style: style)
             }
         }
