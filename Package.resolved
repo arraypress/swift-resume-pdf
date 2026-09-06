@@ -1,5 +1,5 @@
 {
-  "originHash" : "15cd91e554d2c990e5152ae3a71013c150822f70b0e3b782f4fea6da52156580",
+  "originHash" : "e38cb16d6906c0c7339f3559c3ce1be3088305de0cb5647b25c053f2e6750389",
   "pins" : [
     {
       "identity" : "swift-text-docx",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "a0755e097c6047427e605e41f06f899c8a873298",
         "version" : "0.1.0"
+      }
+    },
+    {
+      "identity" : "swift-text-pdf",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/arraypress/swift-text-pdf.git",
+      "state" : {
+        "revision" : "78efb60e00b3d7ea5910113a7dfcdc29ba9a5dbc",
+        "version" : "0.1.1"
       }
     }
   ],
