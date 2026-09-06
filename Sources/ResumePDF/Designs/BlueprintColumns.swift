@@ -89,15 +89,18 @@ extension Blueprint {
         public var gutter: Double
 
         /// Where the masthead goes: inside the column, stacked to its width
-        /// with the contact details one per line; or above both columns,
-        /// set by ``Masthead``.
+        /// with the contact details one per line; above both columns, set by
+        /// ``Masthead``; or split — the name and the claim over the main
+        /// column, the portrait and the contact details at the head of this
+        /// one, which is the shape a filled rail wants when the name should
+        /// not be reversed out of it.
         public var head: Head
 
         public var heading: Heading
         public var entries: Entries
 
         public enum Edge: String, Codable, Sendable, CaseIterable { case left, right }
-        public enum Head: String, Codable, Sendable, CaseIterable { case inside, above }
+        public enum Head: String, Codable, Sendable, CaseIterable { case inside, above, main }
 
         public init(
             width: Double = 190,
@@ -122,6 +125,20 @@ extension Blueprint {
             self.head = head
             self.heading = heading
             self.entries = entries
+        }
+
+        /// The palette the column's words are drawn in when it is filled.
+        ///
+        /// Derived from the fill where the fill is dark enough to carry
+        /// reversed type, and nil where the page's own palette already reads
+        /// on it — the same rule a masthead ``Masthead/Panel`` applies, for
+        /// the same reason: a rail author cannot see that their ink vanished
+        /// until somebody renders it under a theme they did not try.
+        func palette(on sheet: Sheet) -> Sheet.Palette? {
+            guard let fill else { return nil }
+            let tint = fill.colour(on: sheet)
+            guard tint.luminance < 0.5 else { return nil }
+            return .against(tint, accent: sheet.theme.accentColor)
         }
     }
 }

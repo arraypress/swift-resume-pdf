@@ -252,28 +252,11 @@ extension Blueprint {
                 }
             }
 
-            let regular = nameWeight == .regular ? sheet.regular : sheet.semibold
-            let heavy = monospaced ? (sheet.monoBold ?? sheet.semibold) : regular
             let plain = monospaced ? (sheet.mono ?? sheet.regular) : sheet.regular
 
-            // The accent is only a colour for the name where there is one;
-            // on a monochrome theme it is the ink under another name.
-            let nameTint = nameColour == .ink || (sheet.theme.isMonochrome && nameColour == .accent)
-                ? ink
-                : nameColour.colour(on: sheet, fallback: ink)
-
+            // Beside a code the name is set to what is left, not to the page.
             let y = sheet.nameplate(
-                Sheet.Nameplate(
-                    name: profile.name, size: nameSize, face: heavy, colour: nameTint,
-                    tracking: tracking, uppercase: uppercase,
-                    // Beside a code the name is set to what is left, not to the page.
-                    fitted: coded, rule: rule,
-                    headline: profile.headline, headlineSize: headlineSize,
-                    headlineFace: headlineItalic ? (sheet.italic ?? plain) : plain,
-                    headlineColour: sheet.headlineTint(headlineColour, ink: ink, muted: mutedInk),
-                    headlineFitted: false,
-                    align: align, metrics: .resume
-                ),
+                plate(profile, on: sheet, ink: ink, muted: mutedInk, fitted: coded),
                 x: textX, top: top, width: textWidth
             )
             pdf.move(to: y)
@@ -340,6 +323,37 @@ extension Blueprint {
 
             sheet.gap(gapAfter)
             return pdf.cursor()
+        }
+
+        /// The name and the claim as ``Sheet/nameplate(_:x:top:width:boxWidth:)``
+        /// sets them, from this masthead's choices. Built here once, because
+        /// the head draws it and so does a side whose name sits over the
+        /// main column — and two copies of the name's tint rule drift.
+        /// - Parameters:
+        ///   - ink: The ink of whatever the name is set on — the page's, or a
+        ///     panel's.
+        ///   - fitted: Set to what is left of the measure rather than run past it.
+        func plate(_ profile: Profile, on sheet: Sheet, ink: Color, muted: Color, fitted: Bool) -> Sheet.Nameplate {
+            let regular = nameWeight == .regular ? sheet.regular : sheet.semibold
+            let heavy = monospaced ? (sheet.monoBold ?? sheet.semibold) : regular
+            let plain = monospaced ? (sheet.mono ?? sheet.regular) : sheet.regular
+
+            // The accent is only a colour for the name where there is one;
+            // on a monochrome theme it is the ink under another name.
+            let nameTint = nameColour == .ink || (sheet.theme.isMonochrome && nameColour == .accent)
+                ? ink
+                : nameColour.colour(on: sheet, fallback: ink)
+
+            return Sheet.Nameplate(
+                name: profile.name, size: nameSize, face: heavy, colour: nameTint,
+                tracking: tracking, uppercase: uppercase,
+                fitted: fitted, rule: rule,
+                headline: profile.headline, headlineSize: headlineSize,
+                headlineFace: headlineItalic ? (sheet.italic ?? plain) : plain,
+                headlineColour: sheet.headlineTint(headlineColour, ink: ink, muted: muted),
+                headlineFitted: false,
+                align: align, metrics: .resume
+            )
         }
 
         /// The summary on a washed panel and the contact details on a dark

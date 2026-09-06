@@ -97,6 +97,30 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
     /// every entry instead.
     case carded
 
+    /// The argument in a wide left column, the credentials in a narrow
+    /// right one, a portrait top right. The commonest two-column résumé on
+    /// the web; carries ``sidebar``'s warning.
+    case split
+
+    /// A narrow left column of skills and projects as chips, the name across
+    /// the top. Two columns, so a parser reads it wrong.
+    case wing
+
+    /// The portrait and the contact details in a light left rail, the name
+    /// over the main column, a mark beside every heading. Two columns.
+    case foyer
+
+    /// A near-black rail down the right with the portrait and the contact
+    /// details in it; the name over the main column. Two columns.
+    case pillar
+
+    /// ``sidebar`` with the rail near-black and the name reversed out of
+    /// it. Two columns.
+    case flank
+
+    /// ``banner``'s dark band over two columns. Two columns.
+    case marquee
+
     /// What the design is called, in a report or a listing: its name,
     /// capitalised, the same way its blueprint says it.
     public var displayName: String { rawValue.capitalised }
@@ -128,6 +152,12 @@ public enum DesignKind: String, Sendable, CaseIterable, Codable {
         case .register: return "Alternating tinted bands, labels in the margin."
         case .plaqued: return "A dipped coloured panel across the top."
         case .carded: return "Every section on its own panel."
+        case .split: return "Wide left column, narrow right, portrait top right. Not machine-readable."
+        case .wing: return "A narrow left column of chips, the name across the top. Not machine-readable."
+        case .foyer: return "Portrait and contact in a light left rail, marks beside the headings. Not machine-readable."
+        case .pillar: return "A dark rail down the right, the name over the main column. Not machine-readable."
+        case .flank: return "Sidebar with a near-black rail. Not machine-readable."
+        case .marquee: return "A dark masthead band over two columns. Not machine-readable."
         }
     }
 

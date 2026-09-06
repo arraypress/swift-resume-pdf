@@ -409,7 +409,8 @@
           "type": "string",
           "enum": [
             "inside",
-            "above"
+            "above",
+            "main"
           ]
         },
         "heading": {

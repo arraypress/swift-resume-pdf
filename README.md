@@ -1,6 +1,6 @@
 # Swift Resume PDF
 
-Résumés, CVs and cover letters as PDFs — and as Word documents, plain text and Markdown. Eighteen designs, every one a JSON file, real typography, and the checks that decide whether the thing gets read.
+Résumés, CVs and cover letters as PDFs — and as Word documents, plain text and Markdown. Twenty-four designs, every one a JSON file, real typography, and the checks that decide whether the thing gets read.
 
 ```swift
 let resume = Resume(
@@ -37,7 +37,7 @@ This writes the PDF directly, in designs that are honest about which side of tha
 ## Features
 
 - ✒️ **Real typography** — Inter, Source Serif 4 and JetBrains Mono travel with the package, in several weights and italic
-- 🎨 **Eighteen designs, all JSON** — genuinely different arrangements, each a file in the package you can copy and edit
+- 🎨 **Twenty-four designs, all JSON** — genuinely different arrangements, each a file in the package you can copy and edit; the eight two-column ones fold to a single column on request
 - 🧩 **Designs as JSON** — `Blueprint` and `LetterBlueprint` compose the same parts the built-ins are made of, no recompile
 - ✉️ **Cover letters** — four letter designs, each paired with a résumé one
 - 🌗 **Light, dark and tinted** — a property of the theme, so every design gets all three
@@ -77,10 +77,24 @@ This writes the PDF directly, in designs that are honest about which side of tha
 | `register` | Alternating tinted section bands, labels in the margin. | ✅ |
 | `plaqued` | A dipped coloured panel across the top, with a portrait. | ✅ |
 | `carded` | Every section on a panel of its own. | ✅ |
+| `split` | Wide left column, narrow right, portrait top right. The commonest two-column résumé on the web. | ❌ |
+| `wing` | A narrow left column of skills and projects as chips, the name across the top. | ❌ |
+| `foyer` | Portrait and contact details in a light left rail, a mark beside every heading. | ❌ |
+| `pillar` | A near-black rail down the right with the portrait in it; the name over the main column. | ❌ |
+| `flank` | Sidebar with the rail near-black and the name reversed out of it. | ❌ |
+| `marquee` | Banner's dark band over two columns. | ❌ |
 
 Every one of them is a JSON file in the package's resources (`Resources/Designs/`), written in the vocabulary below, and `Blueprint.ledger` *is* `ledger` — not a cousin of it — so editing a design is editing its file. The library is a renderer and a vocabulary; the designs are data it reads. `DesignKind.blueprint` hands any of them back.
 
-`sidebar` and `gazette` are the two a tracking system cannot read. That is not a bug to be fixed later — two columns and machine-readability are the same trade-off seen from either end. Send them where a person will open them, and use one of the others for anything that goes through a form. `check` says so rather than leaving it to be discovered.
+The eight marked ❌ are laid out in two columns, and a tracking system cannot read two columns. That is not a bug to be fixed later — two columns and machine-readability are the same trade-off seen from either end, and it is measured rather than assumed: PDFKit hands `split`'s side-by-side headings back as one line, `EXPERIENCE` followed by `SUMMARY`. `check` says so rather than leaving it to be discovered.
+
+Every one of them folds to a single column on request, keeping its masthead, headings, colours and portrait and losing only the column:
+
+```swift
+try resume.save(to: out, design: Blueprint.split.singleColumn)   // same look, one column, reads in order
+```
+
+So the choice is per document, not per design: the two-column page for the person who will open it, the folded one for the form.
 
 ## Themes, not templates
 
@@ -188,7 +202,7 @@ let mine = try Blueprint(contentsOf: url)
 try resume.save(to: out, design: mine)
 ```
 
-Name only what you want changed — everything else takes the default, so two keys is a design. `Blueprint.starting` holds the eighteen designs, because nobody writes one from an empty file and the best place to start is one that already works. `plain` is the one for a first job — centred name, ruled headings, nothing else, at a scale that keeps it to the page a US posting expects.
+Name only what you want changed — everything else takes the default, so two keys is a design. `Blueprint.starting` holds the twenty-four designs, because nobody writes one from an empty file and the best place to start is one that already works. `plain` is the one for a first job — centred name, ruled headings, nothing else, at a scale that keeps it to the page a US posting expects.
 
 | Key | What it sets |
 |---|---|
@@ -198,6 +212,7 @@ Name only what you want changed — everything else takes the default, so two ke
 | `heading` | `ruled`, `plain`, `accentBar`, `centred`, `tab`, `marker`, `margin`, `terminal`, `underlined` — size, colour, icon |
 | `entries` | date placement, four sizes, entry gap, accent roles, `list`/`chips`/`bars`/`dots` skills |
 | `ornament` | `none`, `bands`, `cards`, `entryCards`, `rail`, `tabs` |
+| `side` | a second column: `edge`, `width`, the `sections` it carries, a `fill` (`rail`, `ink`, a hex — a dark one gets reversed type), `divider`, and where the `head` goes: `inside` the column, `above` both, or `main` — the name over the main column, the portrait and contact details at the head of the side |
 | `side` | a second column: width, edge, the sections it carries, a `rail` fill or a hairline divider, the masthead inside it or above both |
 | `sections` | any of the above, for one section only |
 | `palette` | theme colours this design overrides |
@@ -493,7 +508,7 @@ The commonest way a résumé reaches a tracking system is not a file at all: it 
 
 All three come from one outline of the document — `resume.outline()`, public, a list of `Outline.Block`s — so a section the PDF carries is in every flat format or in none, and a format this library does not write is a short renderer over the same blocks rather than a second walk over the model.
 
-For the form that takes nothing else. One layout, not eighteen: the name at the top, headings Word recognises as headings, real bullets, a date against the right margin on the same line as the title — the document a parser reads correctly, and nothing that would confuse one. Every section the PDF carries is written, in the résumé's own order, under the same labels, in the theme's typeface and colour. What is not carried is the photograph and the code: a form that wants a `.docx` wants neither.
+For the form that takes nothing else. One layout, not twenty-four: the name at the top, headings Word recognises as headings, real bullets, a date against the right margin on the same line as the title — the document a parser reads correctly, and nothing that would confuse one. Every section the PDF carries is written, in the résumé's own order, under the same labels, in the theme's typeface and colour. What is not carried is the photograph and the code: a form that wants a `.docx` wants neither.
 
 Written by [swift-text-docx](https://github.com/arraypress/swift-text-docx), which is to Word what swift-text-pdf is to PDF: a direct writer, no dependencies, the same bytes for the same document. `docxDocument(theme:)` returns the document before it is written, for a caller who wants to add to it.
 
@@ -519,7 +534,7 @@ The one thing that can break the claim is a run of text no bundled face covers, 
 
 ## Photographs
 
-`Profile.photo` takes a path to a baseline JPEG or a PNG. `bulletin`, `nocturne`, `eclipse`, `banner` and `sidebar` have somewhere to put one; the rest ignore it, and `check` says which.
+`Profile.photo` takes a path to a baseline JPEG or a PNG. `bulletin`, `nocturne`, `eclipse`, `banner`, `plaqued`, `sidebar`, `split`, `foyer`, `pillar` and `marquee` have somewhere to put one; the rest ignore it, and `check` says which.
 
 A PNG's transparency is kept — it becomes a soft mask rather than being flattened onto white, so a cut-out portrait does not arrive on a square. A missing or unreadable file leaves a gap rather than failing the render: a résumé that refuses to build because a photograph moved is worse than one with a space where a face was. `check` says why — a file that cannot be read, a progressive JPEG, or an EXIF rotation the writer will not apply, which prints a phone portrait on its side.
 

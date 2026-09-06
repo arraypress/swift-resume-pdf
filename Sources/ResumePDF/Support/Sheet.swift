@@ -799,19 +799,26 @@ public final class Sheet {
     /// - Parameter palette: The colours to set it in, for a design whose
     ///   pages are not the page colour. Nocturne kept a private copy of this
     ///   whole method for the sake of two colours.
-    public func footer(name: String, palette: Palette? = nil) {
+    /// - Parameters:
+    ///   - x: Where the foot starts. The page's left margin when nil.
+    ///   - width: How far it runs. The page's content width when nil. A
+    ///     design with a filled rail passes its main column, or the page
+    ///     number lands on the rail in the page's ink and disappears.
+    public func footer(name: String, palette: Palette? = nil, x: Double? = nil, width: Double? = nil) {
         let tint = palette?.muted ?? muted
         let rule = palette?.hairline ?? hairline
         let band = Sheet.footerBand(margin: theme.density.margin)
 
         pdf.onEachPage { doc, page, total in
             guard total > 1 else { return }
+            let left = x ?? doc.left()
+            let span = width ?? doc.contentWidth()
 
-            doc.line(from: doc.left(), band.rule, to: doc.right(), band.rule,
+            doc.line(from: left, band.rule, to: left + span, band.rule,
                      color: rule, thickness: 0.5)
-            doc.textAt(name, x: doc.left(), y: band.text, size: 7.6, color: tint)
-            doc.textAt("\(page) / \(total)", x: doc.left(), y: band.text, size: 7.6,
-                       color: tint, align: .right, boxWidth: doc.contentWidth())
+            doc.textAt(name, x: left, y: band.text, size: 7.6, color: tint)
+            doc.textAt("\(page) / \(total)", x: left, y: band.text, size: 7.6,
+                       color: tint, align: .right, boxWidth: span)
         }
     }
 

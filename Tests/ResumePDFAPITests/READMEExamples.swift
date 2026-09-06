@@ -134,6 +134,7 @@ func readmeOpeningExample(url: URL) throws {
 func readmeBlueprintExample(url: URL, out: URL, resume: Resume) throws {
     let mine = try Blueprint(contentsOf: url)
     try resume.save(to: out, design: mine)
+    try resume.save(to: out, design: Blueprint.split.singleColumn)   // same look, one column, reads in order
 }
 
 // MARK: - Reading, matching and writing

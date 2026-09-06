@@ -254,8 +254,9 @@ public enum ATS {
             A tracking system extracts the text in order and does not know the \
             rail is a separate column, so the sidebar comes out interleaved with \
             the experience — a phone number in the middle of an employment \
-            history. Send this one where a person will open it, and use Ledger, \
-            Broadsheet or Timeline for anything that goes through a form.
+            history. Send this one where a person will open it. For anything \
+            that goes through a form, render the same design in one column — \
+            every design here can be — or use Ledger, Broadsheet or Timeline.
             """
         )]
     }

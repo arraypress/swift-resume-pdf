@@ -137,7 +137,56 @@ final class BlueprintTests: XCTestCase {
                               "\(blueprint.name): \(report.findings.map(\.message))")
             }
         }
-        XCTAssertEqual(Blueprint.starting.filter { !$0.isSingleColumn }.map(\.name), ["sidebar", "gazette"])
+        XCTAssertEqual(Blueprint.starting.filter { !$0.isSingleColumn }.map(\.name),
+                       ["sidebar", "gazette", "split", "wing", "foyer", "pillar", "flank", "marquee"])
+    }
+
+    // MARK: Two columns
+
+    func testASplitHeadSetsTheNameOverTheMainColumn() throws {
+        // The third place a masthead can go: the name over the main column,
+        // the portrait and the contact details at the head of the side. It
+        // is still two columns, and still says so.
+        let blueprint = try decode(#"{"name": "mine", "side": {"head": "main", "fill": null}}"#)
+        XCTAssertEqual(blueprint.side?.head, .main)
+        XCTAssertFalse(blueprint.isSingleColumn)
+
+        let data = try Resume.sample.render(design: blueprint)
+        XCTAssertTrue(try text(of: data).lowercased().contains("alex moreau"))
+        XCTAssertTrue(try text(of: data).contains("alex@moreau.dev"), "the contact details moved, not vanished")
+    }
+
+    func testEveryTwoColumnDesignFoldsIntoOneAParserReadsInOrder() throws {
+        // The answer to the blocker: the same design, one column. Checked
+        // clean, and the text comes back in the résumé's own order — which
+        // the two-column original does not: measured, PDFKit hands a pair of
+        // side-by-side headings back as one line.
+        for blueprint in Blueprint.starting where !blueprint.isSingleColumn {
+            let folded = blueprint.singleColumn
+            XCTAssertTrue(folded.isSingleColumn, blueprint.name)
+            XCTAssertEqual(folded.name, blueprint.name, "the same design, not a different one")
+            XCTAssertTrue(try Resume.sample.check(design: folded).isClean, blueprint.name)
+
+            let extracted = try text(of: try Resume.sample.render(design: folded))
+            let positions = ["SUMMARY", "EXPERIENCE", "EDUCATION", "SKILLS"]
+                .compactMap { extracted.range(of: $0)?.lowerBound }
+            XCTAssertEqual(positions.count, 4, "\(blueprint.name): a heading went missing")
+            XCTAssertEqual(positions, positions.sorted(), "\(blueprint.name): sections out of order once folded")
+        }
+        XCTAssertEqual(Blueprint.ledger.singleColumn, Blueprint.ledger, "one column already; nothing to fold")
+    }
+
+    func testADarkRailIsDrawnInAPaletteDerivedFromIt() throws {
+        // The rule a masthead panel applies, applied to a rail: reversed type
+        // only where the fill can carry it, the page's own palette where it
+        // cannot — so sidebar's pale rail is untouched and flank's near-black
+        // one gets light ink under every theme.
+        let sheet = Sheet(theme: .plain, family: try Typography.family(.inter), labels: Resume.sample.labels)
+
+        let dark = try XCTUnwrap(Blueprint.flank.side?.palette(on: sheet), "a near-black rail derives a palette")
+        XCTAssertGreaterThan(dark.ink.luminance, 0.5, "light ink on a dark rail")
+        XCTAssertNil(Blueprint.sidebar.side?.palette(on: sheet), "a pale rail keeps the page's palette")
+        XCTAssertNil(Blueprint.gazette.side?.palette(on: sheet), "no fill, nothing to derive from")
     }
 
     func testASkippedSectionIsNotDrawn() throws {

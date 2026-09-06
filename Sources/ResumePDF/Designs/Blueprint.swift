@@ -6,7 +6,7 @@
 //
 //  A design described rather than written.
 //
-//  All eighteen built-in designs are the same skeleton:
+//  All twenty-four built-in designs are the same skeleton:
 //
 //      masthead
 //      for each populated section:
@@ -36,10 +36,11 @@
 //  known-good parts fails differently: every combination of these choices
 //  produces a page that reads.
 //
-//  Two-column designs are not expressible for the same reason ``Sidebar`` is
-//  the one design that blocks: the interesting decision there is what goes in
-//  the rail, which is a judgement about a particular document rather than a
-//  setting.
+//  A second column is the one exception, and it is not hidden: a ``Side``
+//  names the sections it carries, and a blueprint that has one is reported
+//  by `check` as the blocker it is, because a parser reads two columns
+//  interleaved. What goes in the rail is a judgement about a particular
+//  document, so the designs that ship with one each make a different call.
 //
 
 import Foundation
@@ -173,6 +174,21 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
     /// produce a document a tracking system reads out of order.
     public var isSingleColumn: Bool { side == nil }
 
+    /// The same design in one column, for anything that goes through a form.
+    ///
+    /// The side is folded into the main flow: its sections take their place
+    /// in the résumé's own order, under the same headings, in the same
+    /// palette, under the same masthead — so the document keeps its look
+    /// and loses only the thing a parser reads wrong. Measured with PDFKit,
+    /// a two-column page hands a pair of side-by-side headings back as one
+    /// line; the folded page hands the sections back in order. A design
+    /// with no side is already this, and comes back unchanged.
+    public var singleColumn: Blueprint {
+        var folded = self
+        folded.side = nil
+        return folded
+    }
+
     /// Whether the masthead was told to place a portrait.
     public var showsPhoto: Bool { masthead.photo != nil }
 
@@ -292,6 +308,10 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
             mainX = sheet.left; mainWidth = sheet.width - side.width - side.gutter
         }
 
+        // A filled rail runs the page's full height. A dark one hands back
+        // the palette its words are drawn in, so the head and the sections
+        // on it read under every theme — see ``Side/palette(on:)``.
+        let railPalette = side.palette(on: sheet)
         if let fill = side.fill {
             let tint = fill.colour(on: sheet)
             let railX = side.edge == .left ? 0 : pageWidth - side.width
@@ -306,11 +326,30 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
         switch side.head {
         case .inside:
             top = pageTop
-            drawRailHead(resume, on: sheet, side: side, x: sideX, width: sideWidth, top: pageTop)
+            sheet.drawing(on: railPalette) {
+                drawRailHead(resume, on: sheet, side: side, x: sideX, width: sideWidth,
+                             top: pageTop, named: true)
+            }
         case .above:
             _ = masthead.draw(resume, on: sheet, x: sheet.left, width: sheet.width)
             top = pdf.cursor()
             pdf.move(to: top)
+        case .main:
+            // The name and the claim over the main column, where they are
+            // read first; the portrait and the contact details at the head
+            // of the side, which is what a rail is for.
+            let y = sheet.nameplate(
+                masthead.plate(resume.profile, on: sheet, ink: sheet.ink, muted: sheet.muted, fitted: false),
+                x: mainX, top: pageTop, width: mainWidth
+            )
+            pdf.move(to: y)
+            sheet.gap(masthead.gapAfter)
+            top = pdf.cursor()
+            pdf.move(to: pageTop)
+            sheet.drawing(on: railPalette) {
+                drawRailHead(resume, on: sheet, side: side, x: sideX, width: sideWidth,
+                             top: pageTop, named: false)
+            }
         }
 
         if side.divider {
@@ -343,7 +382,7 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
                 continue
             }
 
-            place(on: sheet)
+            sheet.drawing(on: railPalette) { place(on: sheet) }
             sheet.gap(13)
         }
 
@@ -358,13 +397,22 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
             index += 1
         }
 
-        if footer { sheet.footer(name: resume.profile.name) }
+        // A filled rail runs down every page, so the foot keeps to the main
+        // column rather than printing its page number on the rail.
+        if footer {
+            sheet.footer(name: resume.profile.name,
+                         x: filled ? mainX : nil, width: filled ? mainWidth : nil)
+        }
     }
 
     /// The masthead a rail carries: a portrait, the name wrapped to the
     /// rail's width, and the contact details one per line under a label.
+    /// - Parameter named: Whether the name and the claim are set here. A
+    ///   split head sets them over the main column and leaves the rail the
+    ///   portrait and the contact details.
     private func drawRailHead(
-        _ resume: Resume, on sheet: Sheet, side: Side, x: Double, width: Double, top: Double
+        _ resume: Resume, on sheet: Sheet, side: Side, x: Double, width: Double, top: Double,
+        named: Bool
     ) {
         let pdf = sheet.pdf
         let profile = resume.profile
@@ -375,12 +423,14 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
             pdf.move(to: top - width - 16)
         }
 
-        sheet.paragraph(profile.name, x: x, width: width, size: 18.5, face: sheet.semibold)
-        if !profile.headline.isEmpty {
-            sheet.rigidGap(6)
-            sheet.paragraph(profile.headline, x: x, width: width, size: 8.8, color: sheet.muted)
+        if named {
+            sheet.paragraph(profile.name, x: x, width: width, size: 18.5, face: sheet.semibold)
+            if !profile.headline.isEmpty {
+                sheet.rigidGap(6)
+                sheet.paragraph(profile.headline, x: x, width: width, size: 8.8, color: sheet.muted)
+            }
+            sheet.gap(16)
         }
-        sheet.gap(16)
 
         let tint = side.heading.colour.colour(on: sheet)
         let contact = profile.contactEntries()

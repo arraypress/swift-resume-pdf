@@ -1,0 +1,88 @@
+{
+  "column": {
+    "gutter": 0,
+    "headAtMargin": false,
+    "labelAlign": "right",
+    "labelWidth": 0,
+    "ruled": false
+  },
+  "entries": {
+    "accentRoles": false,
+    "bodySize": 9.2,
+    "dateSize": 8.4,
+    "dates": "besideTitle",
+    "detailSize": 9.0,
+    "entryGap": 13,
+    "roleSize": 10.6,
+    "skills": "list"
+  },
+  "footer": true,
+  "heading": {
+    "colour": "accent",
+    "icon": true,
+    "size": 8.4,
+    "style": "plain"
+  },
+  "masthead": {
+    "align": "left",
+    "contactSize": 8.7,
+    "contacts": "flow",
+    "gapAfter": 16,
+    "headlineColour": "accent",
+    "headlineItalic": false,
+    "headlineSize": 11.2,
+    "monospaced": false,
+    "nameColour": "ink",
+    "nameSize": 30,
+    "nameWeight": "regular",
+    "photo": {
+      "align": "left",
+      "diameter": 110
+    },
+    "qr": 0,
+    "rule": null,
+    "separator": "·",
+    "tracking": -0.3,
+    "twin": false,
+    "uppercase": false
+  },
+  "name": "foyer",
+  "ornament": "none",
+  "sectionGap": 16,
+  "sections": {},
+  "side": {
+    "divider": false,
+    "edge": "left",
+    "entries": {
+      "accentRoles": false,
+      "bodySize": 8.8,
+      "dateSize": 8.1,
+      "dates": "beneath",
+      "detailSize": 8.7,
+      "entryGap": 10,
+      "roleSize": 9.5,
+      "skills": "list"
+    },
+    "fill": null,
+    "gutter": 36,
+    "head": "main",
+    "heading": {
+      "colour": "accent",
+      "icon": false,
+      "size": 7.6,
+      "style": "plain"
+    },
+    "inset": 0,
+    "sections": [
+      "certifications",
+      "projects",
+      "languages",
+      "interests",
+      "awards",
+      "volunteering"
+    ],
+    "width": 150
+  },
+  "skip": [],
+  "typeface": "sans"
+}

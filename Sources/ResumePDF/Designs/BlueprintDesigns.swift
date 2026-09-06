@@ -27,6 +27,7 @@ extension Blueprint: BundledBlueprint {
         "ledger", "broadsheet", "timeline", "sidebar", "margin", "nocturne", "eclipse",
         "bulletin", "marker", "slate", "card", "terminal", "banner", "gazette",
         "plain", "register", "plaqued", "carded",
+        "split", "wing", "foyer", "pillar", "flank", "marquee",
     ]
 
     /// One column, a rule under each heading, a code beside the name where
@@ -106,4 +107,29 @@ extension Blueprint: BundledBlueprint {
 
     /// Every section on its own rounded panel.
     public static let carded = bundled("carded")
+
+    /// The argument in a wide left column and the credentials in a narrow
+    /// right one, a portrait top right, a hairline under every heading. The
+    /// commonest two-column résumé on the web, set properly; reads wrong in
+    /// a parser like every two-column page.
+    public static let split = bundled("split")
+
+    /// A narrow left column of skills and projects as chips, the name across
+    /// the top, no portrait. The developer's two-column.
+    public static let wing = bundled("wing")
+
+    /// The portrait and the contact details in a light left rail, the name
+    /// over the main column, a mark beside every heading.
+    public static let foyer = bundled("foyer")
+
+    /// A near-black rail down the right carrying the portrait, the contact
+    /// details and the credentials; the name over the main column, so
+    /// nothing large is reversed out of the dark.
+    public static let pillar = bundled("pillar")
+
+    /// Sidebar with the rail near-black and the name reversed out of it.
+    public static let flank = bundled("flank")
+
+    /// Banner's dark band, with the portrait in it, over two columns.
+    public static let marquee = bundled("marquee")
 }

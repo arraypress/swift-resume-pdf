@@ -1,0 +1,87 @@
+{
+  "column": {
+    "gutter": 0,
+    "headAtMargin": false,
+    "labelAlign": "right",
+    "labelWidth": 0,
+    "ruled": false
+  },
+  "entries": {
+    "accentRoles": true,
+    "bodySize": 9.2,
+    "dateSize": 8.4,
+    "dates": "besideTitle",
+    "detailSize": 9.0,
+    "entryGap": 13,
+    "roleSize": 10.4,
+    "skills": "list"
+  },
+  "footer": true,
+  "heading": {
+    "colour": "muted",
+    "icon": false,
+    "size": 7.6,
+    "style": "ruled"
+  },
+  "masthead": {
+    "align": "left",
+    "contactSize": 8.7,
+    "contacts": "flow",
+    "gapAfter": 14,
+    "headlineColour": "accent",
+    "headlineItalic": false,
+    "headlineSize": 11,
+    "monospaced": false,
+    "nameColour": "ink",
+    "nameSize": 27,
+    "nameWeight": "semibold",
+    "photo": {
+      "align": "right",
+      "diameter": 74
+    },
+    "qr": 0,
+    "rule": null,
+    "separator": "·",
+    "tracking": 0.5,
+    "twin": false,
+    "uppercase": true
+  },
+  "name": "split",
+  "ornament": "none",
+  "sectionGap": 15,
+  "sections": {},
+  "side": {
+    "divider": false,
+    "edge": "right",
+    "entries": {
+      "accentRoles": false,
+      "bodySize": 8.8,
+      "dateSize": 8.1,
+      "dates": "beneath",
+      "detailSize": 8.7,
+      "entryGap": 10,
+      "roleSize": 9.5,
+      "skills": "chips"
+    },
+    "fill": null,
+    "gutter": 26,
+    "head": "above",
+    "heading": {
+      "colour": "muted",
+      "icon": false,
+      "size": 7.4,
+      "style": "ruled"
+    },
+    "inset": 0,
+    "sections": [
+      "summary",
+      "skills",
+      "certifications",
+      "languages",
+      "interests"
+    ],
+    "width": 172
+  },
+  "skip": [],
+  "typeface": "sans"
+}
