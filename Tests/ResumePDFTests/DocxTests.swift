@@ -69,7 +69,10 @@ final class DocxTests: XCTestCase {
         let highlights = sample.experience.flatMap(\.highlights).count
             + sample.education.flatMap(\.highlights).count
             + sample.projects.flatMap(\.highlights).count
-        XCTAssertEqual(count("<w:numPr>", in: try body(of: sample)), highlights)
+        // An achievement or a strength is a bullet with a bold lead — the
+        // same block a letter's highlights take — so it counts as one.
+        let leadIns = sample.achievements.count + sample.strengths.count
+        XCTAssertEqual(count("<w:numPr>", in: try body(of: sample)), highlights + leadIns)
     }
 
     func testADateSitsAgainstTheRightMargin() throws {

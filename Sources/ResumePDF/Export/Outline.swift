@@ -138,6 +138,9 @@ extension Resume: Outlined {
         case .memberships: return credentials(memberships)
         case .awards: return awards(awards)
         case .languages: return languages(languages)
+        case .achievements: return callouts(achievements.map { ($0.title, $0.summary) })
+        case .strengths: return callouts(strengths.map { ($0.title, $0.summary) })
+        case .time: return timeSplit(time)
         case .grants: return grants(grants)
         case .interests: return [.paragraph(interests)]
         case .references: return [.paragraph(references)]
@@ -157,6 +160,8 @@ extension Resume: Outlined {
                 case .grants(let items): return grants(items)
                 case .skills(let items): return skills(items)
                 case .languages(let items): return languages(items)
+                case .achievements(let items): return callouts(items.map { ($0.title, $0.summary) })
+                case .strengths(let items): return callouts(items.map { ($0.title, $0.summary) })
                 }
             }
         }
@@ -241,6 +246,18 @@ extension Resume: Outlined {
 
     private func languages(_ items: [Language]) -> [Outline.Block] {
         items.map { .pair($0.name, $0.level) }
+    }
+
+    /// A title and the sentence under it — the shape a letter's highlights
+    /// already take, so every flat format sets it already.
+    private func callouts(_ items: [(title: String, summary: String)]) -> [Outline.Block] {
+        [.leadIns(items.map { Outline.LeadIn(lead: $0.title, detail: $0.summary) })]
+    }
+
+    /// The ring as a list: each label with its share as a percentage, which
+    /// is the only honest flat rendering of a picture of proportions.
+    private func timeSplit(_ items: [TimeSlice]) -> [Outline.Block] {
+        TimeShares.percentages(of: items).map { .pair($0.label, "\($0.percent)%") }
     }
 
     private func grants(_ items: [Grant]) -> [Outline.Block] {

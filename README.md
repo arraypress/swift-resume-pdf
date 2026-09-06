@@ -134,6 +134,29 @@ A CV has sections a résumé does not, and those are real:
 | `service` | Reviewing, editorial work, committees |
 | `memberships` | Professional bodies |
 
+And three that the résumé builders have taught readers to expect, which a résumé may carry and a CV rarely does:
+
+| Section | What it holds |
+|---|---|
+| `achievements` | Results worth a line of their own — a title, a sentence, and a mark beside it (`star`, `flag`, `bolt`, `check`, `diamond`, or any section's mark; leave it out and the marks cycle). Two abreast in a wide column, stacked in a narrow one |
+| `strengths` | A quality and the sentence that shows it. The same shape, without the mark |
+| `time` | How the week goes, as a ring divided in proportion with a lettered legend. Shares are weights, not percentages, so `3, 2, 1` needs no arithmetic |
+
+```json
+{
+  "achievements": [
+    { "title": "Latency halved", "summary": "p99 from 340ms to 45ms.", "icon": "bolt" },
+    { "title": "Zero-downtime migration", "summary": "Forty services, one weekend." }
+  ],
+  "strengths": [ { "title": "Calm under paging", "summary": "Ran the channel for both outages." } ],
+  "time": [ { "label": "Building", "share": 40 }, { "label": "Reviewing", "share": 25 }, { "label": "Mentoring", "share": 35 } ]
+}
+```
+
+All three survive the flat formats: an achievement is a bullet with a bold lead in Word and in text, and the ring becomes a list with percentages — the only honest flat rendering of a picture of proportions. A custom section can be made of achievements too (`{"achievements": [...]}` as a content block), which is what a "Passions" section with marks beside each is.
+
+A language's `level` stays the words somebody wrote — `"Native"`, `"C1"`, `"Conversational"` — and a design may draw them as dots or a bar as well (`"languages": "dots"` in its entries). What the words are worth on a five-point scale is a fixed table (native and C2 are five, fluent and C1 four, intermediate and B1/B2 three, and so on); words the table does not know draw nothing, because the wrong number of dots is a claim the candidate never made.
+
 A cover letter *is* a different document, so it is a different type. See below.
 
 ## Building your own
@@ -210,7 +233,7 @@ Name only what you want changed — everything else takes the default, so two ke
 | `masthead` | align, nameSize, nameWeight, nameColour, uppercase, tracking, headline (size, colour, italic), contacts (`flow` or `labelled`), separator, `panel`, `photo`, `qr`, `rule` (colour, thickness, `double`, `width`, `underName`), `monospaced`, `twin` panels, a painted `body` and `band` |
 | `column` | full width, or inset with labels hung in the margin; `headAtMargin` keeps the head and headings at the page edge; `ruled` draws a hairline above every section |
 | `heading` | `ruled`, `plain`, `accentBar`, `centred`, `tab`, `marker`, `margin`, `terminal`, `underlined` — size, colour, icon |
-| `entries` | date placement, four sizes, entry gap, accent roles, `list`/`chips`/`bars`/`dots` skills |
+| `entries` | date placement, four sizes, entry gap, accent roles, `list`/`chips`/`bars`/`dots`/`underlined`/`inline` skills, `text`/`dots`/`bars` language levels |
 | `ornament` | `none`, `bands`, `cards`, `entryCards`, `rail`, `tabs` |
 | `side` | a second column: `edge`, `width`, the `sections` it carries, a `fill` (`rail`, `ink`, a hex — a dark one gets reversed type), `divider`, and where the `head` goes: `inside` the column, `above` both, or `main` — the name over the main column, the portrait and contact details at the head of the side |
 | `side` | a second column: width, edge, the sections it carries, a `rail` fill or a hairline divider, the masthead inside it or above both |

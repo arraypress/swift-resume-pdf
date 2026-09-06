@@ -95,6 +95,21 @@ extension Resume {
                 Language("English", "Native"),
                 Language("French", "C1"),
             ],
+            achievements: [
+                Achievement(title: "Ledger write path rebuilt",
+                            summary: "p99 commit latency from 340ms to 45ms, with no change to the API.",
+                            icon: "bolt"),
+                Achievement(title: "Last single point of failure retired",
+                            summary: "Forty services moved off one Postgres primary without a customer-visible incident."),
+            ],
+            strengths: [
+                Strength(title: "Calm under paging",
+                         summary: "Ran the incident channel for the two largest outages of 2023 and wrote both reviews."),
+            ],
+            time: [
+                TimeSlice("Building", 40), TimeSlice("Reviewing", 25),
+                TimeSlice("Incidents", 15), TimeSlice("Mentoring", 20),
+            ],
             order: Section.conventional
         )
     }

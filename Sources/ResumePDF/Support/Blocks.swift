@@ -59,6 +59,9 @@ public enum Blocks {
         /// How a skills section is drawn.
         public var skills: SkillStyle = .list
 
+        /// How a language's level is shown beside it.
+        public var languages: LanguageStyle = .text
+
         /// A struct's memberwise initialiser is internal even when the struct
         /// is public, so a design written outside the package could not make
         /// one of these without an explicit one.
@@ -72,7 +75,8 @@ public enum Blocks {
             dateSize: Double = 8.5,
             entryGap: Double = 13,
             accentRoles: Bool = false,
-            skills: SkillStyle = .list
+            skills: SkillStyle = .list,
+            languages: LanguageStyle = .text
         ) {
             self.x = x
             self.width = width
@@ -84,6 +88,7 @@ public enum Blocks {
             self.entryGap = entryGap
             self.accentRoles = accentRoles
             self.skills = skills
+            self.languages = languages
         }
     }
 
@@ -102,6 +107,28 @@ public enum Blocks {
 
         /// Five dots per skill.
         case dots
+
+        /// Each term on a hairline of its own, flowed like chips without the
+        /// pill — the look most résumé builders draw a skills list in.
+        case underlined
+
+        /// The terms in one bold run with a dot between each: the densest
+        /// setting, for a narrow column with a long list.
+        case inline
+    }
+
+    /// How a language's level is shown.
+    public enum LanguageStyle {
+
+        /// The level as written — "Native", "C1".
+        case text
+
+        /// The words, and five dots filled to what they mean. A level the
+        /// scale does not know keeps the words alone — see ``LanguageLevels``.
+        case dots
+
+        /// The words, and a bar.
+        case bars
     }
 
     // MARK: Dispatch
@@ -137,6 +164,19 @@ public enum Blocks {
 
         case .languages:
             languages(resume.languages, on: sheet, style: style)
+
+        case .achievements:
+            callouts(resume.achievements.enumerated().map { index, item in
+                (icon: Icon(rawValue: item.icon) ?? Icon.cycle[index % Icon.cycle.count] as Icon?,
+                 title: item.title, summary: item.summary)
+            }, on: sheet, style: style)
+
+        case .strengths:
+            callouts(resume.strengths.map { (icon: nil as Icon?, title: $0.title, summary: $0.summary) },
+                     on: sheet, style: style)
+
+        case .time:
+            timeSplit(resume.time, on: sheet, style: style)
 
         case .grants:
             grants(resume.grants, on: sheet, style: style, labels: resume.labels)
@@ -212,6 +252,16 @@ public enum Blocks {
 
             case .languages(let items):
                 languages(items, on: sheet, style: style)
+
+            case .achievements(let items):
+                callouts(items.enumerated().map { index, item in
+                    (icon: Icon(rawValue: item.icon) ?? Icon.cycle[index % Icon.cycle.count] as Icon?,
+                     title: item.title, summary: item.summary)
+                }, on: sheet, style: style)
+
+            case .strengths(let items):
+                callouts(items.map { (icon: nil as Icon?, title: $0.title, summary: $0.summary) },
+                         on: sheet, style: style)
             }
         }
     }
@@ -316,6 +366,21 @@ public enum Blocks {
                 sheet.chips(group.names, x: style.x, width: style.width, size: style.dateSize)
                 sheet.rigidGap(3)
             }
+
+        case .underlined:
+            for group in groups {
+                sheet.pdf.breakIfNeeded(sheet.leading(style.dateSize) + style.dateSize * 2.4)
+                sheet.line(group.name, x: style.x, width: style.width,
+                           size: style.dateSize, face: sheet.medium, color: sheet.muted)
+                sheet.chips(group.names, x: style.x, width: style.width, size: style.dateSize, filled: false)
+                sheet.rigidGap(3)
+            }
+
+        case .inline:
+            // One run, the group labels dropped: the setting exists for the
+            // column too narrow to spend a line on "Languages:".
+            sheet.paragraph(groups.flatMap(\.names).joined(separator: "  ·  "),
+                            x: style.x, width: style.width, size: style.detailSize, face: sheet.semibold)
 
         case .bars:
             // Anything unrated falls back to being listed rather than being
@@ -524,6 +589,13 @@ public enum Blocks {
             .max() ?? 0
         let column = min(longest + 22, style.width * 0.5)
 
+        // Dots and bars sit against the right edge; the words keep their
+        // place beside the name. The drawing takes what a level's words are
+        // worth, and a level the scale does not know gets words alone — the
+        // one thing worse than no dots is the wrong number of them.
+        let markWidth: Double = style.languages == .text ? 0 : min(56, style.width * 0.3)
+        let levelWidth = style.width - column - markWidth
+
         for item in items {
             // Placed with `cell` and `move`, which never look at the margin —
             // so without a break per row a long list runs off the page.
@@ -532,11 +604,196 @@ public enum Blocks {
             sheet.pdf.cell(item.name, x: style.x, boxWidth: column, size: style.detailSize,
                            color: sheet.ink, face: sheet.regular)
             if !item.level.isEmpty {
-                sheet.pdf.cell(item.level, x: style.x + column, boxWidth: style.width - column,
+                sheet.pdf.cell(item.level, x: style.x + column, boxWidth: max(levelWidth, 20),
                                size: style.detailSize, color: sheet.muted, face: sheet.regular)
+            }
+            if markWidth > 0, let fraction = LanguageLevels.fraction(for: item.level) {
+                let markX = style.x + style.width - markWidth
+                switch style.languages {
+                case .dots:
+                    sheet.dots(fraction, x: markX, y: top - style.detailSize * 0.72, size: 4.2)
+                case .bars:
+                    sheet.pdf.meter(x: markX, y: top - style.detailSize * 1.0, width: markWidth,
+                                    height: max(3.4, style.detailSize * 0.42),
+                                    fraction: fraction, color: sheet.accent, track: sheet.wash)
+                case .text:
+                    break
+                }
             }
             sheet.pdf.move(to: top - sheet.leading(style.detailSize))
         }
+    }
+
+    // MARK: Achievements and strengths
+
+    /// A mark, a title and a sentence — set two abreast where the column is
+    /// wide enough for a sentence each, stacked where it is not.
+    ///
+    /// The mark is optional because a strength carries none: a quality with
+    /// a badge beside it reads as a merit sticker.
+    public static func callouts(
+        _ items: [(icon: Icon?, title: String, summary: String)],
+        on sheet: Sheet, style: Style
+    ) {
+        let pdf = sheet.pdf
+        let columns = style.width > 300 ? 2 : 1
+        let gutter = 18.0
+        let columnWidth = (style.width - gutter * Double(columns - 1)) / Double(columns)
+        let mark = style.detailSize * 1.5
+        let inset = items.contains { $0.icon != nil } ? mark + 9 : 0
+        let titleSize = style.detailSize + 0.6
+        let summarySize = style.bodySize - 0.6
+        let textWidth = columnWidth - inset
+
+        func height(of item: (icon: Icon?, title: String, summary: String)) -> Double {
+            pdf.blockHeight(item.title, size: titleSize, width: textWidth,
+                            leading: sheet.leading(titleSize), face: sheet.semibold)
+                + (item.summary.isBlank ? 0 : pdf.blockHeight(item.summary, size: summarySize, width: textWidth,
+                                                                 leading: sheet.leading(summarySize), face: sheet.regular))
+        }
+
+        func draw(_ item: (icon: Icon?, title: String, summary: String), x: Double) {
+            let top = sheet.cursor
+            if let icon = item.icon {
+                sheet.icon(icon, x: x, y: top - mark - 1, size: mark, color: sheet.accent)
+            }
+            sheet.paragraph(item.title, x: x + inset, width: textWidth, size: titleSize,
+                            face: sheet.semibold, color: style.accentRoles ? sheet.accent : sheet.ink)
+            if !item.summary.isBlank {
+                sheet.rigidGap(1.5)
+                sheet.paragraph(item.summary, x: x + inset, width: textWidth, size: summarySize)
+            }
+        }
+
+        var index = 0
+        while index < items.count {
+            let row = Array(items[index..<min(index + columns, items.count)])
+            // The whole row kept on one page: a title on one sheet and its
+            // sentence on the next is the break that misleads.
+            let tallest = row.map(height(of:)).max() ?? 0
+            pdf.breakIfNeeded(tallest + 6)
+            let top = sheet.cursor
+            var bottom = top
+
+            for (position, item) in row.enumerated() {
+                pdf.move(to: top)
+                draw(item, x: style.x + Double(position) * (columnWidth + gutter))
+                bottom = min(bottom, sheet.cursor)
+            }
+            pdf.move(to: bottom)
+            index += columns
+            if index < items.count { sheet.rigidGap(style.entryGap * 0.55) }
+        }
+    }
+
+    // MARK: Time
+
+    /// The measurements a time ring is drawn to, from the column it sits in.
+    ///
+    /// Beside its legend where the column is wide enough for both, above it
+    /// where it is not — the ring is the same size either way, and the
+    /// height is what a heading needs to know to stay on the same page.
+    struct TimeLayout {
+        let radius: Double
+        let thickness: Double
+        let badge = 6.6
+        let beside: Bool
+        let rowHeight: Double
+        let rows: Int
+
+        init(count: Int, style: Style, sheet: Sheet) {
+            beside = style.width > 300
+            radius = min(style.width * (beside ? 0.13 : 0.2), 52.0)
+            thickness = radius * 0.46
+            rowHeight = sheet.leading(style.detailSize) + 3
+            rows = count
+        }
+
+        /// The ring with its badges around it.
+        var ringHeight: Double { radius * 2 + badge * 2 + 14 }
+        var legendHeight: Double { rowHeight * Double(rows) }
+        var height: Double { beside ? max(ringHeight, legendHeight) : ringHeight + 10 + legendHeight }
+    }
+
+    /// How tall a section that is drawn as one piece will be, or nil for a
+    /// section that breaks across pages on its own. A heading asks this so
+    /// it is not left at the foot of one page with its ring at the top of
+    /// the next.
+    public static func wholeHeight(of section: Section, in resume: Resume, style: Style, on sheet: Sheet) -> Double? {
+        guard section == .time else { return nil }
+        let parts = TimeShares.fractions(of: resume.time)
+        guard !parts.isEmpty else { return nil }
+        return TimeLayout(count: parts.count, style: style, sheet: sheet).height
+    }
+
+    /// A ring divided in proportion, lettered, with the legend beside or
+    /// under it.
+    ///
+    /// Letters rather than labels on the ring, because a label on a thin
+    /// slice has nowhere to go; and the legend is real text, so the slices
+    /// survive a parser as "A Writing code 40%" — which is more than a chart
+    /// usually manages.
+    public static func timeSplit(_ slices: [TimeSlice], on sheet: Sheet, style: Style) {
+        let parts = TimeShares.fractions(of: slices)
+        let percents = TimeShares.percentages(of: slices)
+        guard !parts.isEmpty else { return }
+        let pdf = sheet.pdf
+        let layout = TimeLayout(count: parts.count, style: style, sheet: sheet)
+        let badge = layout.badge
+
+        // Kept whole: half a ring on one page and its legend on the next is
+        // not a chart. The heading has already made room — see `wholeHeight`.
+        pdf.breakIfNeeded(layout.height + 6)
+        let top = sheet.cursor
+
+        // Beside: the ring in a column of its own on the left, the legend
+        // from just past it. Above: the ring centred, the legend under it.
+        let ringColumn = layout.beside ? layout.radius * 2 + badge * 2 + 30 : style.width
+        let centreX = style.x + ringColumn / 2
+        let centreY = top - badge - 7 - layout.radius
+        let legendX = layout.beside ? style.x + ringColumn : style.x
+        let legendWidth = layout.beside ? style.width - ringColumn : style.width
+        let legendTop = layout.beside ? top - 2 : top - layout.ringHeight - 10
+
+        let ringRadius = layout.radius - layout.thickness / 2
+        let gapDegrees = parts.count > 1 ? 2.2 : 0.0
+        var start = 0.0
+        for (index, part) in parts.enumerated() {
+            let sweep = 360 * part.fraction
+            let from = start + gapDegrees / 2, to = start + sweep - gapDegrees / 2
+            // The first slice in the accent, each after it a step lighter —
+            // one hue, so the ring reads as one thing rather than a flag.
+            let tint = sheet.accent.lightened(by: min(0.78, Double(index) / Double(max(parts.count, 2)) * 0.9))
+            if to > from {
+                pdf.arc(x: centreX, y: centreY, radius: ringRadius, from: from, to: to,
+                        thickness: layout.thickness, color: tint, rounded: false)
+            }
+            // The letter, just outside the slice's middle.
+            let middle = (start + sweep / 2) * .pi / 180
+            let badgeRadius = layout.radius + badge + 3
+            let badgeX = centreX + badgeRadius * sin(middle)
+            let badgeY = centreY + badgeRadius * cos(middle)
+            pdf.circle(x: badgeX, y: badgeY, radius: badge, color: sheet.ink)
+            pdf.textAt(TimeShares.letter(index), x: badgeX - badge, y: badgeY - badge * 0.52,
+                       size: badge * 1.15, color: sheet.page, align: .center, boxWidth: badge * 2, face: sheet.semibold)
+            start += sweep
+        }
+
+        pdf.move(to: legendTop)
+        let legendSize = style.detailSize
+        for (index, entry) in percents.enumerated() {
+            let rowTop = sheet.cursor
+            let centre = rowTop - badge - 1
+            pdf.circle(x: legendX + badge, y: centre, radius: badge, color: sheet.ink)
+            pdf.textAt(TimeShares.letter(index), x: legendX, y: centre - badge * 0.52,
+                       size: badge * 1.15, color: sheet.page, align: .center, boxWidth: badge * 2, face: sheet.semibold)
+            pdf.textAt(entry.label, x: legendX + badge * 2 + 8, y: centre - legendSize * 0.36,
+                       size: legendSize, color: sheet.ink, face: sheet.regular)
+            pdf.textAt("\(entry.percent)%", x: legendX, y: centre - legendSize * 0.36, size: legendSize,
+                       color: sheet.muted, align: .right, boxWidth: legendWidth, face: sheet.regular)
+            pdf.move(to: rowTop - layout.rowHeight)
+        }
+        pdf.move(to: top - layout.height)
     }
 
     // MARK: Shared
@@ -688,6 +945,21 @@ extension Blocks {
             return resume.awards.map { item in
                 Entry(dates: DateRange(item.date)) { sheet, style in
                     Blocks.awards([item], on: sheet, style: style)
+                }
+            }
+
+        case .achievements:
+            return resume.achievements.enumerated().map { index, item in
+                let icon = Icon(rawValue: item.icon) ?? Icon.cycle[index % Icon.cycle.count]
+                return Entry(dates: DateRange("")) { sheet, style in
+                    Blocks.callouts([(icon: icon, title: item.title, summary: item.summary)], on: sheet, style: style)
+                }
+            }
+
+        case .strengths:
+            return resume.strengths.map { item in
+                Entry(dates: DateRange("")) { sheet, style in
+                    Blocks.callouts([(icon: nil, title: item.title, summary: item.summary)], on: sheet, style: style)
                 }
             }
 

@@ -55,8 +55,11 @@ final class OverflowTests: XCTestCase {
     }
 
     func testARailThatFitsStaysOnOnePage() {
+        // The one-page sample: the full one now carries achievements, strengths
+        // and a time ring in the main column, which is what runs it onto a
+        // second page — the rail still fits, which is the thing under test.
         let sheet = plainSheet()
-        Blueprint.sidebar.render(Resume.sample, on: sheet)
+        Blueprint.sidebar.render(Resume.brief, on: sheet)
         let streams = Fixtures.pageStreams(sheet.pdf.render())
 
         XCTAssertEqual(streams.count, 1)

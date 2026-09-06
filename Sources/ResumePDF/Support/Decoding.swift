@@ -347,6 +347,9 @@ extension Resume {
             publications: try container.value(.publications, or: []),
             awards: try container.value(.awards, or: []),
             languages: try container.value(.languages, or: []),
+            achievements: try container.value(.achievements, or: []),
+            strengths: try container.value(.strengths, or: []),
+            time: try container.value(.time, or: []),
             grants: try container.value(.grants, or: []),
             teaching: try container.value(.teaching, or: []),
             talks: try container.value(.talks, or: []),
@@ -363,6 +366,7 @@ extension Resume {
     enum CodingKeys: String, CodingKey {
         case profile, summary, experience, education, skills, projects
         case volunteering, certifications, publications, awards, languages
+        case achievements, strengths, time
         case grants, teaching, talks, service, memberships
         case interests, references, custom, order, labels
     }
@@ -416,6 +420,8 @@ extension CustomSection.Content {
         case .grants: self = .grants(try container.decode([Grant].self, forKey: .grants))
         case .skills: self = .skills(try container.decode([SkillGroup].self, forKey: .skills))
         case .languages: self = .languages(try container.decode([Language].self, forKey: .languages))
+        case .achievements: self = .achievements(try container.decode([Achievement].self, forKey: .achievements))
+        case .strengths: self = .strengths(try container.decode([Strength].self, forKey: .strengths))
         }
     }
 
@@ -434,12 +440,14 @@ extension CustomSection.Content {
         case .grants(let value): try container.encode(value, forKey: .grants)
         case .skills(let value): try container.encode(value, forKey: .skills)
         case .languages(let value): try container.encode(value, forKey: .languages)
+        case .achievements(let value): try container.encode(value, forKey: .achievements)
+        case .strengths(let value): try container.encode(value, forKey: .strengths)
         }
     }
 
     enum Kind: String, CodingKey, CaseIterable {
         case prose, list, positions, education, projects, publications
-        case credentials, awards, grants, skills, languages
+        case credentials, awards, grants, skills, languages, achievements, strengths
     }
 }
 
@@ -597,3 +605,50 @@ extension Typeface {
 
     enum CodingKeys: String, CodingKey { case name, files, bundled }
 }
+
+// MARK: - Achievements, strengths, time
+
+extension Achievement {
+
+    /// Only the title is required; a mark left out takes the next in the
+    /// cycle, which is how a list of four looks finished with no icons named.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            title: try container.decode(String.self, forKey: .title),
+            summary: try container.value(.summary, or: ""),
+            icon: try container.value(.icon, or: "")
+        )
+    }
+
+    enum CodingKeys: String, CodingKey { case title, summary, icon }
+}
+
+extension Strength {
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            title: try container.decode(String.self, forKey: .title),
+            summary: try container.value(.summary, or: "")
+        )
+    }
+
+    enum CodingKeys: String, CodingKey { case title, summary }
+}
+
+extension TimeSlice {
+
+    /// Read from `{"label": "Writing code", "share": 35}`. A slice with no
+    /// share counts as one part, so a plain list of labels divides evenly.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            try container.decode(String.self, forKey: .label),
+            try container.value(.share, or: 1)
+        )
+    }
+
+    enum CodingKeys: String, CodingKey { case label, share }
+}
+

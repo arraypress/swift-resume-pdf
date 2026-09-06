@@ -13,6 +13,7 @@
     "dates": "besideTitle",
     "detailSize": 9.0,
     "entryGap": 13,
+    "languages": "dots",
     "roleSize": 10.4,
     "skills": "list"
   },
@@ -60,8 +61,9 @@
       "dates": "beneath",
       "detailSize": 8.7,
       "entryGap": 10,
+      "languages": "dots",
       "roleSize": 9.5,
-      "skills": "chips"
+      "skills": "underlined"
     },
     "fill": null,
     "gutter": 26,
@@ -75,9 +77,12 @@
     "inset": 0,
     "sections": [
       "summary",
+      "strengths",
+      "achievements",
       "skills",
       "certifications",
       "languages",
+      "time",
       "interests"
     ],
     "width": 172

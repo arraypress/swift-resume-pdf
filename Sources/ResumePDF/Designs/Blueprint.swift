@@ -252,6 +252,12 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
 
             if index > 0 { sheet.gap(local?.sectionGap ?? sectionGap) }
 
+            // A section drawn as one piece takes its heading with it to the
+            // next page, rather than leaving the heading behind.
+            if let whole = Blocks.wholeHeight(of: section, in: resume, style: style, on: sheet) {
+                sheet.pdf.breakIfNeeded(whole + sheet.leading(sectionHeading.size) * 3)
+            }
+
             if column.ruled {
                 // Kept with what follows: a rule alone at the foot of a page
                 // underlines nothing.
@@ -368,6 +374,9 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
             // The heading and the entries, on whichever sheet: measured on
             // the scratch one first, then drawn on the real one.
             func place(on target: Sheet) {
+                if let whole = Blocks.wholeHeight(of: section, in: resume, style: sideStyle, on: target) {
+                    target.pdf.breakIfNeeded(whole + target.leading(side.heading.size) * 3)
+                }
                 side.heading.draw(resume.heading(for: section), section: section, on: target,
                                   x: sideX, width: sideWidth, labelWidth: 0, labelAlign: .right)
                 Blocks.render(section, of: resume, on: target, style: sideStyle)
@@ -391,6 +400,9 @@ public struct Blueprint: Design, Codable, Sendable, Equatable {
         var index = 0
         for section in wanted where !side.sections.contains(section) || moved.contains(section) {
             if index > 0 { sheet.gap(sectionGap) }
+            if let whole = Blocks.wholeHeight(of: section, in: resume, style: mainStyle, on: sheet) {
+                sheet.pdf.breakIfNeeded(whole + sheet.leading(heading.size) * 3)
+            }
             heading.draw(resume.heading(for: section), section: section, on: sheet,
                          x: mainX, width: mainWidth, labelWidth: 0, labelAlign: .right)
             Blocks.render(section, of: resume, on: sheet, style: mainStyle)

@@ -66,6 +66,24 @@
         "$ref": "#/$defs/language"
       }
     },
+    "achievements": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/achievement"
+      }
+    },
+    "strengths": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/strength"
+      }
+    },
+    "time": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/timeSlice"
+      }
+    },
     "grants": {
       "type": "array",
       "items": {
@@ -655,6 +673,36 @@
           "required": [
             "languages"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "achievements": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/achievement"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "achievements"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "strengths": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/strength"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "strengths"
+          ]
         }
       ]
     },
@@ -711,7 +759,10 @@
                   "service",
                   "memberships",
                   "interests",
-                  "references"
+                  "references",
+                  "achievements",
+                  "strengths",
+                  "time"
                 ]
               },
               "additionalProperties": {
@@ -764,7 +815,10 @@
             "service",
             "memberships",
             "interests",
-            "references"
+            "references",
+            "achievements",
+            "strengths",
+            "time"
           ]
         },
         {
@@ -808,6 +862,56 @@
       },
       "additionalProperties": false,
       "description": "How the tool lays the document out. Any flag on the command line beats it."
+    },
+    "achievement": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string",
+          "description": "star, flag, bolt, check, diamond, or a section's mark. Empty takes the next in a cycle."
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "title"
+      ]
+    },
+    "strength": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "title"
+      ]
+    },
+    "timeSlice": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "share": {
+          "type": "number",
+          "description": "A weight, not a percentage: 3, 2, 1 and 50, 33, 17 draw the same ring."
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "label"
+      ]
     }
   }
 }

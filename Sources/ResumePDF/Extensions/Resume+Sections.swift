@@ -30,6 +30,9 @@ extension Resume {
         case .publications: return !publications.isEmpty
         case .awards: return !awards.isEmpty
         case .languages: return !languages.isEmpty
+        case .achievements: return !achievements.isEmpty
+        case .strengths: return !strengths.isEmpty
+        case .time: return time.contains { $0.share > 0 && !$0.label.isBlank }
         case .grants: return !grants.isEmpty
         case .teaching: return !teaching.isEmpty
         case .talks: return !talks.isEmpty

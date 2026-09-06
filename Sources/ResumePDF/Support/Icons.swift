@@ -42,6 +42,16 @@ public enum Icon: String, Sendable, CaseIterable, Codable {
     case link
     case calendar
 
+    // Marks for an achievement to carry, by name.
+    case star
+    case flag
+    case bolt
+    case check
+    case diamond
+
+    /// The marks an achievement takes when it names none, in turn.
+    static let cycle: [Icon] = [.star, .flag, .bolt, .check]
+
     /// The box the paths are drawn in.
     static let box = 24.0
 
@@ -131,6 +141,22 @@ public enum Icon: String, Sendable, CaseIterable, Codable {
 
         case .calendar:
             return "M4 6.5 H20 V20 H4 Z M4 10.4 H20 M8 4 V8 M16 4 V8"
+
+        case .star:
+            return "M12 3.2 L14.2 9.3 L20.6 9.5 L15.6 13.4 L17.4 19.6 L12 15.9 "
+                + "L6.6 19.6 L8.4 13.4 L3.4 9.5 L9.8 9.3 Z"
+
+        case .flag:
+            return "M6 20.5 V4 M6 4.5 H18.5 L15.8 8.8 L18.5 13.1 H6"
+
+        case .bolt:
+            return "M13.2 3 L5.2 13.6 H11.4 L10.6 21 L18.8 10.4 H12.6 Z"
+
+        case .check:
+            return "M4.5 12.6 L9.6 17.6 L19.6 6.6"
+
+        case .diamond:
+            return "M12 3 L21 12 L12 21 L3 12 Z M3 12 H21 M12 3 L8.5 12 L12 21 M12 3 L15.5 12 L12 21"
         }
     }
 
@@ -154,6 +180,9 @@ public enum Icon: String, Sendable, CaseIterable, Codable {
         case .talks: return .publications
         case .service: return .volunteering
         case .memberships: return .certifications
+        case .achievements: return .awards
+        case .strengths: return .skills
+        case .time: return .calendar
         default: return .projects
         }
     }

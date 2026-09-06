@@ -39,6 +39,15 @@ public struct Resume: Sendable, Equatable, Codable {
     public let awards: [Award]
     public let languages: [Language]
 
+    /// Results worth a line of their own, each with a mark beside it.
+    public let achievements: [Achievement]
+
+    /// Qualities, each with the sentence that shows it.
+    public let strengths: [Strength]
+
+    /// How a working week goes, drawn as a ring. Weights, not percentages.
+    public let time: [TimeSlice]
+
     // MARK: The sections a CV has and a résumé does not
 
     /// Funding awarded. The section an academic CV is read for.
@@ -96,6 +105,9 @@ public struct Resume: Sendable, Equatable, Codable {
         publications: [Publication] = [],
         awards: [Award] = [],
         languages: [Language] = [],
+        achievements: [Achievement] = [],
+        strengths: [Strength] = [],
+        time: [TimeSlice] = [],
         grants: [Grant] = [],
         teaching: [Position] = [],
         talks: [Publication] = [],
@@ -118,6 +130,9 @@ public struct Resume: Sendable, Equatable, Codable {
         self.publications = publications
         self.awards = awards
         self.languages = languages
+        self.achievements = achievements
+        self.strengths = strengths
+        self.time = time
         self.grants = grants
         self.teaching = teaching
         self.talks = talks
@@ -168,12 +183,16 @@ public struct Section: Hashable, Sendable, Codable, RawRepresentable {
     public static let memberships = Section(rawValue: "memberships")
     public static let interests = Section(rawValue: "interests")
     public static let references = Section(rawValue: "references")
+    public static let achievements = Section(rawValue: "achievements")
+    public static let strengths = Section(rawValue: "strengths")
+    public static let time = Section(rawValue: "time")
 
     /// Every section the library names itself.
     public static let builtIn: [Section] = [
         .summary, .experience, .education, .skills, .projects, .volunteering,
         .certifications, .publications, .awards, .languages, .grants,
         .teaching, .talks, .service, .memberships, .interests, .references,
+        .achievements, .strengths, .time,
     ]
 
     // MARK: Sections of your own
@@ -208,16 +227,16 @@ public struct Section: Hashable, Sendable, Codable, RawRepresentable {
     /// which is a decision about a particular person, so it is a parameter
     /// rather than a rule.
     public static let conventional: [Section] = [
-        .summary, .experience, .education, .skills, .projects,
+        .summary, .strengths, .experience, .education, .skills, .achievements, .projects,
         .certifications, .publications, .awards, .languages,
-        .volunteering, .interests, .references,
+        .volunteering, .time, .interests, .references,
     ]
 
     /// Education first, skills high — for someone whose degree is the
     /// strongest thing on the page.
     public static let graduate: [Section] = [
-        .summary, .education, .skills, .projects, .experience,
-        .certifications, .awards, .volunteering, .languages, .interests, .references,
+        .summary, .strengths, .education, .skills, .projects, .achievements, .experience,
+        .certifications, .awards, .volunteering, .languages, .time, .interests, .references,
     ]
 
     /// Publications and funding carry the weight; length is not a constraint.
@@ -228,7 +247,7 @@ public struct Section: Hashable, Sendable, Codable, RawRepresentable {
     public static let academic: [Section] = [
         .summary, .education, .publications, .grants, .experience, .teaching,
         .talks, .awards, .service, .memberships, .projects, .certifications,
-        .languages, .skills, .references,
+        .languages, .skills, .achievements, .strengths, .time, .references,
     ]
 
     // MARK: Titles
@@ -265,6 +284,9 @@ public struct Section: Hashable, Sendable, Codable, RawRepresentable {
         .memberships: "Memberships",
         .interests: "Interests",
         .references: "References",
+        .achievements: "Key Achievements",
+        .strengths: "Strengths",
+        .time: "How I Split My Time",
     ]
 }
 
@@ -325,6 +347,8 @@ public struct CustomSection: Sendable, Equatable, Codable {
         case grants([Grant])
         case skills([SkillGroup])
         case languages([Language])
+        case achievements([Achievement])
+        case strengths([Strength])
 
         var isEmpty: Bool {
             switch self {
@@ -339,6 +363,8 @@ public struct CustomSection: Sendable, Equatable, Codable {
             case .grants(let items): return items.isEmpty
             case .skills(let items): return items.isEmpty
             case .languages(let items): return items.isEmpty
+            case .achievements(let items): return items.isEmpty
+            case .strengths(let items): return items.isEmpty
             }
         }
     }
@@ -418,6 +444,9 @@ public struct Labels: Sendable, Equatable, Codable {
             .summary: "Profil",
             .experience: "Berufserfahrung",
             .education: "Ausbildung",
+            .achievements: "Erfolge",
+            .strengths: "Stärken",
+            .time: "Meine Zeit",
             .skills: "Kenntnisse",
             .projects: "Projekte",
             .volunteering: "Ehrenamt",

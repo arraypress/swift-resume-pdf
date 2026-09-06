@@ -80,11 +80,12 @@ extension Blueprint {
         public var entryGap: Double?
         public var accentRoles: Bool?
         public var skills: Entries.Skills?
+        public var languages: Entries.Languages?
 
         public init(
             dates: Entries.Dates? = nil, roleSize: Double? = nil, bodySize: Double? = nil,
             detailSize: Double? = nil, dateSize: Double? = nil, entryGap: Double? = nil,
-            accentRoles: Bool? = nil, skills: Entries.Skills? = nil
+            accentRoles: Bool? = nil, skills: Entries.Skills? = nil, languages: Entries.Languages? = nil
         ) {
             self.dates = dates
             self.roleSize = roleSize
@@ -94,6 +95,7 @@ extension Blueprint {
             self.entryGap = entryGap
             self.accentRoles = accentRoles
             self.skills = skills
+            self.languages = languages
         }
 
         func applied(to entries: Entries) -> Entries {
@@ -105,7 +107,8 @@ extension Blueprint {
                 dateSize: dateSize ?? entries.dateSize,
                 entryGap: entryGap ?? entries.entryGap,
                 accentRoles: accentRoles ?? entries.accentRoles,
-                skills: skills ?? entries.skills
+                skills: skills ?? entries.skills,
+                languages: languages ?? entries.languages
             )
         }
     }

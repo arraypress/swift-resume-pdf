@@ -13,6 +13,7 @@
     "dates": "besideTitle",
     "detailSize": 9.0,
     "entryGap": 13,
+    "languages": "bars",
     "roleSize": 10.6,
     "skills": "list"
   },
@@ -60,6 +61,7 @@
       "dates": "beneath",
       "detailSize": 8.7,
       "entryGap": 10,
+      "languages": "bars",
       "roleSize": 9.5,
       "skills": "list"
     },
@@ -74,6 +76,7 @@
     },
     "inset": 0,
     "sections": [
+      "achievements",
       "certifications",
       "projects",
       "languages",

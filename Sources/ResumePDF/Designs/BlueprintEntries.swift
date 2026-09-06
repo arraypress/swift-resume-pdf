@@ -25,6 +25,10 @@ extension Blueprint {
         public var accentRoles: Bool
         public var skills: Skills
 
+        /// How a language's level is shown: as written, or with dots or a
+        /// bar drawn from what the words mean.
+        public var languages: Languages
+
         public init(
             dates: Dates = .besideTitle,
             roleSize: Double = 10.4,
@@ -33,7 +37,8 @@ extension Blueprint {
             dateSize: Double = 8.5,
             entryGap: Double = 13,
             accentRoles: Bool = false,
-            skills: Skills = .list
+            skills: Skills = .list,
+            languages: Languages = .text
         ) {
             self.dates = dates
             self.roleSize = roleSize
@@ -43,6 +48,7 @@ extension Blueprint {
             self.entryGap = entryGap
             self.accentRoles = accentRoles
             self.skills = skills
+            self.languages = languages
         }
 
         /// Where an entry's dates go.
@@ -58,7 +64,14 @@ extension Blueprint {
         /// How a skills section is drawn. All four are real words on the page,
         /// so all four survive a parser.
         public enum Skills: String, Codable, Sendable, CaseIterable {
-            case list, chips, bars, dots
+            case list, chips, bars, dots, underlined, inline
+        }
+
+        /// How a language's level is shown. `text` is the words as written;
+        /// `dots` and `bars` draw what they mean, and draw nothing for words
+        /// the scale does not know.
+        public enum Languages: String, Codable, Sendable, CaseIterable {
+            case text, dots, bars
         }
 
         func style(x: Double, width: Double) -> Blocks.Style {
@@ -68,7 +81,7 @@ extension Blueprint {
                 roleSize: roleSize, bodySize: bodySize,
                 detailSize: detailSize, dateSize: dateSize,
                 entryGap: entryGap, accentRoles: accentRoles,
-                skills: skills.blocks
+                skills: skills.blocks, languages: languages.blocks
             )
         }
     }
@@ -82,6 +95,19 @@ extension Blueprint.Entries.Skills {
         case .chips: return .chips
         case .bars: return .bars
         case .dots: return .dots
+        case .underlined: return .underlined
+        case .inline: return .inline
+        }
+    }
+}
+
+extension Blueprint.Entries.Languages {
+
+    var blocks: Blocks.LanguageStyle {
+        switch self {
+        case .text: return .text
+        case .dots: return .dots
+        case .bars: return .bars
         }
     }
 }

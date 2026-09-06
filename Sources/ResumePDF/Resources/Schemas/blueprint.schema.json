@@ -229,7 +229,17 @@
             "list",
             "chips",
             "bars",
-            "dots"
+            "dots",
+            "underlined",
+            "inline"
+          ]
+        },
+        "languages": {
+          "type": "string",
+          "enum": [
+            "text",
+            "dots",
+            "bars"
           ]
         }
       },
@@ -354,7 +364,17 @@
                   "list",
                   "chips",
                   "bars",
-                  "dots"
+                  "dots",
+                  "underlined",
+                  "inline"
+                ]
+              },
+              "languages": {
+                "type": "string",
+                "enum": [
+                  "text",
+                  "dots",
+                  "bars"
                 ]
               }
             },
@@ -476,7 +496,17 @@
                 "list",
                 "chips",
                 "bars",
-                "dots"
+                "dots",
+                "underlined",
+                "inline"
+              ]
+            },
+            "languages": {
+              "type": "string",
+              "enum": [
+                "text",
+                "dots",
+                "bars"
               ]
             }
           },
@@ -542,7 +572,10 @@
             "service",
             "memberships",
             "interests",
-            "references"
+            "references",
+            "achievements",
+            "strengths",
+            "time"
           ]
         },
         {

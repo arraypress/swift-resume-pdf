@@ -13,8 +13,9 @@
     "dates": "besideTitle",
     "detailSize": 9.2,
     "entryGap": 14,
+    "languages": "dots",
     "roleSize": 10.4,
-    "skills": "list"
+    "skills": "inline"
   },
   "footer": true,
   "heading": {
@@ -56,6 +57,7 @@
       "dates": "beneath",
       "detailSize": 8.7,
       "entryGap": 10,
+      "languages": "dots",
       "roleSize": 9.5,
       "skills": "list"
     },
@@ -70,6 +72,7 @@
     },
     "inset": 27,
     "sections": [
+      "achievements",
       "certifications",
       "education",
       "languages",

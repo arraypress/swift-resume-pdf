@@ -247,12 +247,13 @@ extension Blueprint.Entries {
             dateSize: try container.value(.dateSize, or: defaults.dateSize),
             entryGap: try container.value(.entryGap, or: defaults.entryGap),
             accentRoles: try container.value(.accentRoles, or: defaults.accentRoles),
-            skills: try container.value(.skills, or: defaults.skills)
+            skills: try container.value(.skills, or: defaults.skills),
+            languages: try container.value(.languages, or: defaults.languages)
         )
     }
 
     enum CodingKeys: String, CodingKey {
-        case dates, roleSize, bodySize, detailSize, dateSize, entryGap, accentRoles, skills
+        case dates, roleSize, bodySize, detailSize, dateSize, entryGap, accentRoles, skills, languages
     }
 }
 
@@ -285,6 +286,10 @@ extension Blueprint.Entries.Dates {
 
 extension Blueprint.Entries.Skills {
     public init(from decoder: Decoder) throws { self = try decoder.choice(Self.self, called: "skill style") }
+}
+
+extension Blueprint.Entries.Languages {
+    public init(from decoder: Decoder) throws { self = try decoder.choice(Self.self, called: "language style") }
 }
 
 extension Blueprint.Ornament {

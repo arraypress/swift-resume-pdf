@@ -440,6 +440,12 @@ extension Resume {
         func languages(_ items: [Language]) {
             for item in items { parts += [item.name, item.level] }
         }
+        func achievements(_ items: [Achievement]) {
+            for item in items { parts += [item.title, item.summary] }
+        }
+        func strengths(_ items: [Strength]) {
+            for item in items { parts += [item.title, item.summary] }
+        }
 
         positions(experience); positions(volunteering); positions(teaching); positions(service)
         education(self.education)
@@ -450,6 +456,9 @@ extension Resume {
         awards(self.awards)
         grants(self.grants)
         languages(self.languages)
+        achievements(self.achievements)
+        strengths(self.strengths)
+        parts += time.map(\.label)
 
         for section in custom {
             parts.append(section.title)
@@ -466,6 +475,8 @@ extension Resume {
                 case .grants(let items): grants(items)
                 case .skills(let items): skills(items)
                 case .languages(let items): languages(items)
+                case .achievements(let items): achievements(items)
+                case .strengths(let items): strengths(items)
                 }
             }
         }
