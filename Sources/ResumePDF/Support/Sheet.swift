@@ -200,6 +200,21 @@ public final class Sheet {
     /// Tracked, because uppercase set at seven points with no letter-spacing
     /// closes up into a grey bar. The spacing is what makes it read as a
     /// label rather than a squashed word.
+    /// How far under the cursor a heading's label is set, per treatment.
+    ///
+    /// One number rather than a literal in each case, because the mark a
+    /// design hangs beside a heading is centred on the label — and a mark
+    /// that guesses the drop sits a little above the words it belongs to.
+    public static func headingDrop(_ style: HeadingStyle) -> Double {
+        style == .accentBar ? 9 : 8
+    }
+
+    /// The room a heading asks for ahead of itself, so the mark beside one
+    /// can make the same break before measuring where the heading will sit.
+    public static func headingLookahead(size: Double, leading: Double) -> Double {
+        leading + 64
+    }
+
     public func sectionHeading(
         _ title: String,
         x: Double? = nil,
@@ -212,13 +227,14 @@ public final class Sheet {
         let boxWidth = columnWidth ?? width
         let label = title.uppercased()
         let tint = color ?? muted
+        let drop = Sheet.headingDrop(style)
 
         // Kept with the first entry of what follows, not merely with some
         // room: an entry's own break asks for about three and a half lines,
         // so a lookahead smaller than that lets the label through and then
         // breaks anyway — a section name alone at the foot of a page,
         // labelling nothing.
-        pdf.breakIfNeeded(leading(size) + 64)
+        pdf.breakIfNeeded(Sheet.headingLookahead(size: size, leading: leading(size)))
 
         switch style {
         case .accentBar:
@@ -227,13 +243,13 @@ public final class Sheet {
             // accent is pale or the printer is monochrome.
             let baseline = pdf.cursor()
             pdf.rect(x: originX, y: baseline - 7.5, width: 13, height: 2.4, color: accent)
-            pdf.textAt(label, x: originX + 20, y: baseline - 9, size: size,
+            pdf.textAt(label, x: originX + 20, y: baseline - drop, size: size,
                        color: tint, face: semibold, tracking: size * 0.14)
-            pdf.move(to: baseline - 9)
+            pdf.move(to: baseline - drop)
 
         case .ruled:
             let baseline = pdf.cursor()
-            pdf.textAt(label, x: originX, y: baseline - 8, size: size,
+            pdf.textAt(label, x: originX, y: baseline - drop, size: size,
                        color: tint, face: semibold, tracking: size * 0.14)
             pdf.move(to: baseline - 13)
             pdf.line(from: originX, pdf.cursor(), to: originX + boxWidth, pdf.cursor(),
@@ -241,13 +257,13 @@ public final class Sheet {
 
         case .plain:
             let baseline = pdf.cursor()
-            pdf.textAt(label, x: originX, y: baseline - 8, size: size,
+            pdf.textAt(label, x: originX, y: baseline - drop, size: size,
                        color: tint, face: semibold, tracking: size * 0.14)
             pdf.move(to: baseline - 9)
 
         case .centred:
             let baseline = pdf.cursor()
-            pdf.textAt(label, x: originX, y: baseline - 8, size: size,
+            pdf.textAt(label, x: originX, y: baseline - drop, size: size,
                        color: tint, align: .center, boxWidth: boxWidth,
                        face: semibold, tracking: size * 0.14)
             pdf.move(to: baseline - 13)

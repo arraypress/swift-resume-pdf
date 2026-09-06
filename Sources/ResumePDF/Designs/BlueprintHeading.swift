@@ -77,11 +77,22 @@ extension Blueprint {
 
             switch style {
             case .ruled, .plain, .accentBar, .centred:
+                // The mark is centred on the label's capitals, so the two
+                // read as one line. Measured from where the heading will be
+                // drawn — after the break it would make, not before — or the
+                // mark lands a line above its words at the foot of a page.
+                if icon {
+                    sheet.pdf.breakIfNeeded(Sheet.headingLookahead(size: size, leading: sheet.leading(size)))
+                }
+                let top = sheet.cursor
                 sheet.sectionHeading(title, x: x, width: width,
                                      style: style.builtIn, color: tint, size: size)
                 if icon {
-                    sheet.icon(Icon.of(section), x: x - size - 8,
-                               y: sheet.cursor + size * 2.2, size: size + 3, color: sheet.accent)
+                    let mark = size + 3
+                    let baseline = top - Sheet.headingDrop(style.builtIn)
+                    let middle = baseline + size * 0.36   // half a capital's height up from the baseline
+                    sheet.icon(Icon.of(section), x: x - mark - 8, y: middle - mark / 2,
+                               size: mark, color: sheet.accent)
                 }
 
             case .tab:
