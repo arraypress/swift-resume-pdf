@@ -189,6 +189,26 @@ final class BlueprintTests: XCTestCase {
         XCTAssertNil(Blueprint.gazette.side?.palette(on: sheet), "no fill, nothing to derive from")
     }
 
+    func testAPanelIsAsTallAsItsHeadAndNeverShorterThanItsHeight() throws {
+        // The band used to be a fixed height plus a flat allowance for a
+        // portrait, painted before anything was measured — the same tall
+        // band over one contact line as over three. It is now measured from
+        // the head's lowest point, with the design's height as a floor.
+        let sheet = Sheet(theme: .plain, family: try Typography.family(.inter), labels: Resume.sample.labels)
+        let page = sheet.pdf.height()
+        let flat = Blueprint.Panel(fill: .ink, height: 120, dip: 0)
+
+        // A head that ends 130 down: the footroom below it, past the floor.
+        XCTAssertEqual(flat.bottom(under: page - 130, on: sheet),
+                       page - 130 - Blueprint.Panel.footroom, accuracy: 0.01)
+        // A head that ends 50 down: the floor holds.
+        XCTAssertEqual(flat.bottom(under: page - 50, on: sheet), page - 120, accuracy: 0.01)
+        // A dipped edge keeps its sides — where the words are — clear too.
+        let dipped = Blueprint.Panel(fill: .accent, height: 100, dip: 26)
+        XCTAssertEqual(dipped.bottom(under: page - 130, on: sheet),
+                       page - 130 - Blueprint.Panel.footroom - 26, accuracy: 0.01)
+    }
+
     func testASkippedSectionIsNotDrawn() throws {
         var blueprint = Blueprint.ledger
         blueprint.skip = [.summary]

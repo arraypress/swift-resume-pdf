@@ -199,18 +199,22 @@ extension Blueprint {
             let profile = resume.profile
             let carriesPhoto = photo != nil && Sheet.photo(at: profile.photo) != nil
 
-            // A panel is painted first and the type reversed out of it, so the
-            // colours below are asked of the panel rather than the page.
-            let painted = panel?.draw(on: sheet, hasPhoto: carriesPhoto)
-            let panelHeight = painted?.height
-            let ink = painted?.palette.ink ?? sheet.ink
-            let mutedInk = painted?.palette.muted ?? sheet.muted
+            // The type is reversed out of a panel, so the colours below are
+            // asked of the panel rather than the page. The panel itself is
+            // painted last, once the head has shown how tall it needs to be.
+            let paint = panel?.tint(on: sheet)
+            let ink = paint?.palette.ink ?? sheet.ink
+            let mutedInk = paint?.palette.muted ?? sheet.muted
 
-            // Inside a panel the name sits about a third of the way down,
-            // which leaves room for the contact line under it and keeps the
-            // band from reading as an empty stripe with a name at the bottom.
-            var top = panelHeight.map { pdf.height() - $0 * 0.30 + nameSize * 0.86 }
-                ?? (pdf.height() - sheet.theme.density.margin)
+            // Inside a panel the head hangs a fixed distance under the page's
+            // edge; on the page it starts at the margin.
+            var top = paint != nil
+                ? pdf.height() - Panel.headroom
+                : pdf.height() - sheet.theme.density.margin
+
+            // The lowest thing drawn in the head, which is where a panel's
+            // edge is measured from — a portrait can reach below the words.
+            var lowest = top
 
             var textX = x
             var textWidth = width
@@ -243,12 +247,14 @@ extension Blueprint {
                     _ = sheet.portrait(profile.photo, x: x + width - diameter,
                                        y: top - diameter + nameSize * 0.4, diameter: diameter)
                     textWidth -= diameter + 18
+                    lowest = min(lowest, top - diameter + nameSize * 0.4)
 
                 case .left:
                     _ = sheet.portrait(profile.photo, x: x,
                                        y: top - diameter + nameSize * 0.4, diameter: diameter)
                     textX += diameter + 18
                     textWidth -= diameter + 18
+                    lowest = min(lowest, top - diameter + nameSize * 0.4)
                 }
             }
 
@@ -303,11 +309,24 @@ extension Blueprint {
                 }
             }
 
+            // The panel, now that the head has shown how tall it needs to
+            // be: down to the lower of the last line and the portrait, plus
+            // the footroom, and never shorter than the design's height.
+            var panelBottom: Double?
+            if let panel, let paint {
+                let bottom = panel.bottom(under: min(pdf.cursor(), lowest), on: sheet)
+                panel.paint(on: sheet, tint: paint.tint, bottom: bottom)
+                panelBottom = bottom
+            }
+
             // Inside a band the head is done: the caller paints under it.
             if banded { return pdf.cursor() - 14 }
 
-            if let panelHeight {
-                pdf.move(to: pdf.height() - panelHeight - 30)
+            if let panelBottom {
+                // Under the band's edge by less than it used to be: the gap
+                // was sized against a band half again as tall, and under a
+                // fitted one it read as a hole before the first heading.
+                pdf.move(to: panelBottom - 18)
             } else if let rule, !rule.underName {
                 sheet.rigidGap(5)
                 let span = rule.width > 0 ? rule.width : width
@@ -414,7 +433,10 @@ extension Blueprint {
 
         public var fill: Paint
 
-        /// How tall, before allowing for a portrait.
+        /// The least tall it will be. A panel is as tall as the name, the
+        /// claim, the contact lines and the portrait in it need, and never
+        /// shorter than this — so a head with one contact line and a head
+        /// with three do not get the same band.
         public var height: Double
 
         /// How far the bottom edge rises at the sides, in points. Zero is a
@@ -427,33 +449,58 @@ extension Blueprint {
             self.dip = dip
         }
 
-        /// Paints it and returns how tall it is, and what reads on it.
-        func draw(on sheet: Sheet, hasPhoto: Bool) -> (height: Double, palette: Sheet.Palette) {
-            let pdf = sheet.pdf
-            let panelHeight = hasPhoto ? height + 36 : height
-            let top = pdf.height()
-            let bottom = top - panelHeight
+        /// How far under the page's top edge the head is set inside a panel.
+        /// A portrait sits a little above the name, so this keeps the largest
+        /// portrait a design draws clear of the edge.
+        static let headroom = 32.0
 
-            // Filled where the colour can carry reversed type, washed where it
-            // cannot — asked of the colour rather than assumed.
+        /// The room a panel keeps under the lowest thing in it.
+        static let footroom = 24.0
+
+        /// The panel's colour on this theme, and the palette that reads on it.
+        ///
+        /// Filled where the colour can carry reversed type, washed where it
+        /// cannot — asked of the colour rather than assumed.
+        func tint(on sheet: Sheet) -> (tint: Color, palette: Sheet.Palette) {
             let asked = fill.colour(on: sheet)
             let tint = fill == .accent && !(sheet.theme.accentIsDark && !sheet.theme.isMonochrome)
                 ? sheet.wash
                 : asked
+            return (tint, Sheet.Palette.against(tint, accent: sheet.theme.accentColor))
+        }
 
-            if dip > 0 {
-                pdf.polygon([
-                    (x: 0, y: top),
-                    (x: pdf.width(), y: top),
-                    (x: pdf.width(), y: bottom + dip),
-                    (x: pdf.width() / 2, y: bottom),
-                    (x: 0, y: bottom + dip),
-                ], color: tint)
-            } else {
-                pdf.rect(x: 0, y: bottom, width: pdf.width(), height: panelHeight, color: tint)
+        /// Where the bottom edge goes for a head whose lowest content is at
+        /// `contentBottom`: below it by the footroom — and by the dip, since
+        /// the words sit at the sides, where a dipped edge is highest — and
+        /// never higher up the page than `height` allows.
+        func bottom(under contentBottom: Double, on sheet: Sheet) -> Double {
+            min(contentBottom - Panel.footroom - dip, sheet.pdf.height() - height)
+        }
+
+        /// Paints it from the page's top edge down to `bottom`, on page one.
+        ///
+        /// Called after the head has been drawn, because the height is the
+        /// head's to decide. It used to be painted first, at `height` plus a
+        /// flat allowance for a portrait, which gave one contact line the
+        /// same tall band as three. Registered as a background, which the
+        /// page composites under its content however late it is registered.
+        func paint(on sheet: Sheet, tint: Color, bottom: Double) {
+            let dip = self.dip
+            sheet.background { doc, page, _ in
+                guard page == 1 else { return }
+                let top = doc.height()
+                if dip > 0 {
+                    doc.polygon([
+                        (x: 0, y: top),
+                        (x: doc.width(), y: top),
+                        (x: doc.width(), y: bottom + dip),
+                        (x: doc.width() / 2, y: bottom),
+                        (x: 0, y: bottom + dip),
+                    ], color: tint)
+                } else {
+                    doc.rect(x: 0, y: bottom, width: doc.width(), height: top - bottom, color: tint)
+                }
             }
-
-            return (panelHeight, Sheet.Palette.against(tint, accent: sheet.theme.accentColor))
         }
     }
 
