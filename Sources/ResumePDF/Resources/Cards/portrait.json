@@ -1,0 +1,46 @@
+{
+  "back": {
+    "align": "centre",
+    "anchor": "middle",
+    "content": [
+      "contacts",
+      "space",
+      "code"
+    ],
+    "fill": "wash",
+    "padding": 16
+  },
+  "front": {
+    "align": "left",
+    "anchor": "middle",
+    "content": [
+      "portrait",
+      "name",
+      "title",
+      "organisation"
+    ],
+    "fill": "page",
+    "padding": 16
+  },
+  "name": "portrait",
+  "pairsWith": "foyer",
+  "photo": {
+    "align": "left",
+    "diameter": 52
+  },
+  "size": {
+    "height": 155.90551181102364,
+    "width": 240.9448818897638
+  },
+  "type": {
+    "bodySize": 7.4,
+    "codeSize": 66,
+    "nameSize": 14,
+    "nameWeight": "semibold",
+    "titleColour": "accent",
+    "titleSize": 8,
+    "tracking": -0.2,
+    "uppercase": false
+  },
+  "typeface": "sans"
+}

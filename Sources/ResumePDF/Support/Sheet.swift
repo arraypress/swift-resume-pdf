@@ -28,18 +28,45 @@ public final class Sheet {
     /// Layers drawn behind the content, in the order they were added.
     private var backgrounds: [(Document, Int, Int) -> Void] = []
 
-    public init(theme: Theme, family: FontFamily, labels: Labels) {
+    /// A sheet of the theme's paper.
+    public convenience init(theme: Theme, family: FontFamily, labels: Labels) {
+        self.init(theme: theme, family: family, labels: labels, page: nil, margin: nil)
+    }
+
+    /// A sheet of an exact size, for a document that is not a page of paper.
+    ///
+    /// A business card, and whatever else is measured in millimetres rather
+    /// than named — see ``Card``. The theme still supplies the type, the
+    /// palette and the rhythm; only the paper is different.
+    ///
+    /// - Parameters:
+    ///   - page: The page's size in points, or nil for the theme's paper.
+    ///   - margin: Kept from every edge, or nil for the theme's density.
+    public init(
+        theme: Theme, family: FontFamily, labels: Labels,
+        page: (width: Double, height: Double)?, margin: Double?
+    ) {
         self.theme = theme
         self.family = family
         self.labels = labels
 
-        pdf = Document(
-            size: theme.pageSize,
-            orientation: .portrait,
-            margin: theme.density.margin,
-            fontSize: 9.4,
-            leading: 13 * theme.density.leading
-        )
+        if let page {
+            pdf = Document(
+                width: page.width,
+                height: page.height,
+                margin: margin ?? theme.density.margin,
+                fontSize: 9.4,
+                leading: 13 * theme.density.leading
+            )
+        } else {
+            pdf = Document(
+                size: theme.pageSize,
+                orientation: .portrait,
+                margin: margin ?? theme.density.margin,
+                fontSize: 9.4,
+                leading: 13 * theme.density.leading
+            )
+        }
         pdf.family = family
 
         // The page colour goes down before anything a design adds, so a rail
@@ -309,6 +336,10 @@ public final class Sheet {
     }
 
     /// Wrapped body text.
+    /// - Parameter align: How the lines sit in the measure. Nil takes the
+    ///   theme's prose setting, which is what body text wants; a centred
+    ///   block — a card's title over a centred name — has to say so, or it
+    ///   ranges left under type that does not.
     @discardableResult
     public func paragraph(
         _ text: String,
@@ -316,7 +347,8 @@ public final class Sheet {
         width columnWidth: Double? = nil,
         size: Double = 9.4,
         face: EmbeddedFont? = nil,
-        color: Color? = nil
+        color: Color? = nil,
+        align: Align? = nil
     ) -> Double {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return 0 }
@@ -333,7 +365,7 @@ public final class Sheet {
         pdf.breakIfNeeded(height)
 
         return pdf.block(trimmed, x: originX, width: boxWidth, size: size,
-                         color: color ?? ink, align: prose(boxWidth),
+                         color: color ?? ink, align: align ?? prose(boxWidth),
                          leading: step, face: resolved)
     }
 

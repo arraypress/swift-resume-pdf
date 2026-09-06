@@ -239,3 +239,24 @@ extension CoverLetter {
         )
     }
 }
+
+// MARK: - A card
+
+extension Card {
+
+    /// The sample résumé's profile, on 85 × 55 mm.
+    ///
+    /// The same person as ``Resume/sample`` and ``CoverLetter/sample``, which
+    /// is the whole argument for the three documents sharing a ``Profile``.
+    public static var sample: Card {
+        Card(
+            profile: Resume.sample.profile,
+            organisation: "Stripe",
+            // The résumé's headline is a claim written to be read at leisure;
+            // a card has 85mm, so this one is shorter on purpose.
+            title: "Infrastructure Engineer",
+            tagline: "Payments infrastructure that stays up."
+        )
+    }
+}
+

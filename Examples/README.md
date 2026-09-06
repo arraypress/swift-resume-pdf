@@ -41,6 +41,14 @@ The eight two-column designs each render as one column too — `Blueprint.split.
 
 Each pairs with a résumé design, because the two arrive in the same email.
 
+## Business cards
+
+The same profile as the résumé, on 85 × 55 mm — two pages, because a side is a page:
+
+[plate](cards/plate.pdf) · [reverse](cards/reverse.pdf) · [portrait](cards/portrait.pdf) · [minimal](cards/minimal.pdf)
+
+And [plate with a 3mm bleed](cards/plate-bleed.pdf), as a printer wants it: artwork past the trim, crop marks in the bleed. The code on the back is a vCard, so scanning it saves the contact.
+
 ## Designs written as JSON
 
 A `Blueprint` is a design as data — no Swift, no recompile. Every design above *is* one: a JSON file in the package's `Resources/Designs/`, rendered under designs/.

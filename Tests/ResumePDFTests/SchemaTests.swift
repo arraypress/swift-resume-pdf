@@ -135,6 +135,16 @@ final class SchemaTests: XCTestCase {
         }
     }
 
+    func testEveryBundledCardDesignFitsItsSchema() throws {
+        for file in try files(in: "Cards") {
+            try check(try Data(contentsOf: file), against: .cardBlueprint, file.lastPathComponent)
+        }
+    }
+
+    func testTheSampleCardFitsTheCardSchema() throws {
+        try check(try JSONEncoder().encode(Card.sample), against: .card, "the sample card")
+    }
+
     func testEveryThemePresetFitsTheThemeSchema() throws {
         let files = try files(in: "Themes")
         XCTAssertEqual(files.count, Theme.presetNames.count)

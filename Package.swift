@@ -13,7 +13,7 @@ let package = Package(
         .library(name: "ResumePDF", targets: ["ResumePDF"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/arraypress/swift-text-pdf.git", from: "0.1.0"),
+        .package(path: "../swift-text-pdf"),
         .package(url: "https://github.com/arraypress/swift-text-docx.git", from: "0.1.0"),
     ],
     targets: [
@@ -29,6 +29,7 @@ let package = Package(
                 // only names it.
                 .copy("Resources/Designs"),
                 .copy("Resources/Letters"),
+                .copy("Resources/Cards"),
                 .copy("Resources/Schemas"),
                 .copy("Resources/Themes"),
             ]

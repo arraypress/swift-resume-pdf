@@ -137,6 +137,12 @@ func readmeBlueprintExample(url: URL, out: URL, resume: Resume) throws {
     try resume.save(to: out, design: Blueprint.split.singleColumn)   // same look, one column, reads in order
 }
 
+/// The card the README shows, from the same profile as the résumé.
+func readmeCardExample(profile: Profile, url: URL) throws {
+    let card = Card(profile: profile, organisation: "Stripe", title: "Infrastructure Engineer")
+    try card.save(to: url, design: .plate, bleed: 3)          // 85 × 55 mm, print-ready
+}
+
 // MARK: - Reading, matching and writing
 
 /// Never called. Compiled.

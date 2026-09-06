@@ -1,0 +1,42 @@
+{
+  "back": {
+    "align": "left",
+    "anchor": "middle",
+    "content": [
+      "contacts",
+      "space",
+      "code"
+    ],
+    "fill": "page",
+    "padding": 17
+  },
+  "front": {
+    "align": "left",
+    "anchor": "middle",
+    "content": [
+      "name",
+      "title",
+      "rule",
+      "organisation"
+    ],
+    "fill": "ink",
+    "padding": 18
+  },
+  "name": "reverse",
+  "pairsWith": "banner",
+  "size": {
+    "height": 155.90551181102364,
+    "width": 240.9448818897638
+  },
+  "type": {
+    "bodySize": 7.6,
+    "codeSize": 62,
+    "nameSize": 17,
+    "nameWeight": "semibold",
+    "titleColour": "accent",
+    "titleSize": 8.4,
+    "tracking": -0.3,
+    "uppercase": false
+  },
+  "typeface": "sans"
+}

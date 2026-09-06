@@ -1,0 +1,42 @@
+{
+  "back": {
+    "align": "centre",
+    "anchor": "middle",
+    "content": [
+      "organisation",
+      "contacts",
+      "space",
+      "code"
+    ],
+    "fill": "page",
+    "padding": 18
+  },
+  "front": {
+    "align": "centre",
+    "anchor": "middle",
+    "content": [
+      "name",
+      "rule",
+      "title"
+    ],
+    "fill": "page",
+    "padding": 18
+  },
+  "name": "minimal",
+  "pairsWith": "plain",
+  "size": {
+    "height": 155.90551181102364,
+    "width": 240.9448818897638
+  },
+  "type": {
+    "bodySize": 7.4,
+    "codeSize": 58,
+    "nameSize": 14,
+    "nameWeight": "regular",
+    "titleColour": "muted",
+    "titleSize": 7.6,
+    "tracking": 2.2,
+    "uppercase": true
+  },
+  "typeface": "sans"
+}

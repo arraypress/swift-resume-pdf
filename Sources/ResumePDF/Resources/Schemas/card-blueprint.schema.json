@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Card design",
+  "description": "A card design written as data: two sides, a fill each, and an ordered list of what sits on them.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "front": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fill": {
+          "description": "A named colour that follows the theme, or hex.",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "ink",
+                "muted",
+                "accent",
+                "hairline",
+                "wash",
+                "page",
+                "rail",
+                "inverse",
+                "dark",
+                "darkest"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            }
+          ]
+        },
+        "align": {
+          "type": "string",
+          "enum": [
+            "left",
+            "centre",
+            "right"
+          ]
+        },
+        "anchor": {
+          "type": "string",
+          "enum": [
+            "top",
+            "middle",
+            "bottom"
+          ]
+        },
+        "padding": {
+          "type": "number",
+          "description": "Kept from every trimmed edge, in points."
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "name",
+              "title",
+              "organisation",
+              "contacts",
+              "code",
+              "tagline",
+              "portrait",
+              "rule",
+              "space"
+            ]
+          },
+          "description": "What is on the side, in the order it is drawn down it."
+        }
+      }
+    },
+    "back": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fill": {
+          "description": "A named colour that follows the theme, or hex.",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "ink",
+                "muted",
+                "accent",
+                "hairline",
+                "wash",
+                "page",
+                "rail",
+                "inverse",
+                "dark",
+                "darkest"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            }
+          ]
+        },
+        "align": {
+          "type": "string",
+          "enum": [
+            "left",
+            "centre",
+            "right"
+          ]
+        },
+        "anchor": {
+          "type": "string",
+          "enum": [
+            "top",
+            "middle",
+            "bottom"
+          ]
+        },
+        "padding": {
+          "type": "number",
+          "description": "Kept from every trimmed edge, in points."
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "name",
+              "title",
+              "organisation",
+              "contacts",
+              "code",
+              "tagline",
+              "portrait",
+              "rule",
+              "space"
+            ]
+          },
+          "description": "What is on the side, in the order it is drawn down it."
+        }
+      }
+    },
+    "size": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "width",
+        "height"
+      ],
+      "properties": {
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        }
+      },
+      "description": "The trimmed size in points. 85 × 55 mm is 240.94 × 155.91."
+    },
+    "type": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "nameSize": {
+          "type": "number"
+        },
+        "nameWeight": {
+          "type": "string",
+          "enum": [
+            "regular",
+            "semibold"
+          ]
+        },
+        "uppercase": {
+          "type": "boolean"
+        },
+        "tracking": {
+          "type": "number"
+        },
+        "titleSize": {
+          "type": "number"
+        },
+        "titleColour": {
+          "description": "A named colour that follows the theme, or hex.",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "ink",
+                "muted",
+                "accent",
+                "hairline",
+                "wash",
+                "page",
+                "rail",
+                "inverse",
+                "dark",
+                "darkest"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            }
+          ]
+        },
+        "bodySize": {
+          "type": "number"
+        },
+        "codeSize": {
+          "type": "number",
+          "description": "The code's side in points. Below 30 it fails on a printed card."
+        }
+      }
+    },
+    "photo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "diameter": {
+          "type": "number"
+        },
+        "align": {
+          "type": "string",
+          "enum": [
+            "left",
+            "centre",
+            "right"
+          ],
+          "description": "left or right stands beside the words; centre stacks above them."
+        }
+      }
+    },
+    "pairsWith": {
+      "type": "string",
+      "description": "The résumé design this was drawn to sit beside."
+    },
+    "typeface": {
+      "type": "string",
+      "enum": [
+        "sans",
+        "serif"
+      ]
+    }
+  }
+}

@@ -32,6 +32,12 @@ public enum Schema: String, CaseIterable, Sendable {
     /// A letter design written as data.
     case letterBlueprint = "letter-blueprint"
 
+    /// A business card.
+    case card
+
+    /// A card design written as data.
+    case cardBlueprint = "card-blueprint"
+
     /// A theme.
     case theme
 

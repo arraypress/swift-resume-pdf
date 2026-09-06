@@ -652,3 +652,96 @@ extension TimeSlice {
     enum CodingKeys: String, CodingKey { case label, share }
 }
 
+// MARK: - A card
+
+extension Card {
+
+    /// Only the profile is required. A card with a name and an email is a
+    /// card, and every other field is something the holder may not have.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            profile: try container.decode(Profile.self, forKey: .profile),
+            organisation: try container.value(.organisation, or: ""),
+            title: try container.value(.title, or: ""),
+            tagline: try container.value(.tagline, or: ""),
+            code: try container.value(.code, or: "")
+        )
+    }
+
+    enum CodingKeys: String, CodingKey { case profile, organisation, title, tagline, code }
+}
+
+extension CardBlueprint {
+
+    /// Name only what you want changed, the way a résumé blueprint is
+    /// written — two keys is a design.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = CardBlueprint(name: "custom")
+        self.init(
+            name: try container.value(.name, or: "custom"),
+            front: try container.value(.front, or: defaults.front),
+            back: try container.maybe(.back),
+            size: try container.value(.size, or: defaults.size),
+            type: try container.value(.type, or: defaults.type),
+            photo: try container.maybe(.photo),
+            pairsWith: try container.value(.pairsWith, or: defaults.pairsWith),
+            typeface: try container.value(.typeface, or: defaults.typeface)
+        )
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case name, front, back, size, type, photo, pairsWith, typeface
+    }
+}
+
+extension CardBlueprint.Side {
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = CardBlueprint.Side()
+        self.init(
+            fill: try container.value(.fill, or: defaults.fill),
+            align: try container.value(.align, or: defaults.align),
+            anchor: try container.value(.anchor, or: defaults.anchor),
+            content: try container.value(.content, or: defaults.content),
+            padding: try container.value(.padding, or: defaults.padding)
+        )
+    }
+
+    enum CodingKeys: String, CodingKey { case fill, align, anchor, content, padding }
+}
+
+extension CardBlueprint.TypeScale {
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = CardBlueprint.TypeScale()
+        self.init(
+            nameSize: try container.value(.nameSize, or: defaults.nameSize),
+            nameWeight: try container.value(.nameWeight, or: defaults.nameWeight),
+            uppercase: try container.value(.uppercase, or: defaults.uppercase),
+            tracking: try container.value(.tracking, or: defaults.tracking),
+            titleSize: try container.value(.titleSize, or: defaults.titleSize),
+            titleColour: try container.value(.titleColour, or: defaults.titleColour),
+            bodySize: try container.value(.bodySize, or: defaults.bodySize),
+            codeSize: try container.value(.codeSize, or: defaults.codeSize)
+        )
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case nameSize, nameWeight, uppercase, tracking, titleSize, titleColour, bodySize, codeSize
+    }
+}
+
+// MARK: - Naming what there is
+
+extension CardBlueprint.Element {
+    public init(from decoder: Decoder) throws { self = try decoder.choice(Self.self, called: "card element") }
+}
+
+extension CardBlueprint.Side.Anchor {
+    public init(from decoder: Decoder) throws { self = try decoder.choice(Self.self, called: "anchor") }
+}
+

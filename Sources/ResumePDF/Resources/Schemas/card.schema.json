@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Business card",
+  "description": "A business card: a profile, and the two facts a résumé keeps elsewhere.",
+  "type": "object",
+  "required": [
+    "profile"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "profile": {
+      "$ref": "#/$defs/profile"
+    },
+    "organisation": {
+      "type": "string",
+      "description": "The employer, which a résumé keeps in its experience."
+    },
+    "title": {
+      "type": "string",
+      "description": "Printed under the name. Empty takes the profile's headline, which is often too long for 85mm."
+    },
+    "tagline": {
+      "type": "string",
+      "description": "A line for the back, where a design has one."
+    },
+    "code": {
+      "type": "string",
+      "description": "What the scannable code says. Empty encodes a vCard built from the profile."
+    },
+    "design": {
+      "type": "string",
+      "description": "Which card design, or a path to a card blueprint."
+    },
+    "theme": {
+      "$ref": "#/$defs/themeSpec"
+    }
+  },
+  "$defs": {
+    "profile": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "headline": {
+          "type": "string",
+          "description": "The role, under the name."
+        },
+        "location": {
+          "type": "string",
+          "description": "A city and country."
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/link"
+          }
+        },
+        "photo": {
+          "type": "string",
+          "description": "A path to a JPEG or PNG."
+        },
+        "qr": {
+          "type": "string",
+          "description": "An address to print as a code, in the designs that place one."
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "description": "A Lebenslauf carries one; a US résumé must not."
+        },
+        "nationality": {
+          "type": "string"
+        },
+        "maritalStatus": {
+          "type": "string"
+        },
+        "placeOfBirth": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ]
+    },
+    "link": {
+      "description": "An address. A bare string prints as the address shortened; an object names the label.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "url"
+          ]
+        }
+      ]
+    },
+    "themeSpec": {
+      "type": "object",
+      "properties": {
+        "typeface": {
+          "type": "string",
+          "description": "inter, sourceSerif, or a name for the files below."
+        },
+        "typefaceFiles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "Paths to .ttf files: regular, medium, semibold, bold, italic."
+          }
+        },
+        "accent": {
+          "type": "string"
+        },
+        "pageSize": {
+          "type": "string"
+        },
+        "density": {
+          "type": "string"
+        },
+        "scheme": {
+          "type": "string"
+        },
+        "tint": {
+          "type": "string"
+        },
+        "justified": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "description": "How the tool lays the document out. Any flag on the command line beats it."
+    }
+  }
+}

@@ -74,6 +74,23 @@ final class ExampleTests: XCTestCase {
         }
     }
 
+    func testEveryCardDesign() throws {
+        for design in CardDesign.allCases {
+            let document = try Card.sample.document(
+                design: design, theme: Theme(typeface: design.blueprint.typeface.typeface, accent: "#1F3A5F")
+            )
+            XCTAssertEqual(document.pageCount(), design.blueprint.back == nil ? 1 : 2,
+                           "\(design.rawValue): a side is a page")
+            try put(document.render(creationDate: Self.stamped), "cards/\(design.rawValue).pdf")
+        }
+
+        // The same card as a printer wants it: 3mm of bleed, with crop marks
+        // in it. Written once — the bleed is a property of the file, not of
+        // the design, so one example shows it.
+        let bled = try Card.sample.document(design: .plate, theme: Theme(accent: "#1F3A5F"), bleed: 3)
+        try put(bled.render(creationDate: Self.stamped), "cards/plate-bleed.pdf")
+    }
+
     func testEveryBlueprint() throws {
         // The starting points that are not designs. Nine of the designs are
         // blueprints, and those are written once, under designs/.

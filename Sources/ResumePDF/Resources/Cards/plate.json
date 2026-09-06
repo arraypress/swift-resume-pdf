@@ -1,0 +1,41 @@
+{
+  "back": {
+    "align": "centre",
+    "anchor": "middle",
+    "content": [
+      "code"
+    ],
+    "fill": "ink",
+    "padding": 17
+  },
+  "front": {
+    "align": "left",
+    "anchor": "middle",
+    "content": [
+      "name",
+      "title",
+      "organisation",
+      "rule",
+      "contacts"
+    ],
+    "fill": "page",
+    "padding": 17
+  },
+  "name": "plate",
+  "pairsWith": "ledger",
+  "size": {
+    "height": 155.90551181102364,
+    "width": 240.9448818897638
+  },
+  "type": {
+    "bodySize": 7.6,
+    "codeSize": 74,
+    "nameSize": 15,
+    "nameWeight": "semibold",
+    "titleColour": "accent",
+    "titleSize": 8.2,
+    "tracking": -0.2,
+    "uppercase": false
+  },
+  "typeface": "sans"
+}

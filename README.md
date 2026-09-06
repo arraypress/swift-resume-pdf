@@ -1,6 +1,6 @@
 # Swift Resume PDF
 
-Résumés, CVs and cover letters as PDFs — and as Word documents, plain text and Markdown. Twenty-four designs, every one a JSON file, real typography, and the checks that decide whether the thing gets read.
+Résumés, CVs, cover letters and business cards as PDFs — and as Word documents, plain text and Markdown. Twenty-four designs, every one a JSON file, real typography, and the checks that decide whether the thing gets read.
 
 ```swift
 let resume = Resume(
@@ -158,6 +158,38 @@ All three survive the flat formats: an achievement is a bullet with a bold lead 
 A language's `level` stays the words somebody wrote — `"Native"`, `"C1"`, `"Conversational"` — and a design may draw them as dots or a bar as well (`"languages": "dots"` in its entries). What the words are worth on a five-point scale is a fixed table (native and C2 are five, fluent and C1 four, intermediate and B1/B2 three, and so on); words the table does not know draw nothing, because the wrong number of dots is a claim the candidate never made.
 
 A cover letter *is* a different document, so it is a different type. See below.
+
+So is a business card, and for the same reason — but it shares the ``Profile``, which is the whole point:
+
+```swift
+let card = Card(profile: profile, organisation: "Stripe", title: "Infrastructure Engineer")
+try card.save(to: url, design: .plate, bleed: 3)          // 85 × 55 mm, print-ready
+```
+
+A card is 85mm wide, so it holds a name, a claim and three ways to reach somebody — and one that tries to say more says none of it. What the printed side does not carry, the code does: it encodes a **vCard** by default, so the phone that scans it saves the contact rather than opening a page and asking somebody to type it in.
+
+| | |
+|---|---|
+| `plate` | Name, claim and contacts on the front; the code on a dark back |
+| `reverse` | A reversed front carrying the name alone; the rest on a light back |
+| `portrait` | A photograph beside the name |
+| `minimal` | A centred name, and everything else on the back |
+
+`title` is given separately from the profile's headline because a résumé's headline is written to be read at leisure — "Senior Project Manager | Treasury & Expense Management" — and a card has 85mm. Leave it out and the headline is used.
+
+**Bleed.** `bleed: 3` is what a printer asks for, in millimetres: the artwork runs that far past the trim with crop marks in it, so a guillotine a hair out of true still cuts through ink rather than leaving a white line. The marks are drawn in the bleed and stop short of the trim, so none is left on the finished card; below about 1.5mm there is no room for both and they are left off rather than printed onto it. Leave it at zero for a card that will only be looked at on a screen.
+
+A card design is data too, in the same way a résumé design is — two sides, a fill each, and an ordered list of what sits on them:
+
+```json
+{
+  "name": "mine",
+  "front": { "fill": "page", "align": "left", "content": ["name", "title", "rule", "contacts"] },
+  "back":  { "fill": "ink", "align": "centre", "content": ["code"] }
+}
+```
+
+The elements are `name`, `title`, `organisation`, `contacts`, `code`, `tagline`, `portrait`, `rule` and `space`. One with nothing to show — a code on a card with no payload, a portrait on a profile with no photograph — is skipped rather than left as a gap, so one design serves a profile that carries a face and one that does not.
 
 ## Building your own
 
