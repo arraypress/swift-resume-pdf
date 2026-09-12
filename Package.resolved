@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/arraypress/swift-text-pdf.git",
       "state" : {
-        "revision" : "9bc38b8e43dbae3c0664e19153f4276db34ba6ef",
-        "version" : "0.2.0"
+        "revision" : "95e49306c8aca437de2faf1ddf0c10ab9a1516e8",
+        "version" : "0.3.0"
       }
     }
   ],
