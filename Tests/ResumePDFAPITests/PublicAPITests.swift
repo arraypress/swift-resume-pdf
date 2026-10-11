@@ -15,6 +15,7 @@
 import PDFKit
 import XCTest
 import ResumePDF
+import TextPDF
 
 /// A design written the way a caller would write one.
 ///

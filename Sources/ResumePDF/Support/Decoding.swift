@@ -22,6 +22,7 @@
 //
 
 import Foundation
+import TextPDF
 
 extension KeyedDecodingContainer {
 

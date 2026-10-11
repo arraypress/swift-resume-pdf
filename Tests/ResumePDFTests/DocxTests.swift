@@ -13,6 +13,7 @@ import Foundation
 import TextDocx
 import XCTest
 @testable import ResumePDF
+import TextPDF
 
 final class DocxTests: XCTestCase {
 

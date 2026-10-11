@@ -9,6 +9,7 @@ import CoreImage
 import PDFKit
 import XCTest
 @testable import ResumePDF
+import TextPDF
 
 final class CodeTests: XCTestCase {
 
