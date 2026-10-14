@@ -168,7 +168,7 @@ try card.save(to: url, design: .plate, bleed: 3)          // 85 × 55 mm, print-
 
 A card is 85mm wide, so it holds a name, a claim and three ways to reach somebody — and one that tries to say more says none of it. What the printed side does not carry, the code does: it encodes a **vCard** by default, so the phone that scans it saves the contact rather than opening a page and asking somebody to type it in.
 
-| | |
+| Design | Layout |
 |---|---|
 | `plate` | Name, claim and contacts on the front; the code on a dark back |
 | `reverse` | A reversed front carrying the name alone; the rest on a light back |
