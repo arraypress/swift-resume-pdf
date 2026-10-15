@@ -26,6 +26,13 @@ import Foundation
 import RecipeKit
 import TextPDF
 
+/// The keys a tool reads beside a document's own — its design, its theme,
+/// the file it extends — which the document's decoder lets through rather
+/// than refuse, as the schemas list them.
+enum DocumentKeys {
+    static let toolKeys = ["design", "letterDesign", "theme", "extends"]
+}
+
 // The fill-in helpers — `value(_:or:)`, `maybe`, `choice`, `shorthand`,
 // `DecodingError.noSuch` — are DocumentTheme's, shared with the Markdown
 // library; what is here is this library's types read by them.
@@ -41,11 +48,12 @@ extension DateRange {
             self.init(text)
             return
         }
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(try container.value(.start, or: ""), try container.value(.end, or: ""))
     }
 
-    enum CodingKeys: String, CodingKey { case start, end }
+    enum CodingKeys: String, CodingKey, CaseIterable { case start, end }
 }
 
 // MARK: - Entries
@@ -53,6 +61,7 @@ extension DateRange {
 extension Position {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             role: try container.decode(String.self, forKey: .role),
@@ -65,7 +74,7 @@ extension Position {
         )
     }
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case role, organisation, location, dates, summary, highlights, skills
     }
 }
@@ -73,6 +82,7 @@ extension Position {
 extension Education {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             qualification: try container.decode(String.self, forKey: .qualification),
@@ -84,7 +94,7 @@ extension Education {
         )
     }
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case qualification, institution, location, dates, grade, highlights
     }
 }
@@ -92,6 +102,7 @@ extension Education {
 extension Project {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             name: try container.decode(String.self, forKey: .name),
@@ -104,7 +115,7 @@ extension Project {
         )
     }
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case name, role, link, dates, summary, highlights, skills
     }
 }
@@ -112,6 +123,7 @@ extension Project {
 extension Publication {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             title: try container.decode(String.self, forKey: .title),
@@ -122,12 +134,13 @@ extension Publication {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case title, venue, date, authors, link }
+    enum CodingKeys: String, CodingKey, CaseIterable { case title, venue, date, authors, link }
 }
 
 extension Credential {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             name: try container.decode(String.self, forKey: .name),
@@ -137,12 +150,13 @@ extension Credential {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case name, issuer, date, identifier }
+    enum CodingKeys: String, CodingKey, CaseIterable { case name, issuer, date, identifier }
 }
 
 extension Award {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             name: try container.decode(String.self, forKey: .name),
@@ -152,12 +166,13 @@ extension Award {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case name, issuer, date, summary }
+    enum CodingKeys: String, CodingKey, CaseIterable { case name, issuer, date, summary }
 }
 
 extension Grant {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             title: try container.decode(String.self, forKey: .title),
@@ -169,7 +184,7 @@ extension Grant {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case title, funder, amount, dates, role, identifier }
+    enum CodingKeys: String, CodingKey, CaseIterable { case title, funder, amount, dates, role, identifier }
 }
 
 extension Language {
@@ -181,6 +196,7 @@ extension Language {
             self.init(name)
             return
         }
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             try container.decode(String.self, forKey: .name),
@@ -188,12 +204,13 @@ extension Language {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case name, level }
+    enum CodingKeys: String, CodingKey, CaseIterable { case name, level }
 }
 
 extension SkillGroup {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             try container.decode(String.self, forKey: .name),
@@ -201,7 +218,7 @@ extension SkillGroup {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case name, items }
+    enum CodingKeys: String, CodingKey, CaseIterable { case name, items }
 }
 
 // MARK: - Profile
@@ -209,6 +226,7 @@ extension SkillGroup {
 extension Profile {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "profile")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             name: try container.decode(String.self, forKey: .name),
@@ -226,7 +244,7 @@ extension Profile {
         )
     }
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case name, headline, location, email, phone, links, photo, qr
         case dateOfBirth, nationality, maritalStatus, placeOfBirth
     }
@@ -241,6 +259,7 @@ extension Link {
             self.init(url)
             return
         }
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "profile")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             try container.decode(String.self, forKey: .url),
@@ -248,7 +267,7 @@ extension Link {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case url, label }
+    enum CodingKeys: String, CodingKey, CaseIterable { case url, label }
 }
 
 // MARK: - Documents
@@ -256,6 +275,7 @@ extension Link {
 extension Resume {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.allCases.map(\.stringValue) + DocumentKeys.toolKeys, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             profile: try container.decode(Profile.self, forKey: .profile),
@@ -285,7 +305,7 @@ extension Resume {
         )
     }
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case profile, summary, experience, education, skills, projects
         case volunteering, certifications, publications, awards, languages
         case achievements, strengths, time
@@ -297,6 +317,7 @@ extension Resume {
 extension CustomSection {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             try container.decode(String.self, forKey: .title),
@@ -304,7 +325,7 @@ extension CustomSection {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case title, content }
+    enum CodingKeys: String, CodingKey, CaseIterable { case title, content }
 }
 
 extension CustomSection.Content {
@@ -317,6 +338,7 @@ extension CustomSection.Content {
     /// whole extensibility story of this library; theirs has to be the shape
     /// somebody would type.
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(Kind.self, noun: "résumé")
         let container = try decoder.container(keyedBy: Kind.self)
 
         guard let kind = container.allKeys.first, container.allKeys.count == 1 else {
@@ -376,6 +398,7 @@ extension CustomSection.Content {
 extension CoverLetter {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.allCases.map(\.stringValue) + DocumentKeys.toolKeys, noun: "letter")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             profile: try container.decode(Profile.self, forKey: .profile),
@@ -391,7 +414,7 @@ extension CoverLetter {
         )
     }
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case profile, recipient, date, subject, salutation, body
         case highlights, closing, signature, postscript
     }
@@ -400,6 +423,7 @@ extension CoverLetter {
 extension Recipient {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "letter")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             name: try container.value(.name, or: ""),
@@ -409,12 +433,13 @@ extension Recipient {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case name, role, organisation, address }
+    enum CodingKeys: String, CodingKey, CaseIterable { case name, role, organisation, address }
 }
 
 extension Highlight {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "letter")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             try container.decode(String.self, forKey: .title),
@@ -422,7 +447,7 @@ extension Highlight {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case title, detail }
+    enum CodingKeys: String, CodingKey, CaseIterable { case title, detail }
 }
 
 extension Labels {
@@ -447,6 +472,7 @@ extension Labels {
             }
             return
         }
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             try container.value(.overrides, or: [:]),
@@ -458,7 +484,7 @@ extension Labels {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case overrides, present, dateSeparator, language, contact, details }
+    enum CodingKeys: String, CodingKey, CaseIterable { case overrides, present, dateSeparator, language, contact, details }
 }
 
 // MARK: - Achievements, strengths, time
@@ -468,6 +494,7 @@ extension Achievement {
     /// Only the title is required; a mark left out takes the next in the
     /// cycle, which is how a list of four looks finished with no icons named.
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             title: try container.decode(String.self, forKey: .title),
@@ -476,12 +503,13 @@ extension Achievement {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case title, summary, icon }
+    enum CodingKeys: String, CodingKey, CaseIterable { case title, summary, icon }
 }
 
 extension Strength {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             title: try container.decode(String.self, forKey: .title),
@@ -489,7 +517,7 @@ extension Strength {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case title, summary }
+    enum CodingKeys: String, CodingKey, CaseIterable { case title, summary }
 }
 
 extension TimeSlice {
@@ -497,6 +525,7 @@ extension TimeSlice {
     /// Read from `{"label": "Writing code", "share": 35}`. A slice with no
     /// share counts as one part, so a plain list of labels divides evenly.
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "résumé")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             try container.decode(String.self, forKey: .label),
@@ -504,7 +533,7 @@ extension TimeSlice {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case label, share }
+    enum CodingKeys: String, CodingKey, CaseIterable { case label, share }
 }
 
 // MARK: - A card
@@ -514,6 +543,7 @@ extension Card {
     /// Only the profile is required. A card with a name and an email is a
     /// card, and every other field is something the holder may not have.
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.allCases.map(\.stringValue) + DocumentKeys.toolKeys, noun: "card")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             profile: try container.decode(Profile.self, forKey: .profile),
@@ -524,7 +554,7 @@ extension Card {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case profile, organisation, title, tagline, code }
+    enum CodingKeys: String, CodingKey, CaseIterable { case profile, organisation, title, tagline, code }
 }
 
 extension CardBlueprint {

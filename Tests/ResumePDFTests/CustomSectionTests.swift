@@ -420,7 +420,7 @@ extension CustomSectionTests {
 
     func testAMisspelledKindNamesTheOnesThereAre() {
         XCTAssertThrowsError(try decodeSection(#"{"title":"X","content":[{"bullets":["a"]}]}"#)) {
-            XCTAssertTrue("\($0)".contains("prose, list"), "\($0)")
+            XCTAssertTrue("\($0)".contains("content.0.prose, content.0.list"), "\($0)")
         }
     }
 
