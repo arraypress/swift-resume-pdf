@@ -19,6 +19,7 @@
 //
 
 import Foundation
+import RecipeKit
 import TextPDF
 
 /// A letter design written as data.
@@ -305,9 +306,7 @@ extension LetterBlueprint: BundledBlueprint {
     /// it. Each is a blueprint to start from.
     public static let starting: [LetterBlueprint] = readBundled()
 
-    public static let subdirectory = "Letters"
-
-    public static let bundledNames = ["memo", "letterhead", "panel", "monogram"]
+    public static let catalogue = LetterCatalogText.all
 
     /// A small ruled head and one column. Pairs with `ledger`.
     public static let memo = bundled("memo")
@@ -329,6 +328,7 @@ extension LetterBlueprint: BundledBlueprint {
 extension LetterBlueprint {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             name: try container.value(.name, or: "custom"),
@@ -338,12 +338,13 @@ extension LetterBlueprint {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case name, masthead, pairsWith, typeface }
+    enum CodingKeys: String, CodingKey, CaseIterable { case name, masthead, pairsWith, typeface }
 }
 
 extension LetterBlueprint.Masthead {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = LetterBlueprint.Masthead()
         self.init(
@@ -364,7 +365,7 @@ extension LetterBlueprint.Masthead {
         )
     }
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case align, nameSize, uppercase, tracking, nameBold
         case headlineSize, headlineColour, headlineItalic
         case contacts, contactSize, photo, finish, rule, gapAfter

@@ -22,7 +22,7 @@ final class OverflowTests: XCTestCase {
 
     /// A sheet whose page streams `Fixtures.pageStreams` can read back.
     private func plainSheet() -> Sheet {
-        Sheet(theme: .plain, family: FontFamily(name: ""), labels: .english)
+        Sheet(theme: ThemePresets.plain, family: FontFamily(name: ""), labels: .english)
     }
 
     // MARK: The sidebar rail

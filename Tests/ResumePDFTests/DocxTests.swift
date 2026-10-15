@@ -17,12 +17,12 @@ import TextPDF
 
 final class DocxTests: XCTestCase {
 
-    private func body(of resume: Resume, theme: Theme = .plain) throws -> String {
+    private func body(of resume: Resume, theme: Theme = ThemePresets.plain) throws -> String {
         let members = Docx.members(of: resume.docx(theme: theme))
         return try XCTUnwrap(String(data: try XCTUnwrap(members["word/document.xml"]), encoding: .utf8))
     }
 
-    private func styles(of resume: Resume, theme: Theme = .plain) throws -> String {
+    private func styles(of resume: Resume, theme: Theme = ThemePresets.plain) throws -> String {
         let members = Docx.members(of: resume.docx(theme: theme))
         return try XCTUnwrap(String(data: try XCTUnwrap(members["word/styles.xml"]), encoding: .utf8))
     }
@@ -125,8 +125,8 @@ final class DocxTests: XCTestCase {
         XCTAssertTrue(try styles(of: Resume.sample, theme: letter).contains("<w:color w:val=\"1F3A5F\"/>"))
 
         XCTAssertTrue(try styles(of: Resume.sample, theme: Theme(typeface: .sourceSerif)).contains("w:ascii=\"Georgia\""))
-        XCTAssertTrue(try styles(of: Resume.sample, theme: .plain).contains("w:ascii=\"Calibri\""))
-        XCTAssertFalse(try styles(of: Resume.sample, theme: .plain).contains("<w:caps/><w:color"),
+        XCTAssertTrue(try styles(of: Resume.sample, theme: ThemePresets.plain).contains("w:ascii=\"Calibri\""))
+        XCTAssertFalse(try styles(of: Resume.sample, theme: ThemePresets.plain).contains("<w:caps/><w:color"),
                        "the plain theme is monochrome, so the headings take the text colour")
     }
 

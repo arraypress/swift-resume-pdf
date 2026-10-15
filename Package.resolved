@@ -1,6 +1,24 @@
 {
-  "originHash" : "c4cee184446c0bb220ddfb4bf645b4df1ac2060f10fe07daa61c6d72ae0ca8d3",
+  "originHash" : "90eb78233b45bf7e5c5cc04429e70bd3d1d9cd61cc85ead60345777d64ff55e4",
   "pins" : [
+    {
+      "identity" : "swift-document-theme",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/arraypress/swift-document-theme.git",
+      "state" : {
+        "revision" : "3541f68d82d2c8d072bc8c1305ccc819b2e3154b",
+        "version" : "0.1.0"
+      }
+    },
+    {
+      "identity" : "swift-recipe-kit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/arraypress/swift-recipe-kit.git",
+      "state" : {
+        "revision" : "871f85644c11c811e3befb49762f93c03b94f6fa",
+        "version" : "0.3.0"
+      }
+    },
     {
       "identity" : "swift-text-docx",
       "kind" : "remoteSourceControl",

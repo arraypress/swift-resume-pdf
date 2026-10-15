@@ -111,7 +111,7 @@ extension Resume {
     ///   the parse.
     public func check(
         design: DesignKind = .ledger,
-        theme: Theme = .plain,
+        theme: Theme = Theme(),
         region: Region = .international,
         posting: Posting? = nil
     ) throws -> Report {
@@ -126,7 +126,7 @@ extension Resume {
     /// hole in the safety net.
     public func check(
         design: any Design,
-        theme: Theme = .plain,
+        theme: Theme = Theme(),
         region: Region = .international,
         posting: Posting? = nil
     ) throws -> Report {

@@ -237,9 +237,7 @@ extension CardBlueprint: BundledBlueprint {
     /// The card designs the package carries, read from their JSON files.
     public static let starting: [CardBlueprint] = readBundled()
 
-    public static let subdirectory = "Cards"
-
-    public static let bundledNames = ["plate", "reverse", "portrait", "minimal"]
+    public static let catalogue = CardCatalogText.all
 
     // No `static let plate` here, unlike ``Blueprint``: a card is rendered
     // through an overload that takes either a ``CardDesign`` or one of these,

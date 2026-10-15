@@ -324,7 +324,7 @@ extension CustomSectionTests {
     }
 
     func testADesignOfYourOwnGetsTheTheme() throws {
-        let data = try Resume.sample.render(design: Broadside(), theme: .midnight)
+        let data = try Resume.sample.render(design: Broadside(), theme: ThemePresets.midnight)
         let raw = try XCTUnwrap(String(data: data, encoding: .isoLatin1))
 
         // The dark page is painted by Sheet, not by the design, so a design of

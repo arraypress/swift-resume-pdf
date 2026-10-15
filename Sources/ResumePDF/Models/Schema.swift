@@ -14,6 +14,7 @@
 //  there rather than by somebody's editor.
 //
 
+import DocumentTheme
 import Foundation
 
 /// One of the shapes, as JSON Schema (draft 2020-12).
@@ -42,19 +43,13 @@ public enum Schema: String, CaseIterable, Sendable {
     case theme
 
     /// The schema, as the bytes of its file.
-    public var data: Data {
-        guard let url = Bundle.module.url(forResource: "\(rawValue).schema", withExtension: "json",
-                                          subdirectory: "Schemas"),
-              let data = try? Data(contentsOf: url)
-        else {
-            preconditionFailure("The schema \(rawValue).schema.json is not in the package")
-        }
-        return data
-    }
+    public var data: Data { Data(json.utf8) }
 
-    /// The schema as text.
+    /// The schema as text: compiled in (`Support/SchemaText.swift`); the
+    /// theme's is DocumentTheme's, shared with press.
     public var json: String {
-        String(decoding: data, as: UTF8.self)
+        guard self != .theme else { return ThemeSchema.json }
+        return SchemaText.all.first { $0.name == rawValue }!.json
     }
 
     /// The file's name, for a tool writing it out.

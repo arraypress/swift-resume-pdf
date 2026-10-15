@@ -20,7 +20,7 @@ extension CoverLetter {
     /// Renders the letter and reports what is wrong with it.
     public func check(
         design: LetterDesign = .memo,
-        theme: Theme = .plain,
+        theme: Theme = Theme(),
         region: Region = .international
     ) throws -> Report {
         try check(design: design.blueprint, theme: theme, region: region)
@@ -29,7 +29,7 @@ extension CoverLetter {
     /// The same, for a letter design of your own.
     public func check(
         design: any LetterLayout,
-        theme: Theme = .plain,
+        theme: Theme = Theme(),
         region: Region = .international
     ) throws -> Report {
         try report(design: design, named: design.displayName, theme: theme, region: region)

@@ -7,7 +7,9 @@
 //  Reading a blueprint that names only what it wants changed, and naming the
 //  alternatives when a value is not one of them.
 
+import DocumentTheme
 import Foundation
+import RecipeKit
 import TextPDF
 
 // MARK: - Reading a partial one
@@ -20,6 +22,7 @@ import TextPDF
 extension Blueprint {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             name: try container.value(.name, or: "custom"),
@@ -38,7 +41,7 @@ extension Blueprint {
         )
     }
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case name, masthead, column, heading, entries
         case ornament, sectionGap, footer, skip, palette, typeface, sections, side
     }
@@ -47,6 +50,7 @@ extension Blueprint {
 extension Blueprint.Masthead {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = Blueprint.Masthead()
         self.init(
@@ -107,7 +111,7 @@ extension Blueprint.Masthead {
         try container.encodeIfPresent(band, forKey: .band)
     }
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case align, nameSize, uppercase, tracking, headlineSize
         case headlineColour, contactSize, panel, photo, qr, rule, monospaced, gapAfter
         case nameWeight, nameColour, headlineItalic, separator, contacts, twin, body, band
@@ -117,6 +121,7 @@ extension Blueprint.Masthead {
 extension Blueprint.Panel {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = Blueprint.Panel()
         self.init(
@@ -126,12 +131,13 @@ extension Blueprint.Panel {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case fill, height, dip }
+    enum CodingKeys: String, CodingKey, CaseIterable { case fill, height, dip }
 }
 
 extension Blueprint.Photo {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = Blueprint.Photo()
         self.init(
@@ -140,12 +146,13 @@ extension Blueprint.Photo {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case diameter, align }
+    enum CodingKeys: String, CodingKey, CaseIterable { case diameter, align }
 }
 
 extension Blueprint.Rule {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = Blueprint.Rule()
         self.init(
@@ -157,12 +164,13 @@ extension Blueprint.Rule {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case colour, thickness, double, width, underName }
+    enum CodingKeys: String, CodingKey, CaseIterable { case colour, thickness, double, width, underName }
 }
 
 extension Blueprint.Column {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = Blueprint.Column()
         self.init(
@@ -174,12 +182,13 @@ extension Blueprint.Column {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case labelWidth, gutter, labelAlign, headAtMargin, ruled }
+    enum CodingKeys: String, CodingKey, CaseIterable { case labelWidth, gutter, labelAlign, headAtMargin, ruled }
 }
 
 extension Blueprint.Side {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = Blueprint.Side()
         self.init(
@@ -212,7 +221,7 @@ extension Blueprint.Side {
         try container.encode(entries, forKey: .entries)
     }
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case width, edge, sections, fill, divider, inset, gutter, head, heading, entries
     }
 }
@@ -221,6 +230,7 @@ extension Blueprint.Side {
 extension Blueprint.Heading {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = Blueprint.Heading()
         self.init(
@@ -231,12 +241,13 @@ extension Blueprint.Heading {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case style, size, colour, icon }
+    enum CodingKeys: String, CodingKey, CaseIterable { case style, size, colour, icon }
 }
 
 extension Blueprint.Entries {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = Blueprint.Entries()
         self.init(
@@ -252,7 +263,7 @@ extension Blueprint.Entries {
         )
     }
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case dates, roleSize, bodySize, detailSize, dateSize, entryGap, accentRoles, skills, languages
     }
 }
@@ -260,6 +271,7 @@ extension Blueprint.Entries {
 extension Blueprint.PaletteOverride {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             page: try container.maybe(.page),
@@ -271,7 +283,7 @@ extension Blueprint.PaletteOverride {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case page, ink, muted, hairline, wash, accent }
+    enum CodingKeys: String, CodingKey, CaseIterable { case page, ink, muted, hairline, wash, accent }
 }
 
 // MARK: - Naming what there is
@@ -302,4 +314,66 @@ extension Blueprint.Alignment {
 
 extension Blueprint.Face {
     public init(from decoder: Decoder) throws { self = try decoder.choice(Self.self, called: "typeface") }
+}
+
+// MARK: - Patches, read as strictly
+
+//  Every field of a patch is optional — absent means "as the design has it" —
+//  so these read exactly what the synthesised decoder would, and refuse a key
+//  a patch does not have rather than let a misspelt override do nothing.
+
+extension Blueprint.SectionOverride {
+
+    public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(heading: try container.maybe(.heading), entries: try container.maybe(.entries),
+                  sectionGap: try container.maybe(.sectionGap))
+    }
+
+    enum CodingKeys: String, CodingKey, CaseIterable { case heading, entries, sectionGap }
+}
+
+extension Blueprint.HeadingPatch {
+
+    public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(style: try container.maybe(.style), size: try container.maybe(.size),
+                  colour: try container.maybe(.colour), icon: try container.maybe(.icon))
+    }
+
+    enum CodingKeys: String, CodingKey, CaseIterable { case style, size, colour, icon }
+}
+
+extension Blueprint.EntriesPatch {
+
+    public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            dates: try container.maybe(.dates), roleSize: try container.maybe(.roleSize),
+            bodySize: try container.maybe(.bodySize), detailSize: try container.maybe(.detailSize),
+            dateSize: try container.maybe(.dateSize), entryGap: try container.maybe(.entryGap),
+            accentRoles: try container.maybe(.accentRoles), skills: try container.maybe(.skills),
+            languages: try container.maybe(.languages)
+        )
+    }
+
+    enum CodingKeys: String, CodingKey, CaseIterable {
+        case dates, roleSize, bodySize, detailSize, dateSize, entryGap, accentRoles, skills, languages
+    }
+}
+
+extension CardSize {
+
+    /// Both measures, in points.
+    public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(width: try container.decode(Double.self, forKey: .width),
+                  height: try container.decode(Double.self, forKey: .height))
+    }
+
+    enum CodingKeys: String, CodingKey, CaseIterable { case width, height }
 }

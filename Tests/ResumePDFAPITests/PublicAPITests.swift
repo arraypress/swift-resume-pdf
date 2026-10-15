@@ -82,7 +82,7 @@ final class PublicAPITests: XCTestCase {
     }
 
     func testADesignOfYourOwnGetsTheThemeForFree() throws {
-        let data = try Resume.sample.render(design: SectionwiseDesign(), theme: .midnight)
+        let data = try Resume.sample.render(design: SectionwiseDesign(), theme: ThemePresets.midnight)
         XCTAssertNotNil(PDFDocument(data: data))
         XCTAssertTrue(try text(of: data).contains("Alex Moreau"))
     }

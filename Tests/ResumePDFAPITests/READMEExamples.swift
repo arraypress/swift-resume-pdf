@@ -48,7 +48,7 @@ func readmeExamples(
     Theme(accent: "#7A4A2B", tint: "#F6F1E8")       // on warm paper
     Theme(density: .compact)                        // six more lines per page
     Theme(justified: true)                          // flush both edges
-    Theme.named("navy")                             // a preset, from its file
+    ThemePresets.named("navy")                      // a preset, by name
 
     Resume(profile: profile, experience: roles, order: .conventional)   // a résumé
     Resume(profile: profile, grants: funding, order: .academic)         // a CV

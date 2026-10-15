@@ -26,17 +26,17 @@ extension Outlined {
 
     /// The finished `.docx` — the résumé, or the letter, for the form that
     /// takes nothing else.
-    public func docx(theme: Theme = .plain) -> Data {
+    public func docx(theme: Theme = Theme()) -> Data {
         docxDocument(theme: theme).data()
     }
 
-    public func saveDocx(to url: URL, theme: Theme = .plain) throws {
+    public func saveDocx(to url: URL, theme: Theme = Theme()) throws {
         try docx(theme: theme).write(to: url, options: .atomic)
     }
 
     /// The document before it is written, for a caller who wants to add
     /// to it — a covering note on the first page, say.
-    public func docxDocument(theme: Theme = .plain) -> Docx {
+    public func docxDocument(theme: Theme = Theme()) -> Docx {
         Docx.from(outline(), theme: theme, name: profile.name)
     }
 }

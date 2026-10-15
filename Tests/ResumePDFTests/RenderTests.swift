@@ -20,7 +20,7 @@ import TextPDF
 
 final class RenderTests: XCTestCase {
 
-    private func read(_ resume: Resume, design: DesignKind, theme: Theme = .plain) throws -> String {
+    private func read(_ resume: Resume, design: DesignKind, theme: Theme = ThemePresets.plain) throws -> String {
         let data = try resume.render(design: design, theme: theme)
         let document = try XCTUnwrap(PDFDocument(data: data), "PDFKit refused \(design.rawValue)")
         return try XCTUnwrap(document.string)
@@ -185,7 +185,7 @@ final class RenderTests: XCTestCase {
     }
 
     func testTheLetterPageSizeIsHonoured() throws {
-        let data = try Resume.sample.render(theme: .american)
+        let data = try Resume.sample.render(theme: ThemePresets.american)
         let document = try XCTUnwrap(PDFDocument(data: data))
         let bounds = try XCTUnwrap(document.page(at: 0)).bounds(for: .mediaBox)
 
@@ -294,7 +294,7 @@ extension RenderTests {
 
         // Case-insensitive: every design sets its section headings in
         // capitals, which is a design decision and not a fact to assert on.
-        let text = try read(cv, design: .broadsheet, theme: .classic)
+        let text = try read(cv, design: .broadsheet, theme: ThemePresets.classic)
         for expected in ["Grants and Funding", "EPSRC", "£1.2m", "Principal investigator",
                          "Teaching", "Talks", "Service", "Memberships"] {
             XCTAssertNotNil(

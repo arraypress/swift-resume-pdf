@@ -84,7 +84,7 @@ This writes the PDF directly, in designs that are honest about which side of tha
 | `flank` | Sidebar with the rail near-black and the name reversed out of it. | ❌ |
 | `marquee` | Banner's dark band over two columns. | ❌ |
 
-Every one of them is a JSON file in the package's resources (`Resources/Designs/`), written in the vocabulary below, and `Blueprint.ledger` *is* `ledger` — not a cousin of it — so editing a design is editing its file. The library is a renderer and a vocabulary; the designs are data it reads. `DesignKind.blueprint` hands any of them back.
+Every one of them is JSON compiled into the package (`Support/DesignCatalogText.swift`), written in the vocabulary below, and `Blueprint.ledger` *is* `ledger` — not a cousin of it — so editing a design is editing its file. The library is a renderer and a vocabulary; the designs are data it reads. `DesignKind.blueprint` hands any of them back.
 
 The eight marked ❌ are laid out in two columns, and a tracking system cannot read two columns. That is not a bug to be fixed later — two columns and machine-readability are the same trade-off seen from either end, and it is measured rather than assumed: PDFKit hands `split`'s side-by-side headings back as one line, `EXPERIENCE` followed by `SUMMARY`. `check` says so rather than leaving it to be discovered.
 
@@ -106,10 +106,10 @@ Theme(accent: "#E8A33D", scheme: .dark)         // reversed out
 Theme(accent: "#7A4A2B", tint: "#F6F1E8")       // on warm paper
 Theme(density: .compact)                        // six more lines per page
 Theme(justified: true)                          // flush both edges
-Theme.named("navy")                             // a preset, from its file
+ThemePresets.named("navy")                      // a preset, by name
 ```
 
-The presets — `plain`, `navy`, `classic`, `american`, `midnight`, `paper` — are JSON files in the package's resources, the way the designs are, and `Theme.named(_:)` reads one by name.
+The presets — `plain`, `navy`, `classic`, `american`, `midnight`, `paper` — are JSON compiled into the package, the way the designs are, and `ThemePresets.named(_:)` reads one by name. `Theme`, `Typeface`, the bundled fonts and the reading rules are [swift-document-theme](https://github.com/arraypress/swift-document-theme)'s, re-exported here and shared with [swift-markdown-pdf](https://github.com/arraypress/swift-markdown-pdf), so one `brand.json` dresses a CV and a report (`logo` is for Markdown documents; a résumé leaves it alone). `Theme(contentsOf:)` reads a file, taking its paths from the file's own folder.
 
 An accent chosen against white is routinely invisible on a dark page, so it is lifted when it comes too close to the background and left alone when it does not. A design that inverts a band gets a palette derived from that band, so bullets, dates and rules inside it stay legible without knowing anything unusual is happening.
 
@@ -311,7 +311,7 @@ Letters take the same treatment, with a smaller vocabulary — because `LetterLa
 
 **The body is not yours to move.** Recipient, greeting, argument, sign-off are set the same way by every design, built-in or written. That is not an omission: the shape of a letter is older and less negotiable than a résumé's, and rearranging those parts does not make it look modern — it makes it look like it was written by somebody who has not read one.
 
-`pairsWith` names the résumé design it sits beside, which is what a tool reads to set both halves of an application in the same face. The four letter designs are themselves files in `Resources/Letters/`, the way the résumé designs are in `Resources/Designs/`.
+`pairsWith` names the résumé design it sits beside, which is what a tool reads to set both halves of an application in the same face. The four letter designs are themselves JSON in the package (`Support/LetterCatalogText.swift`), the way the résumé designs are.
 
 ### Sections of your own
 
@@ -456,7 +456,7 @@ Not legal advice. What is checked is whether the document matches the convention
 
 ## Typography
 
-Both families are SIL Open Font Licence 1.1 and travel in the package, because a résumé tool whose output looks like a 1998 memo unless you go and find a font is one nobody uses twice.
+Both families are SIL Open Font Licence 1.1 and travel with the code (in swift-document-theme), because a résumé tool whose output looks like a 1998 memo unless you go and find a font is one nobody uses twice.
 
 Static instances, not variable ones. A variable font carries one set of outlines plus the deltas that make a weight; subsetting keeps the outlines and drops the deltas, so every weight would render as regular.
 
@@ -575,7 +575,9 @@ The tests hand the file to `textutil`, the system's own reader, and check the wo
 let schema = Schema.resume.json                       // JSON Schema, draft 2020-12
 ```
 
-Everything the library reads is JSON, and an editor or an agent that has the schema stops guessing the keys. There is one each for a résumé (`Schema.resume`, including the `design`, `theme` and `extends` keys a tool reads beside it), a letter, a design (`.blueprint`), a letter design and a theme. They are kept honest by the tests, which validate every design, letter and theme the package carries — and the sample documents — against them.
+Everything the library reads is JSON, and an editor or an agent that has the schema stops guessing the keys. There is one each for a résumé (`Schema.resume`, including the `design`, `theme` and `extends` keys a tool reads beside it), a letter, a design (`.blueprint`), a letter design and a theme. They are kept honest by the tests, which validate every design, letter and theme the package carries — and the sample documents — against them. The theme's is the shared one (`ThemeSchema`), and the `theme` block of a résumé, letter or card is that same shape.
+
+Reading is strict: a key a design, letter design, card design or theme does not have is refused by its path, with the one it was probably meant to be — `masthead.nameSzie is not a design field — did you mean masthead.nameSize?` — never ignored. The bundled catalogues are checked the same way by the tests (`Blueprint.catalogueProblems`, `LetterBlueprint.catalogueProblems`, `CardBlueprint.catalogueProblems`, `ThemePresets.problems`: every entry reads strictly, under a unique kebab-case name that is its own). There are no resource bundles: designs, presets and schemas are compiled in, and the fonts are swift-document-theme's.
 
 ## Archival copies
 
@@ -620,4 +622,4 @@ Tightens leading and section gaps before touching the type size. Dropping to 8pt
 
 MIT — see [LICENSE](LICENSE).
 
-The bundled typefaces are SIL Open Font Licence 1.1; their licences are in `Sources/ResumePDF/Resources/Fonts`.
+The bundled typefaces are SIL Open Font Licence 1.1; they and their licences are in [swift-document-theme](https://github.com/arraypress/swift-document-theme).

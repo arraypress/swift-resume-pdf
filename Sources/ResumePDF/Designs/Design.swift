@@ -288,7 +288,7 @@ extension Resume {
     /// font accumulates the glyphs it is asked to draw in order to subset
     /// itself — so one shared between two documents carries the first one's
     /// characters into the second one's file.
-    public func document(design: DesignKind = .ledger, theme: Theme = .plain) throws -> Document {
+    public func document(design: DesignKind = .ledger, theme: Theme = Theme()) throws -> Document {
         try document(design: design.design, theme: theme)
     }
 
@@ -313,7 +313,7 @@ extension Resume {
     /// a design of your own is a masthead and a loop unless you want it to be
     /// more. Everything below that — ``Sheet``'s type, palette, rhythm and
     /// components — is the same furniture the eighteen are built from.
-    public func document(design: any Design, theme: Theme = .plain) throws -> Document {
+    public func document(design: any Design, theme: Theme = Theme()) throws -> Document {
         let family = try Typography.family(theme.typeface(declared: design.intendedTypeface))
         let sheet = Sheet(theme: theme, family: family, labels: labels)
         sheet.pdf.language = labels.language
@@ -322,13 +322,13 @@ extension Resume {
     }
 
     /// The finished bytes, from a design of your own.
-    public func render(design: any Design, theme: Theme = .plain) throws -> Data {
+    public func render(design: any Design, theme: Theme = Theme()) throws -> Data {
         try render(design: design, theme: theme, archival: false)
     }
 
     /// The same, with the archival profile, a password, or a fixed date.
     public func render(
-        design: any Design, theme: Theme = .plain, archival: Bool = false,
+        design: any Design, theme: Theme = Theme(), archival: Bool = false,
         password: String = "", creationDate: Date = Date()
     ) throws -> Data {
         let laid = try document(design: design, theme: theme)
@@ -378,7 +378,7 @@ extension Resume {
     public func fitted(
         to pages: Int = 1,
         design: DesignKind = .ledger,
-        theme: Theme = .plain
+        theme: Theme = Theme()
     ) throws -> Theme? {
         try fitted(to: pages, design: design.design, theme: theme)
     }
@@ -387,14 +387,11 @@ extension Resume {
     public func fitted(
         to pages: Int = 1,
         design: any Design,
-        theme: Theme = .plain
+        theme: Theme = Theme()
     ) throws -> Theme? {
         for density in [Density.relaxed, .normal, .compact] {
-            let candidate = Theme(
-                typeface: theme.typeface, accent: theme.accent, pageSize: theme.pageSize,
-                density: density, scheme: theme.scheme, tint: theme.tint,
-                justified: theme.justified
-            )
+            var candidate = theme
+            candidate.density = density
             if try document(design: design, theme: candidate).pageCount() <= pages {
                 return candidate
             }
@@ -413,7 +410,7 @@ extension Resume {
     ///   time it was written, so the same résumé rendered twice differs by
     ///   the clock alone.
     public func render(
-        design: DesignKind = .ledger, theme: Theme = .plain,
+        design: DesignKind = .ledger, theme: Theme = Theme(),
         archival: Bool = false, password: String = "", creationDate: Date = Date()
     ) throws -> Data {
         try render(design: design.design, theme: theme, archival: archival,
@@ -423,7 +420,7 @@ extension Resume {
     /// Renders and writes to a file, returning the byte count.
     @discardableResult
     public func save(
-        to url: URL, design: DesignKind = .ledger, theme: Theme = .plain
+        to url: URL, design: DesignKind = .ledger, theme: Theme = Theme()
     ) throws -> Int {
         try save(to: url, design: design.design, theme: theme)
     }

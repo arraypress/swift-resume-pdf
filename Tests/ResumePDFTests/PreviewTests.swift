@@ -37,12 +37,12 @@ final class PreviewTests: XCTestCase {
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
 
         let cases: [(String, Resume, DesignKind, Theme)] = [
-            ("academic", .academicSample, .broadsheet, .classic),
+            ("academic", .academicSample, .broadsheet, ThemePresets.classic),
             ("navy-sidebar", .sample, .sidebar, Theme(accent: "#1F3A5F")),
             ("compact-ledger", .sample, .ledger, Theme(density: .compact)),
-            ("dark-ledger", .sample, .ledger, .midnight),
+            ("dark-ledger", .sample, .ledger, ThemePresets.midnight),
             ("dark-sidebar", .sample, .sidebar, Theme(accent: "#4EA1FF", scheme: .dark)),
-            ("paper-timeline", .sample, .timeline, .paper),
+            ("paper-timeline", .sample, .timeline, ThemePresets.paper),
             ("tinted-ledger", .sample, .ledger, Theme(accent: "#B3423B", tint: "#FDF0EE")),
         ]
 

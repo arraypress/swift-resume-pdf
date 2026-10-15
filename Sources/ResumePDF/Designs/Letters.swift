@@ -109,12 +109,12 @@ extension LetterLayout {
 extension CoverLetter {
 
     /// Lays the letter out.
-    public func document(design: LetterDesign = .memo, theme: Theme = .plain) throws -> Document {
+    public func document(design: LetterDesign = .memo, theme: Theme = Theme()) throws -> Document {
         try document(design: design.blueprint, theme: theme)
     }
 
     /// The same, with a masthead of your own.
-    public func document(design: any LetterLayout, theme: Theme = .plain) throws -> Document {
+    public func document(design: any LetterLayout, theme: Theme = Theme()) throws -> Document {
         let family = try Typography.family(theme.typeface(declared: design.intendedTypeface))
         let sheet = Sheet(theme: theme, family: family, labels: .english)
         sheet.pdf.language = "en"
@@ -125,19 +125,19 @@ extension CoverLetter {
     }
 
     /// The finished bytes, from a masthead of your own.
-    public func render(design: any LetterLayout, theme: Theme = .plain) throws -> Data {
+    public func render(design: any LetterLayout, theme: Theme = Theme()) throws -> Data {
         try document(design: design, theme: theme).render(metadata: metadata)
     }
 
     /// The finished PDF bytes.
-    public func render(design: LetterDesign = .memo, theme: Theme = .plain) throws -> Data {
+    public func render(design: LetterDesign = .memo, theme: Theme = Theme()) throws -> Data {
         try render(design: design.blueprint, theme: theme)
     }
 
     /// Renders and writes to a file, returning the byte count.
     @discardableResult
     public func save(
-        to url: URL, design: LetterDesign = .memo, theme: Theme = .plain
+        to url: URL, design: LetterDesign = .memo, theme: Theme = Theme()
     ) throws -> Int {
         try save(to: url, design: design.blueprint, theme: theme)
     }

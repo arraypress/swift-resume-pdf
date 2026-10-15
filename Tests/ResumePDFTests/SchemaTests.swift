@@ -104,11 +104,6 @@ final class SchemaTests: XCTestCase {
         catch let mismatch as Mismatch { XCTFail("\(label) against \(which.filename): \(mismatch)") }
     }
 
-    private func files(in folder: String) throws -> [URL] {
-        let url = try XCTUnwrap(Bundle.module.url(forResource: folder, withExtension: nil))
-        return try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)
-            .filter { $0.pathExtension == "json" }
-    }
 
     // MARK: The schemas themselves
 
@@ -124,20 +119,20 @@ final class SchemaTests: XCTestCase {
     // MARK: What the package carries fits its own schemas
 
     func testEveryBundledDesignFitsTheBlueprintSchema() throws {
-        for file in try files(in: "Designs") {
-            try check(try Data(contentsOf: file), against: .blueprint, file.lastPathComponent)
+        for entry in DesignCatalogText.all {
+            try check(Data(entry.json.utf8), against: .blueprint, entry.name)
         }
     }
 
     func testEveryBundledLetterDesignFitsItsSchema() throws {
-        for file in try files(in: "Letters") {
-            try check(try Data(contentsOf: file), against: .letterBlueprint, file.lastPathComponent)
+        for entry in LetterCatalogText.all {
+            try check(Data(entry.json.utf8), against: .letterBlueprint, entry.name)
         }
     }
 
     func testEveryBundledCardDesignFitsItsSchema() throws {
-        for file in try files(in: "Cards") {
-            try check(try Data(contentsOf: file), against: .cardBlueprint, file.lastPathComponent)
+        for entry in CardCatalogText.all {
+            try check(Data(entry.json.utf8), against: .cardBlueprint, entry.name)
         }
     }
 
@@ -146,17 +141,15 @@ final class SchemaTests: XCTestCase {
     }
 
     func testEveryThemePresetFitsTheThemeSchema() throws {
-        let files = try files(in: "Themes")
-        XCTAssertEqual(files.count, Theme.presetNames.count)
-        for file in files {
-            try check(try Data(contentsOf: file), against: .theme, file.lastPathComponent)
-            XCTAssertNotNil(Theme.named(file.deletingPathExtension().lastPathComponent),
-                            "\(file.lastPathComponent) is a file but not a preset")
+        XCTAssertEqual(ThemePresets.problems, [])
+        for entry in ThemeCatalogText.all {
+            try check(Data(entry.json.utf8), against: .theme, entry.name)
+            XCTAssertNotNil(ThemePresets.named(entry.name))
         }
-        XCTAssertEqual(Theme.named("Navy"), .navy)
-        XCTAssertEqual(Theme.plain, Theme(), "the plain preset is the default")
-        XCTAssertEqual(Theme.classic.typeface, .sourceSerif, "a typeface reads back from its name")
-        XCTAssertNil(Theme.named("neon"))
+        XCTAssertEqual(ThemePresets.named("Navy"), ThemePresets.navy)
+        XCTAssertEqual(ThemePresets.plain, Theme(), "the plain preset is the default")
+        XCTAssertEqual(ThemePresets.classic.typeface, .sourceSerif, "a typeface reads back from its name")
+        XCTAssertNil(ThemePresets.named("neon"))
     }
 
     // MARK: What the library writes fits them too

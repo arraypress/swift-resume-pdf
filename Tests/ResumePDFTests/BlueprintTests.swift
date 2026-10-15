@@ -182,7 +182,7 @@ final class BlueprintTests: XCTestCase {
         // only where the fill can carry it, the page's own palette where it
         // cannot — so sidebar's pale rail is untouched and flank's near-black
         // one gets light ink under every theme.
-        let sheet = Sheet(theme: .plain, family: try Typography.family(.inter), labels: Resume.sample.labels)
+        let sheet = Sheet(theme: ThemePresets.plain, family: try Typography.family(.inter), labels: Resume.sample.labels)
 
         let dark = try XCTUnwrap(Blueprint.flank.side?.palette(on: sheet), "a near-black rail derives a palette")
         XCTAssertGreaterThan(dark.ink.luminance, 0.5, "light ink on a dark rail")
@@ -195,7 +195,7 @@ final class BlueprintTests: XCTestCase {
         // portrait, painted before anything was measured — the same tall
         // band over one contact line as over three. It is now measured from
         // the head's lowest point, with the design's height as a floor.
-        let sheet = Sheet(theme: .plain, family: try Typography.family(.inter), labels: Resume.sample.labels)
+        let sheet = Sheet(theme: ThemePresets.plain, family: try Typography.family(.inter), labels: Resume.sample.labels)
         let page = sheet.pdf.height()
         let flat = Blueprint.Panel(fill: .ink, height: 120, dip: 0)
 
@@ -297,38 +297,41 @@ final class BlueprintTests: XCTestCase {
         }
     }
 
-    func testTheDesignsAreTheFilesInTheBundle() throws {
-        // A design lives in Resources/Designs as JSON, and the Swift only
-        // names it. Every file decodes, names itself after its filename, and
-        // is one of the starting points — so a file added or dropped without
-        // the list following is caught here rather than in a release.
-        let folder = try XCTUnwrap(Bundle.module.url(forResource: "Designs", withExtension: nil))
-        let files = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
-            .filter { $0.pathExtension == "json" }
-        XCTAssertEqual(files.count, Blueprint.starting.count)
-
-        for file in files {
-            let blueprint = try Blueprint(contentsOf: file)
-            XCTAssertEqual(blueprint.name, file.deletingPathExtension().lastPathComponent)
-            XCTAssertTrue(Blueprint.starting.contains(blueprint), "\(blueprint.name) is a file but not a starting point")
-        }
-        for kind in DesignKind.allCases {
-            XCTAssertTrue(files.contains { $0.lastPathComponent == "\(kind.rawValue).json" }, "\(kind.rawValue).json is missing")
-        }
+    func testTheDesignsAreTheCatalogue() throws {
+        // A design is JSON compiled into the package, and the Swift only
+        // names it. Every one reads strictly under a unique kebab-case name
+        // that is its own, and is a starting point — so an entry added or
+        // dropped without the list following is caught here, not in a release.
+        XCTAssertEqual(Blueprint.catalogueProblems, [])
+        XCTAssertEqual(Blueprint.bundledNames, DesignKind.allCases.map(\.rawValue))
+        XCTAssertEqual(Blueprint.starting.count, DesignKind.allCases.count)
     }
 
-    func testTheLetterDesignsAreTheFilesInTheBundle() throws {
-        let folder = try XCTUnwrap(Bundle.module.url(forResource: "Letters", withExtension: nil))
-        let files = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
-            .filter { $0.pathExtension == "json" }
-        XCTAssertEqual(files.count, LetterBlueprint.starting.count)
-        XCTAssertEqual(files.count, LetterDesign.allCases.count, "every letter design is a file, and nothing else is")
+    func testTheLetterDesignsAreTheCatalogue() throws {
+        XCTAssertEqual(LetterBlueprint.catalogueProblems, [])
+        XCTAssertEqual(LetterBlueprint.bundledNames, LetterDesign.allCases.map(\.rawValue),
+                       "every letter design is in the catalogue, and nothing else is")
+    }
 
-        for file in files {
-            let blueprint = try LetterBlueprint(contentsOf: file)
-            XCTAssertEqual(blueprint.name, file.deletingPathExtension().lastPathComponent)
-            XCTAssertNotNil(LetterDesign(rawValue: blueprint.name), "\(blueprint.name).json is not a letter design")
+    func testAMisspeltDesignKeyIsRefusedWithTheOneItMeant() {
+        func refusal(_ json: String, as type: (some BundledBlueprint).Type) -> String {
+            do { _ = try JSONDecoder().decode(type, from: Data(json.utf8)); return "(read)" } catch {
+                return Decoding.describe(error)
+            }
         }
+        XCTAssertEqual(refusal(#"{"masthead": {"nameSzie": 30}}"#, as: Blueprint.self),
+                       "masthead.nameSzie is not a design field — did you mean masthead.nameSize?")
+        XCTAssertEqual(refusal(#"{"side": {"heading": {"syle": "ruled"}}}"#, as: Blueprint.self),
+                       "side.heading.syle is not a design field — did you mean side.heading.style?")
+        XCTAssertEqual(refusal(#"{"sections": {"skills": {"entries": {"skils": "chips"}}}}"#, as: Blueprint.self),
+                       "sections.skills.entries.skils is not a design field — did you mean sections.skills.entries.skills?")
+        XCTAssertEqual(refusal(#"{"ornamnet": "none"}"#, as: Blueprint.self), "ornamnet is not a design field — did you mean ornament?")
+        XCTAssertEqual(refusal(#"{"masthead": {"finsh": "rule"}}"#, as: LetterBlueprint.self),
+                       "masthead.finsh is not a design field — did you mean masthead.finish?")
+        XCTAssertEqual(refusal(#"{"front": {"paddng": 4}}"#, as: CardBlueprint.self),
+                       "front.paddng is not a design field — did you mean front.padding?")
+        XCTAssertEqual(refusal(#"{"size": {"width": 200, "hieght": 100}}"#, as: CardBlueprint.self),
+                       "size.hieght is not a design field — did you mean size.height?")
     }
 
     func testTheSideColumnAndThePaintedBodySurviveJSON() throws {

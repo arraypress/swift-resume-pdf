@@ -41,7 +41,7 @@ extension Renderable {
     /// Renders the document under a design of your own and writes it,
     /// returning the byte count.
     @discardableResult
-    public func save(to url: URL, design: Layout, theme: Theme = .plain) throws -> Int {
+    public func save(to url: URL, design: Layout, theme: Theme = Theme()) throws -> Int {
         let data = try render(design: design, theme: theme)
         try data.write(to: url, options: .atomic)
         return data.count

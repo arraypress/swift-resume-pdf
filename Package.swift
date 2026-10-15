@@ -15,6 +15,11 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/arraypress/swift-text-pdf.git", from: "0.2.0"),
         .package(url: "https://github.com/arraypress/swift-text-docx.git", from: "0.1.0"),
+        // The theme — typeface and its bundled fonts, accent, page, density —
+        // shared with the Markdown library, so one brand file dresses both.
+        .package(url: "https://github.com/arraypress/swift-document-theme.git", from: "0.1.0"),
+        // Strict reading: a key a design does not have is refused, by name.
+        .package(url: "https://github.com/arraypress/swift-recipe-kit.git", from: "0.3.0"),
     ],
     targets: [
         .target(
@@ -22,17 +27,12 @@ let package = Package(
             dependencies: [
                 .product(name: "TextPDF", package: "swift-text-pdf"),
                 .product(name: "TextDocx", package: "swift-text-docx"),
-            ],
-            resources: [
-                .copy("Resources/Fonts"),
-                // The designs themselves. A design is a JSON file; the Swift
-                // only names it.
-                .copy("Resources/Designs"),
-                .copy("Resources/Letters"),
-                .copy("Resources/Cards"),
-                .copy("Resources/Schemas"),
-                .copy("Resources/Themes"),
+                .product(name: "DocumentTheme", package: "swift-document-theme"),
+                .product(name: "RecipeKit", package: "swift-recipe-kit"),
             ]
+            // No resources: the designs, letters, cards, presets and schemas
+            // are compiled in (Support/*Text.swift); the fonts are
+            // DocumentTheme's.
         ),
         .testTarget(name: "ResumePDFTests", dependencies: ["ResumePDF"]),
 

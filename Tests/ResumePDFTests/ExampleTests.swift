@@ -122,8 +122,8 @@ final class ExampleTests: XCTestCase {
         // The axis most tools spend a dozen templates on.
         let themes: [(String, Theme)] = [
             ("navy", Theme(accent: "#1F3A5F")),
-            ("dark", .midnight),
-            ("paper", .paper),
+            ("dark", ThemePresets.midnight),
+            ("paper", ThemePresets.paper),
             ("compact", Theme(density: .compact)),
             ("justified", Theme(justified: true)),
             ("serif", Theme(typeface: .sourceSerif, accent: "#1A1A1A")),
@@ -161,7 +161,7 @@ final class ExampleTests: XCTestCase {
 
     func testTheOtherShapesOfDocument() throws {
         let cases: [(String, Resume, DesignKind, Theme)] = [
-            ("academic-cv", .academicSample, .broadsheet, .classic),
+            ("academic-cv", .academicSample, .broadsheet, ThemePresets.classic),
             ("lebenslauf", Self.lebenslauf, .margin, Theme(accent: "#2F4F4F")),
             ("graduate", Self.graduate, .card, Theme(accent: "#B0451F")),
         ]

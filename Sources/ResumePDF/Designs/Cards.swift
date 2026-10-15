@@ -68,14 +68,14 @@ extension Card {
     ///   crop marks in it. Three is what most printers ask for; zero is right
     ///   for a card that will only ever be looked at on a screen.
     public func document(
-        design: CardDesign = .plate, theme: Theme = .plain, bleed: Double = 0
+        design: CardDesign = .plate, theme: Theme = Theme(), bleed: Double = 0
     ) throws -> Document {
         try document(design: design.blueprint, theme: theme, bleed: bleed)
     }
 
     /// The same, under a design of your own.
     public func document(
-        design: CardBlueprint, theme: Theme = .plain, bleed: Double = 0
+        design: CardBlueprint, theme: Theme = Theme(), bleed: Double = 0
     ) throws -> Document {
         let family = try Typography.family(theme.typeface(declared: design.intendedTypeface))
         let margin = CardGeometry.bleed(millimetres: bleed)
@@ -91,7 +91,7 @@ extension Card {
 
     /// The finished bytes.
     public func render(
-        design: CardDesign = .plate, theme: Theme = .plain,
+        design: CardDesign = .plate, theme: Theme = Theme(),
         bleed: Double = 0, creationDate: Date = Date()
     ) throws -> Data {
         try render(design: design.blueprint, theme: theme, bleed: bleed, creationDate: creationDate)
@@ -99,7 +99,7 @@ extension Card {
 
     /// The same, under a design of your own.
     public func render(
-        design: CardBlueprint, theme: Theme = .plain,
+        design: CardBlueprint, theme: Theme = Theme(),
         bleed: Double = 0, creationDate: Date = Date()
     ) throws -> Data {
         try document(design: design, theme: theme, bleed: bleed)
@@ -109,7 +109,7 @@ extension Card {
     /// Renders and writes to a file, returning the byte count.
     @discardableResult
     public func save(
-        to url: URL, design: CardDesign = .plate, theme: Theme = .plain, bleed: Double = 0
+        to url: URL, design: CardDesign = .plate, theme: Theme = Theme(), bleed: Double = 0
     ) throws -> Int {
         let data = try render(design: design, theme: theme, bleed: bleed)
         try data.write(to: url, options: .atomic)

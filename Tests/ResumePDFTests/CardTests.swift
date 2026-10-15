@@ -155,16 +155,9 @@ final class CardTests: XCTestCase {
         }
     }
 
-    func testTheStartingPointsAreTheFilesInTheBundle() throws {
-        let folder = try XCTUnwrap(Bundle.module.url(forResource: "Cards", withExtension: nil))
-        let files = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
-            .filter { $0.pathExtension == "json" }
-
-        XCTAssertEqual(files.count, CardBlueprint.starting.count)
-        for file in files {
-            let blueprint = try CardBlueprint(contentsOf: file)
-            XCTAssertEqual(blueprint.name, file.deletingPathExtension().lastPathComponent)
-        }
+    func testTheStartingPointsAreTheCatalogue() throws {
+        XCTAssertEqual(CardBlueprint.catalogueProblems, [])
+        XCTAssertEqual(CardBlueprint.bundledNames.count, CardBlueprint.starting.count)
         for design in CardDesign.allCases {
             XCTAssertTrue(CardBlueprint.starting.contains(design.blueprint), design.rawValue)
         }

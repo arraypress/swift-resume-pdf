@@ -21,93 +21,14 @@
 //  the rest, which is the same contract the Swift initialisers offer.
 //
 
+import DocumentTheme
 import Foundation
+import RecipeKit
 import TextPDF
 
-extension KeyedDecodingContainer {
-
-    /// The value at `key`, or `fallback` when the key is absent or null.
-    ///
-    /// Absent and *wrong* are different answers. Written with `try?` this
-    /// defaults both, so one mistyped key inside `experience[3]` would drop
-    /// the entire employment history and render a résumé that looked finished
-    /// — the failure this library exists to prevent, committed by its own
-    /// decoder. A malformed value throws and names itself.
-    func value<T: Decodable>(_ key: Key, or fallback: T) throws -> T {
-        try decodeIfPresent(T.self, forKey: key) ?? fallback
-    }
-
-    /// The value at `key`, or nothing when it is absent or null.
-    func maybe<T: Decodable>(_ key: Key) throws -> T? {
-        try decodeIfPresent(T.self, forKey: key)
-    }
-
-    /// A named choice at `key` — a page size, a density — or `fallback`
-    /// when the key is absent. A name that is none of the choices is
-    /// refused with the names that are.
-    func choice<T: RawRepresentable & CaseIterable>(
-        _ key: Key, or fallback: T, called what: String
-    ) throws -> T where T.RawValue == String {
-        guard let written = try decodeIfPresent(String.self, forKey: key) else { return fallback }
-        guard let matched = T.matching(written) else {
-            throw DecodingError.noSuch(what, called: written, options: T.allCases.map(\.rawValue),
-                                       at: codingPath + [key])
-        }
-        return matched
-    }
-}
-
-extension Decoder {
-
-    /// Decodes a named choice, saying what the choices are when it is not one.
-    ///
-    /// "There is no heading style called 'tabbed'" and a list beats "Cannot
-    /// initialize Style from invalid String value tabbed", which tells
-    /// somebody editing a JSON file nothing they did not already know.
-    func choice<T: RawRepresentable & CaseIterable>(
-        _ type: T.Type, called what: String
-    ) throws -> T where T.RawValue == String {
-        let raw = try singleValueContainer().decode(String.self)
-        guard let value = T.matching(raw) else {
-            throw DecodingError.noSuch(what, called: raw, options: T.allCases.map(\.rawValue), at: codingPath)
-        }
-        return value
-    }
-
-    /// A bare string where an object is also accepted — `"2023"` for a
-    /// date range, `"English"` for a language, a URL for a link. Nil when
-    /// what is there is not a string, so the keyed decode can go ahead.
-    func shorthand() -> String? {
-        guard let single = try? singleValueContainer() else { return nil }
-        return try? single.decode(String.self)
-    }
-}
-
-extension RawRepresentable where Self: CaseIterable, RawValue == String {
-
-    /// The case written as `raw`, without regard to case: `"Letter"` and
-    /// `"letter"` are one choice, and a file typed by hand should not be
-    /// refused over a capital.
-    static func matching(_ raw: String) -> Self? {
-        let typed = raw.lowercased()
-        return allCases.first { $0.rawValue.lowercased() == typed }
-    }
-}
-
-extension DecodingError {
-
-    /// "There is no heading style called "tabbed" — one of: …": what
-    /// somebody editing a JSON file needs to read next.
-    /// - Parameter advice: What to write instead, where the list is not
-    ///   the whole answer.
-    static func noSuch(
-        _ what: String, called raw: String, options: [String], at path: [any CodingKey], advice: String = ""
-    ) -> DecodingError {
-        var description = "There is no \(what) called \"\(raw)\" — one of: " + options.joined(separator: ", ")
-        if !advice.isEmpty { description += ". " + advice }
-        return .dataCorrupted(DecodingError.Context(codingPath: path, debugDescription: description))
-    }
-}
+// The fill-in helpers — `value(_:or:)`, `maybe`, `choice`, `shorthand`,
+// `DecodingError.noSuch` — are DocumentTheme's, shared with the Markdown
+// library; what is here is this library's types read by them.
 
 // MARK: - Dates
 
@@ -504,32 +425,6 @@ extension Highlight {
     enum CodingKeys: String, CodingKey { case title, detail }
 }
 
-extension Theme {
-
-    /// Decodes a theme the way somebody writes one: name what you want
-    /// changed, and leave the rest out.
-    ///
-    /// An absent `typeface` matters most — it decodes as *no preference*,
-    /// which is what lets the design's own face through. Only a theme that
-    /// names one has made a choice.
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(
-            typeface: try container.maybe(.typeface),
-            accent: try container.value(.accent, or: "#111111"),
-            pageSize: try container.choice(.pageSize, or: .a4, called: "page size"),
-            density: try container.choice(.density, or: .normal, called: "density"),
-            scheme: try container.choice(.scheme, or: .light, called: "scheme"),
-            tint: try container.maybe(.tint),
-            justified: try container.value(.justified, or: false)
-        )
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case typeface, accent, pageSize, density, scheme, tint, justified
-    }
-}
-
 extension Labels {
 
     public init(from decoder: Decoder) throws {
@@ -564,47 +459,6 @@ extension Labels {
     }
 
     enum CodingKeys: String, CodingKey { case overrides, present, dateSeparator, language, contact, details }
-}
-
-extension Typeface {
-
-    /// A bundled family is its name — `"inter"`, `"sourceSerif"` — because
-    /// that is what a theme file wants to say. A family of your own is the
-    /// object it always was, with the files that make it.
-    public init(from decoder: Decoder) throws {
-        if let name = decoder.shorthand() {
-            switch name.lowercased() {
-            case "inter", "sans": self = .inter
-            case "sourceserif", "source-serif", "serif": self = .sourceSerif
-            default:
-                throw DecodingError.noSuch(
-                    "bundled typeface", called: name, options: ["inter", "sourceSerif"], at: decoder.codingPath,
-                    advice: "A family of your own is an object: {\"name\": …, \"files\": […]}."
-                )
-            }
-            return
-        }
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(
-            name: try container.decode(String.self, forKey: .name),
-            files: try container.value(.files, or: []),
-            bundled: try container.maybe(.bundled)
-        )
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        if let bundled, files.isEmpty {
-            var single = encoder.singleValueContainer()
-            try single.encode(bundled)
-            return
-        }
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(name, forKey: .name)
-        try container.encode(files, forKey: .files)
-        try container.encodeIfPresent(bundled, forKey: .bundled)
-    }
-
-    enum CodingKeys: String, CodingKey { case name, files, bundled }
 }
 
 // MARK: - Achievements, strengths, time
@@ -678,6 +532,7 @@ extension CardBlueprint {
     /// Name only what you want changed, the way a résumé blueprint is
     /// written — two keys is a design.
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = CardBlueprint(name: "custom")
         self.init(
@@ -692,7 +547,7 @@ extension CardBlueprint {
         )
     }
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case name, front, back, size, type, photo, pairsWith, typeface
     }
 }
@@ -700,6 +555,7 @@ extension CardBlueprint {
 extension CardBlueprint.Side {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = CardBlueprint.Side()
         self.init(
@@ -711,12 +567,13 @@ extension CardBlueprint.Side {
         )
     }
 
-    enum CodingKeys: String, CodingKey { case fill, align, anchor, content, padding }
+    enum CodingKeys: String, CodingKey, CaseIterable { case fill, align, anchor, content, padding }
 }
 
 extension CardBlueprint.TypeScale {
 
     public init(from decoder: Decoder) throws {
+        try decoder.refuseUnknownKeys(CodingKeys.self, noun: "design")
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = CardBlueprint.TypeScale()
         self.init(
@@ -731,7 +588,7 @@ extension CardBlueprint.TypeScale {
         )
     }
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case nameSize, nameWeight, uppercase, tracking, titleSize, titleColour, bodySize, codeSize
     }
 }

@@ -21,14 +21,7 @@ extension Blueprint: BundledBlueprint {
     /// how one actually gets made.
     public static let starting: [Blueprint] = readBundled()
 
-    public static let subdirectory = "Designs"
-
-    public static let bundledNames = [
-        "ledger", "broadsheet", "timeline", "sidebar", "margin", "nocturne", "eclipse",
-        "bulletin", "marker", "slate", "card", "terminal", "banner", "gazette",
-        "plain", "register", "plaqued", "carded",
-        "split", "wing", "foyer", "pillar", "flank", "marquee",
-    ]
+    public static let catalogue = DesignCatalogText.all
 
     /// One column, a rule under each heading, a code beside the name where
     /// there is one. Restraint is the design.
